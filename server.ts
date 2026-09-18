@@ -1089,6 +1089,73 @@ function getRulesFingerprint(rules: AuditRule[], ciCombinations: CiCombination[]
 let lastRulesFingerprint = '';
 const auditedTicketReportsMap = new Map<string, { fingerprint: string; report: TicketAuditReport }>();
 
+// Mandatory Metrics Configuration
+export interface MandatoryMetricDef {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  weight: number;
+}
+
+export const MANDATORY_METRIC_DEFINITIONS: MandatoryMetricDef[] = [
+  { id: 'affectedCi', name: 'Affected Service / CI Coupling', category: 'Infrastructure', description: 'Verifies affected CI matches resolution context and CMDB standard.', weight: 2 },
+  { id: 'suspectedCi', name: 'Suspected CI Root Cause', category: 'Infrastructure', description: 'Validates suspected CI root cause correlation against affected component.', weight: 2 },
+  { id: 'activityLogs', name: 'Activity Logs (3-Strike Rule)', category: 'Process', description: 'Audits user closure notification, 3-strike follow-up, and state transitions (Exempt for Netcool).', weight: 2 },
+  { id: 'shortDescription', name: 'Short Description Quality', category: 'Documentation', description: 'Audits issue summary clarity, brevity, and root cause alignment.', weight: 2 },
+  { id: 'technicalDescription', name: 'Technical Description (>50 chars)', category: 'Documentation', description: 'Mandates comprehensive technical diagnostic details, logs, and components.', weight: 2 },
+  { id: 'serviceImpactDescription', name: 'Service Impact Description', category: 'Impact', description: 'Evaluates service outage scope, affected tier, and user degradation.', weight: 2 },
+  { id: 'businessImpactDescription', name: 'Business Impact Description', category: 'Impact', description: 'Audits business operations, commercial fallout, and disruption justification.', weight: 2 },
+  { id: 'symptomCode', name: 'Symptom Code Correlation', category: 'Classification', description: 'Validates reported symptom code aligns with technical description.', weight: 2 },
+  { id: 'closureCode1', name: 'Closure Code 1 Alignment', category: 'Classification', description: 'Correlates primary closure code with troubleshooting resolution steps.', weight: 2 },
+  { id: 'closureCode2', name: 'Closure Code 2 (Sub-Code) Alignment', category: 'Classification', description: 'Audits secondary closure code precision for enterprise reporting.', weight: 2 },
+  { id: 'solutionCode', name: 'Solution Code Alignment', category: 'Classification', description: 'Validates applied permanent/workaround solution code against actions.', weight: 2 },
+  { id: 'knowledgeArticle', name: 'Linked Knowledge Base (KB)', category: 'Knowledge', description: 'Checks for valid linked ServiceNow Knowledge Base article reference.', weight: 2 },
+  { id: 'resolutionDescription', name: 'Resolution Description (8 Points)', category: 'Documentation', description: 'Evaluates step-by-step resolution actions against approved sequential checkpoints.', weight: 2 }
+];
+
+const mandatoryMetricsConfigPath = path.join(process.cwd(), 'mandatory_metrics_config.json');
+let mandatoryMetricsConfig: Record<string, Record<string, boolean>> = {
+  DEFAULT: {
+    affectedCi: true,
+    suspectedCi: true,
+    activityLogs: true,
+    shortDescription: true,
+    technicalDescription: true,
+    serviceImpactDescription: true,
+    businessImpactDescription: true,
+    symptomCode: true,
+    closureCode1: true,
+    closureCode2: true,
+    solutionCode: true,
+    knowledgeArticle: true,
+    resolutionDescription: true
+  }
+};
+
+function loadMandatoryMetricsConfig() {
+  try {
+    if (fs.existsSync(mandatoryMetricsConfigPath)) {
+      const raw = fs.readFileSync(mandatoryMetricsConfigPath, 'utf8');
+      mandatoryMetricsConfig = JSON.parse(raw);
+    }
+  } catch (e) {
+    console.warn('[Mandatory Metrics Config] Could not load from disk, using defaults.');
+  }
+}
+loadMandatoryMetricsConfig();
+
+function isMetricMandatoryForGroup(metricId: string, assignmentGroup?: string): boolean {
+  if (!assignmentGroup) {
+    return mandatoryMetricsConfig.DEFAULT?.[metricId] !== false;
+  }
+  const cleanGroup = assignmentGroup.trim();
+  if (mandatoryMetricsConfig[cleanGroup] && mandatoryMetricsConfig[cleanGroup][metricId] !== undefined) {
+    return mandatoryMetricsConfig[cleanGroup][metricId] === true;
+  }
+  return mandatoryMetricsConfig.DEFAULT?.[metricId] !== false;
+}
+
 async function executeAudit(tickets: Ticket[], rules: AuditRule[], ciCombinations: CiCombination[], resolutionQuestions: string[], overallRules?: OverallTicketAuditRule[]): Promise<TicketAuditReport[]> {
   // Deduplicate tickets to guarantee unique ticket identities across reports
   const uniqueTickets: Ticket[] = [];
@@ -3785,30 +3852,49 @@ app.post('/api/usage/reset', (req, res) => {
 app.get('/api/mandatory-metrics', (req, res) => {
   res.json({
     success: true,
+    metrics: MANDATORY_METRIC_DEFINITIONS,
     definitions: MANDATORY_METRIC_DEFINITIONS,
+    config: mandatoryMetricsConfig,
     configs: mandatoryMetricsConfig
   });
 });
 
 app.post('/api/mandatory-metrics', (req, res) => {
   try {
-    const { assignmentGroup, enabledMetrics } = req.body || {};
-    const groupKey = assignmentGroup ? String(assignmentGroup).trim() : 'DEFAULT';
-    if (!mandatoryMetricsConfig[groupKey]) {
-      mandatoryMetricsConfig[groupKey] = {};
+    const { config, configs, assignmentGroup, enabledMetrics } = req.body || {};
+    if (config && typeof config === 'object') {
+      mandatoryMetricsConfig = {
+        ...mandatoryMetricsConfig,
+        ...config
+      };
+    } else if (configs && typeof configs === 'object') {
+      mandatoryMetricsConfig = {
+        ...mandatoryMetricsConfig,
+        ...configs
+      };
+    } else if (assignmentGroup) {
+      const groupKey = String(assignmentGroup).trim();
+      if (!mandatoryMetricsConfig[groupKey]) {
+        mandatoryMetricsConfig[groupKey] = {};
+      }
+      mandatoryMetricsConfig[groupKey] = {
+        ...mandatoryMetricsConfig[groupKey],
+        ...enabledMetrics
+      };
     }
-    mandatoryMetricsConfig[groupKey] = {
-      ...mandatoryMetricsConfig[groupKey],
-      ...enabledMetrics
-    };
 
     try {
       fs.writeFileSync(mandatoryMetricsConfigPath, JSON.stringify(mandatoryMetricsConfig, null, 2), 'utf8');
+      console.log('[Mandatory Metrics Config] Persisted updated configuration successfully.');
     } catch (writeErr) {
       console.error('Error persisting mandatory metrics config:', writeErr);
     }
 
-    res.json({ success: true, configs: mandatoryMetricsConfig });
+    res.json({
+      success: true,
+      config: mandatoryMetricsConfig,
+      configs: mandatoryMetricsConfig
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || String(err) });
   }
@@ -3908,73 +3994,6 @@ app.post('/api/servicenow/incident/update-kb', async (req, res) => {
 
 // Live ServiceNow Incidents Store (Mock datasets completely eliminated per production directive)
 const mockServiceNowIncidents: any[] = [];
-
-// Mandatory Metrics Configuration
-interface MandatoryMetricDef {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  weight: number;
-}
-
-const MANDATORY_METRIC_DEFINITIONS: MandatoryMetricDef[] = [
-  { id: 'affectedCi', name: 'Affected Service / CI Coupling', category: 'Infrastructure', description: 'Verifies affected CI matches resolution context and CMDB standard.', weight: 2 },
-  { id: 'suspectedCi', name: 'Suspected CI Root Cause', category: 'Infrastructure', description: 'Validates suspected CI root cause correlation against affected component.', weight: 2 },
-  { id: 'activityLogs', name: 'Activity Logs (3-Strike Rule)', category: 'Process', description: 'Audits user closure notification, 3-strike follow-up, and state transitions (Exempt for Netcool).', weight: 2 },
-  { id: 'shortDescription', name: 'Short Description Quality', category: 'Documentation', description: 'Audits issue summary clarity, brevity, and root cause alignment.', weight: 2 },
-  { id: 'technicalDescription', name: 'Technical Description (>50 chars)', category: 'Documentation', description: 'Mandates comprehensive technical diagnostic details, logs, and components.', weight: 2 },
-  { id: 'serviceImpactDescription', name: 'Service Impact Description', category: 'Impact', description: 'Evaluates service outage scope, affected tier, and user degradation.', weight: 2 },
-  { id: 'businessImpactDescription', name: 'Business Impact Description', category: 'Impact', description: 'Audits business operations, commercial fallout, and disruption justification.', weight: 2 },
-  { id: 'symptomCode', name: 'Symptom Code Correlation', category: 'Classification', description: 'Validates reported symptom code aligns with technical description.', weight: 2 },
-  { id: 'closureCode1', name: 'Closure Code 1 Alignment', category: 'Classification', description: 'Correlates primary closure code with troubleshooting resolution steps.', weight: 2 },
-  { id: 'closureCode2', name: 'Closure Code 2 (Sub-Code) Alignment', category: 'Classification', description: 'Audits secondary closure code precision for enterprise reporting.', weight: 2 },
-  { id: 'solutionCode', name: 'Solution Code Alignment', category: 'Classification', description: 'Validates applied permanent/workaround solution code against actions.', weight: 2 },
-  { id: 'knowledgeArticle', name: 'Linked Knowledge Base (KB)', category: 'Knowledge', description: 'Checks for valid linked ServiceNow Knowledge Base article reference.', weight: 2 },
-  { id: 'resolutionDescription', name: 'Resolution Description (8 Points)', category: 'Documentation', description: 'Evaluates step-by-step resolution actions against approved sequential checkpoints.', weight: 2 }
-];
-
-const mandatoryMetricsConfigPath = path.join(process.cwd(), 'mandatory_metrics_config.json');
-let mandatoryMetricsConfig: Record<string, Record<string, boolean>> = {
-  DEFAULT: {
-    affectedCi: true,
-    suspectedCi: true,
-    activityLogs: true,
-    shortDescription: true,
-    technicalDescription: true,
-    serviceImpactDescription: true,
-    businessImpactDescription: true,
-    symptomCode: true,
-    closureCode1: true,
-    closureCode2: true,
-    solutionCode: true,
-    knowledgeArticle: true,
-    resolutionDescription: true
-  }
-};
-
-function loadMandatoryMetricsConfig() {
-  try {
-    if (fs.existsSync(mandatoryMetricsConfigPath)) {
-      const raw = fs.readFileSync(mandatoryMetricsConfigPath, 'utf8');
-      mandatoryMetricsConfig = JSON.parse(raw);
-    }
-  } catch (e) {
-    console.warn('[Mandatory Metrics Config] Could not load from disk, using defaults.');
-  }
-}
-loadMandatoryMetricsConfig();
-
-function isMetricMandatoryForGroup(metricId: string, assignmentGroup?: string): boolean {
-  if (!assignmentGroup) {
-    return mandatoryMetricsConfig.DEFAULT?.[metricId] !== false;
-  }
-  const cleanGroup = assignmentGroup.trim();
-  if (mandatoryMetricsConfig[cleanGroup] && mandatoryMetricsConfig[cleanGroup][metricId] !== undefined) {
-    return mandatoryMetricsConfig[cleanGroup][metricId] === true;
-  }
-  return mandatoryMetricsConfig.DEFAULT?.[metricId] !== false;
-}
 
 // Telemetry & Usage Tracking
 interface LlmCallRecord {

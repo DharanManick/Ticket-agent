@@ -21,11 +21,25 @@ import {
   X,
   Radio,
   Play,
-  ShieldCheck
+  ShieldCheck,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Ticket } from '../types';
 import { MandatoryMetricsConfig } from './MandatoryMetricsConfig';
+import UploadSection from './UploadSection';
+
+const DEFAULT_TRACKED_GROUPS = [
+  'Retail Payment Gateway',
+  'Database Administration',
+  'Data Ingestion Service',
+  'Network WAN Operations',
+  'SaaS Messaging Support',
+  'Database Support Services',
+  'Network Engineering Operations',
+  'Cloud Hosting DevOps Team'
+];
 
 interface ConnectionSetupProps {
   triggerPopup: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
@@ -33,6 +47,7 @@ interface ConnectionSetupProps {
   onTriggerAudit?: (tickets: Ticket[]) => Promise<void>;
   auditedCount?: number;
   totalRecordsCount?: number;
+  isLoading?: boolean;
 }
 
 export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
@@ -40,9 +55,11 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
   onTicketsLoaded = (_tickets: Ticket[]) => {},
   onTriggerAudit,
   auditedCount = 0,
-  totalRecordsCount = 0
+  totalRecordsCount = 0,
+  isLoading = false
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'rest' | 'upload' | 'metrics'>('rest');
+  const [selectedMetricGroup, setSelectedMetricGroup] = useState<string>('DEFAULT');
   
   // Credentials
   const [instanceName, setInstanceName] = useState(() => localStorage.getItem('gov_snow_instance') || 'dev12000');
@@ -105,14 +122,6 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
     `[${new Date().toLocaleTimeString()}] Connection Setup ready. Live ServiceNow endpoint configured.`
   ]);
   const [connectionProfileActive, setConnectionProfileActive] = useState(true);
-
-  // File Upload state
-  const [dragActive, setDragActive] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [parsedCount, setParsedCount] = useState<number | null>(null);
-  const [originalCount, setOriginalCount] = useState<number | null>(null);
-  const [errorText, setErrorText] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load server config on mount
   useEffect(() => {
@@ -329,81 +338,16 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
     saveCredentialsToServer({ trackedGroups: next });
   };
 
-  // Excel parser for dump alternative
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
-    else if (e.type === 'dragleave') setDragActive(false);
+  const clearAllTrackedGroups = () => {
+    setTrackedGroups([]);
+    saveCredentialsToServer({ trackedGroups: [] });
+    triggerPopup('All tracked assignment groups removed. All incidents will be processed without queue filters.', 'info');
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
-  };
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) processFile(e.target.files[0]);
-  };
-
-  const processFile = (file: File) => {
-    setFileName(file.name);
-    setErrorText(null);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rawJson: any[] = XLSX.utils.sheet_to_json(sheet);
-        
-        if (!rawJson || rawJson.length === 0) {
-          throw new Error('Spreadsheet appears to be empty.');
-        }
-
-        const parsedTickets: Ticket[] = rawJson.map((row: any, idx: number) => ({
-          id: String(row.number || row.incNumber || row['Incident Number'] || `DUMP_${idx + 1}`),
-          incNumber: String(row.number || row.incNumber || row['Incident Number'] || `INC${idx + 1000}`),
-          assignee: String(row.assigned_to || row.assignee || row['Assigned To'] || 'Unassigned'),
-          assignmentGroup: String(row.assignment_group || row['Assignment Group'] || 'General Support'),
-          assigneeManager: String(row.manager || row.assigneeManager || 'Operations Manager'),
-          createdDate: String(row.sys_created_on || row.createdDate || new Date().toISOString()),
-          closedDate: String(row.closed_at || row.closedDate || new Date().toISOString()),
-          affectedCi: String(row.cmdb_ci || row.affectedCi || row['Affected CI'] || 'ServiceNow Server'),
-          suspectedCi: String(row.u_suspected_ci || row.suspectedCi || row.cmdb_ci || 'ServiceNow Server'),
-          symptomCode: String(row.u_symptom_code || row.symptomCode || 'Default Symptom'),
-          shortDescription: String(row.short_description || row.shortDescription || ''),
-          technicalDescription: String(row.description || row.technicalDescription || ''),
-          serviceImpactDescription: String(row.u_service_impact || row.serviceImpactDescription || ''),
-          businessImpactDescription: String(row.u_business_impact || row.businessImpactDescription || ''),
-          activityLogs: String(row.comments_and_work_notes || row.activityLogs || row.work_notes || ''),
-          closureCode1: String(row.close_code || row.closureCode1 || 'Solved (Work Around)'),
-          closureCode2: String(row.u_closure_sub_code || row.closureCode2 || 'Application Configuration'),
-          solutionCode: String(row.u_solution_code || row.solutionCode || 'Patch Applied'),
-          externalReference: String(row.u_external_reference || row.externalReference || ''),
-          knowledgeArticle: String(row.u_kb_article || row.knowledgeArticle || ''),
-          resolutionDescription: String(row.close_notes || row.resolutionDescription || ''),
-          incidentState: String(row.incident_state || row.state || 'Active')
-        }));
-
-        setOriginalCount(parsedTickets.length);
-        const finalTickets = onlySolvePropose
-          ? parsedTickets.filter(t => (t.incidentState || '').toLowerCase().includes('propose'))
-          : parsedTickets;
-        
-        setParsedCount(finalTickets.length);
-        onTicketsLoaded(finalTickets);
-        if (onTriggerAudit) onTriggerAudit(finalTickets);
-        triggerPopup(`Successfully ingested ${finalTickets.length} incidents from ${file.name}!`, 'success');
-      } catch (err: any) {
-        setErrorText(err.message || 'Failed to parse file.');
-        triggerPopup(err.message || 'File parsing failed', 'error');
-      }
-    };
-    reader.readAsBinaryString(file);
+  const resetDefaultTrackedGroups = () => {
+    setTrackedGroups(DEFAULT_TRACKED_GROUPS);
+    saveCredentialsToServer({ trackedGroups: DEFAULT_TRACKED_GROUPS });
+    triggerPopup('Reset tracked assignment groups to standard enterprise queues.', 'success');
   };
 
   return (
@@ -529,7 +473,7 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
         </div>
       </div>
 
-      {activeSubTab === 'rest' ? (
+      {activeSubTab === 'rest' && (
         <div className="space-y-6">
           {/* Active Connection Profile Summary Box */}
           <div className="bg-[#0E1117] border border-[#2A2D35] rounded-xl p-5 space-y-4">
@@ -701,34 +645,83 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
             </div>
 
             {/* Tracked Assignment Groups */}
-            <div className="bg-[#141720] border border-[#2A2D35] p-3.5 rounded-lg space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5 text-indigo-400" />
-                  <span>Tracked Assignment Groups ({trackedGroups.length})</span>
-                </span>
+            <div className="bg-[#141720] border border-[#2A2D35] p-3.5 rounded-lg space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-indigo-400" />
+                    <span>Tracked Assignment Groups ({trackedGroups.length})</span>
+                  </span>
+                  {trackedGroups.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearAllTrackedGroups}
+                      className="inline-flex items-center gap-1 text-[10px] font-mono text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 px-2 py-0.5 rounded transition-colors cursor-pointer"
+                      title="Remove all tracked assignment groups"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      <span>Clear All</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={resetDefaultTrackedGroups}
+                    className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-400 hover:text-slate-200 bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-0.5 rounded transition-colors cursor-pointer"
+                    title="Reset to default enterprise groups"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span>Reset Defaults</span>
+                  </button>
+                </div>
                 <span className="text-[9.5px] text-gray-500 font-mono">
-                  Only tickets matching these groups are audited (Leave empty to audit all groups)
+                  {trackedGroups.length === 0
+                    ? 'All incoming assignment groups will be processed'
+                    : 'Only tickets matching these groups are audited'}
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
-                {trackedGroups.map((group) => (
-                  <span
-                    key={group}
-                    className="inline-flex items-center gap-1.5 bg-[#0A0C0F] border border-[#2A2D35] hover:border-red-500/40 px-2.5 py-1 rounded text-[11px] font-mono text-slate-200"
+              {trackedGroups.length === 0 ? (
+                <div className="p-3 bg-[#0A0C0F] border border-dashed border-[#2A2D35] rounded-lg text-xs font-mono text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span>No group filters active — all ServiceNow assignment groups will be ingested.</span>
+                  <button
+                    type="button"
+                    onClick={resetDefaultTrackedGroups}
+                    className="text-indigo-400 hover:underline cursor-pointer text-left sm:text-right"
                   >
-                    <span>{group}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeTrackedGroup(group)}
-                      className="text-gray-500 hover:text-rose-400"
+                    Restore Standard Groups
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {trackedGroups.map((group) => (
+                    <span
+                      key={group}
+                      className="inline-flex items-center gap-1.5 bg-[#0A0C0F] border border-[#2A2D35] hover:border-indigo-500/40 px-2.5 py-1 rounded text-[11px] font-mono text-slate-200"
                     >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
+                      <span>{group}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMetricGroup(group);
+                          setActiveSubTab('metrics');
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 ml-0.5 cursor-pointer"
+                        title={`Configure mandatory metrics checks for "${group}"`}
+                      >
+                        <Sliders className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeTrackedGroup(group)}
+                        className="text-gray-500 hover:text-rose-400 ml-0.5 cursor-pointer"
+                        title={`Remove "${group}"`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-1">
                 <input
@@ -793,63 +786,27 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
             </div>
           </div>
         </div>
-      ) : (
-        /* Excel / CSV Dump Alternative Tab */
+      )}
+
+      {/* Governance Incident Dump Parser & Processor Tab */}
+      {activeSubTab === 'upload' && (
         <div className="space-y-4">
-          <div
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
-              dragActive
-                ? 'border-blue-500 bg-blue-500/5'
-                : 'border-[#2A2D35] hover:border-gray-600 bg-[#0A0C0F]/40'
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".xlsx,.xls,.csv"
-              onChange={handleFileInputChange}
-            />
-
-            <UploadCloud className="h-10 w-10 text-gray-500 mb-3" />
-            <p className="text-sm font-medium text-[#E0E0E0]">
-              Drag & drop your ServiceNow excel dump here, or <span className="text-blue-400 font-semibold underline">browse local directory</span>
-            </p>
-            <p className="text-[11px] text-gray-500 mt-1">
-              Parsed to extract all 24 specific parameters for complete governance alignment checks.
-            </p>
-
-            {fileName && (
-              <div className="mt-4 flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] px-3.5 py-1.5 rounded-lg text-xs font-mono text-blue-400">
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                <span>{fileName}</span>
-                {parsedCount !== null && (
-                  <span className="text-emerald-400 font-bold ml-2">
-                    ({parsedCount} records ingested)
-                  </span>
-                )}
-              </div>
-            )}
-
-            {errorText && (
-              <p className="mt-2 text-xs text-rose-400 font-mono">
-                {errorText}
-              </p>
-            )}
-          </div>
+          <UploadSection
+            onTicketsLoaded={onTicketsLoaded}
+            isLoading={isLoading}
+            triggerPopup={triggerPopup}
+            onTriggerAudit={onTriggerAudit}
+          />
         </div>
       )}
 
+      {/* Mandatory Metrics Checks per Assignment Group Tab */}
       {activeSubTab === 'metrics' && (
         <div className="space-y-6">
           <MandatoryMetricsConfig
             triggerPopup={triggerPopup}
             availableAssignmentGroups={trackedGroups}
+            initialSelectedGroup={selectedMetricGroup}
           />
         </div>
       )}

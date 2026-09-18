@@ -29,17 +29,19 @@ interface MetricDefinition {
 interface MandatoryMetricsConfigProps {
   triggerPopup: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
   availableAssignmentGroups?: string[];
+  initialSelectedGroup?: string;
   onConfigSaved?: () => void;
 }
 
 export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
   triggerPopup,
   availableAssignmentGroups = [],
+  initialSelectedGroup,
   onConfigSaved
 }) => {
   const [metricDefinitions, setMetricDefinitions] = useState<MetricDefinition[]>([]);
   const [groupConfigs, setGroupConfigs] = useState<Record<string, Record<string, boolean>>>({});
-  const [selectedGroup, setSelectedGroup] = useState<string>('DEFAULT');
+  const [selectedGroup, setSelectedGroup] = useState<string>(initialSelectedGroup || 'DEFAULT');
   const [allGroups, setAllGroups] = useState<string[]>(['DEFAULT']);
   const [searchFilter, setSearchFilter] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -47,6 +49,29 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Sync initialSelectedGroup if passed from parent
+  useEffect(() => {
+    if (initialSelectedGroup) {
+      setSelectedGroup(initialSelectedGroup);
+      setAllGroups(prev => {
+        if (!prev.includes(initialSelectedGroup)) {
+          return [...prev, initialSelectedGroup];
+        }
+        return prev;
+      });
+    }
+  }, [initialSelectedGroup]);
+
+  // Sync availableAssignmentGroups
+  useEffect(() => {
+    if (availableAssignmentGroups && availableAssignmentGroups.length > 0) {
+      setAllGroups(prev => {
+        const merged = new Set(['DEFAULT', ...prev, ...availableAssignmentGroups]);
+        return Array.from(merged);
+      });
+    }
+  }, [availableAssignmentGroups]);
 
   // Load config on mount
   useEffect(() => {
@@ -59,30 +84,35 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
       const res = await fetch('/api/mandatory-metrics');
       if (res.ok) {
         const data = await res.json();
-        if (data.metrics) {
-          setMetricDefinitions(data.metrics);
+        const metrics = data.metrics || data.definitions || [];
+        if (metrics.length > 0) {
+          setMetricDefinitions(metrics);
         }
-        if (data.config) {
-          setGroupConfigs(data.config);
 
-          // Extract unique groups from config + availableAssignmentGroups
-          const discovered = new Set<string>(['DEFAULT', ...Object.keys(data.config)]);
-          if (availableAssignmentGroups && availableAssignmentGroups.length > 0) {
-            availableAssignmentGroups.forEach(g => discovered.add(g));
-          }
-          // Also check localStorage tracked groups
-          try {
-            const cachedTracked = localStorage.getItem('gov_added_assignment_groups');
-            if (cachedTracked) {
-              const parsed = JSON.parse(cachedTracked);
-              if (Array.isArray(parsed)) {
-                parsed.forEach(g => discovered.add(g));
-              }
+        const configs = data.config || data.configs || {};
+        setGroupConfigs(configs);
+
+        // Extract unique groups from configs + availableAssignmentGroups + localStorage
+        const discovered = new Set<string>(['DEFAULT', ...Object.keys(configs)]);
+        if (availableAssignmentGroups && availableAssignmentGroups.length > 0) {
+          availableAssignmentGroups.forEach(g => discovered.add(g));
+        }
+        if (initialSelectedGroup) {
+          discovered.add(initialSelectedGroup);
+        }
+
+        // Also check localStorage tracked groups
+        try {
+          const cachedTracked = localStorage.getItem('gov_snow_assignment_group_filter') || localStorage.getItem('gov_added_assignment_groups');
+          if (cachedTracked) {
+            const parsed = JSON.parse(cachedTracked);
+            if (Array.isArray(parsed)) {
+              parsed.forEach(g => discovered.add(g));
             }
-          } catch (e) {}
+          }
+        } catch (e) {}
 
-          setAllGroups(Array.from(discovered));
-        }
+        setAllGroups(Array.from(discovered));
       }
     } catch (err) {
       console.error('Failed to load mandatory metrics config:', err);
@@ -93,15 +123,15 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
   };
 
   const handleToggleMetric = (metricId: string) => {
-    const currentGroupMap = groupConfigs[selectedGroup] || {};
-    // If not set, default is true
+    const currentGroupMap = groupConfigs[selectedGroup] || groupConfigs['DEFAULT'] || {};
+    // If not explicitly defined, default is true
     const currentVal = currentGroupMap[metricId] !== undefined ? currentGroupMap[metricId] : true;
     const nextVal = !currentVal;
 
     setGroupConfigs(prev => ({
       ...prev,
       [selectedGroup]: {
-        ...(prev[selectedGroup] || {}),
+        ...(prev[selectedGroup] || prev['DEFAULT'] || {}),
         [metricId]: nextVal
       }
     }));
@@ -132,6 +162,7 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
         ...prev,
         DEFAULT: defaultMap
       }));
+      triggerPopup('Reset DEFAULT baseline to all metrics mandatory.', 'info');
     } else {
       // Inherit from DEFAULT
       const defaultMap = groupConfigs['DEFAULT'] || {};
@@ -139,9 +170,20 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
         ...prev,
         [selectedGroup]: { ...defaultMap }
       }));
+      triggerPopup(`Reset rules for "${selectedGroup}" to match DEFAULT baseline.`, 'info');
     }
     setHasUnsavedChanges(true);
-    triggerPopup(`Reset rules for "${selectedGroup}" to default baseline!`, 'info');
+  };
+
+  const handleDeleteGroupOverride = () => {
+    if (selectedGroup === 'DEFAULT') return;
+    setGroupConfigs(prev => {
+      const copy = { ...prev };
+      delete copy[selectedGroup];
+      return copy;
+    });
+    setHasUnsavedChanges(true);
+    triggerPopup(`Removed custom override for "${selectedGroup}". Now inheriting from DEFAULT baseline.`, 'info');
   };
 
   const handleAddNewGroup = () => {
@@ -174,7 +216,7 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
       const res = await fetch('/api/mandatory-metrics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: groupConfigs })
+        body: JSON.stringify({ config: groupConfigs, configs: groupConfigs })
       });
 
       if (res.ok) {
@@ -290,16 +332,19 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
             <select
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}
-              className="bg-[#0A0C11] border border-[#2F364A] text-white text-xs font-mono rounded-xl px-3 py-2 outline-none focus:border-blue-500 min-w-[240px] cursor-pointer"
+              className="bg-[#0A0C11] border border-[#2F364A] text-white text-xs font-mono rounded-xl px-3 py-2 outline-none focus:border-blue-500 min-w-[260px] cursor-pointer"
             >
               <option value="DEFAULT">⭐ DEFAULT (Global Baseline for All Groups)</option>
               {allGroups
                 .filter(g => g !== 'DEFAULT')
-                .map(group => (
-                  <option key={group} value={group}>
-                    {group}
-                  </option>
-                ))}
+                .map(group => {
+                  const hasCustom = Boolean(groupConfigs[group]);
+                  return (
+                    <option key={group} value={group}>
+                      {group} {hasCustom ? '• [Custom Rules Enforced]' : '• [Inherits Baseline]'}
+                    </option>
+                  );
+                })}
             </select>
 
             {/* Quick Add Custom Group */}
@@ -330,6 +375,7 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
               type="button"
               onClick={() => handleSetAllForGroup(true)}
               className="px-3 py-1.5 bg-[#141A26] hover:bg-[#1E2738] text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer"
+              title="Set all checks as mandatory for this group"
             >
               Enable All
             </button>
@@ -337,17 +383,63 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
               type="button"
               onClick={() => handleSetAllForGroup(false)}
               className="px-3 py-1.5 bg-[#141A26] hover:bg-[#1E2738] text-amber-400 border border-amber-500/30 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer"
+              title="Mark all checks as optional / bypassed for this group"
             >
               Disable All
             </button>
-            <button
-              type="button"
-              onClick={handleResetGroupToDefault}
-              className="px-3 py-1.5 bg-[#141A26] hover:bg-[#1E2738] text-slate-300 border border-[#2E3547] rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1"
-            >
-              <RotateCcw className="h-3 w-3" />
-              <span>Reset</span>
-            </button>
+            {selectedGroup !== 'DEFAULT' && (
+              <button
+                type="button"
+                onClick={handleResetGroupToDefault}
+                className="px-3 py-1.5 bg-[#141A26] hover:bg-[#1E2738] text-blue-400 border border-blue-500/30 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1"
+                title="Copy rules baseline from DEFAULT"
+              >
+                <Copy className="h-3 w-3" />
+                <span>Copy DEFAULT</span>
+              </button>
+            )}
+            {selectedGroup !== 'DEFAULT' && groupConfigs[selectedGroup] && (
+              <button
+                type="button"
+                onClick={handleDeleteGroupOverride}
+                className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1"
+                title="Remove group override and revert to baseline"
+              >
+                <Trash2 className="h-3 w-3" />
+                <span>Clear Override</span>
+              </button>
+            )}
+            {selectedGroup === 'DEFAULT' && (
+              <button
+                type="button"
+                onClick={handleResetGroupToDefault}
+                className="px-3 py-1.5 bg-[#141A26] hover:bg-[#1E2738] text-slate-300 border border-[#2E3547] rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1"
+                title="Reset DEFAULT baseline to mandatory"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>Reset Baseline</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Informative Group Context Banner */}
+        <div className="bg-[#0A0D13] border border-white/5 rounded-xl p-3 flex items-start gap-2.5 text-xs font-mono">
+          <Info className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+          <div className="flex-1 text-slate-400">
+            {selectedGroup === 'DEFAULT' ? (
+              <span>
+                <strong className="text-white">Global Baseline Rules:</strong> Any assignment group without custom rules inherits these settings.
+              </span>
+            ) : groupConfigs[selectedGroup] ? (
+              <span>
+                <strong className="text-blue-300">Custom Group Rules Active:</strong> Audits for <strong className="text-white">{selectedGroup}</strong> will enforce only the metrics marked MANDATORY below. Any metric marked OPTIONAL will be automatically bypassed and awarded 2/2 points without penalty.
+              </span>
+            ) : (
+              <span>
+                <strong className="text-slate-300">Inheriting Baseline:</strong> <strong className="text-white">{selectedGroup}</strong> is currently using the DEFAULT configuration. Toggling any check below creates a dedicated custom ruleset for this group.
+              </span>
+            )}
           </div>
         </div>
 

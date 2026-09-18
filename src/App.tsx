@@ -6,7 +6,6 @@ import { defaultCiCombinations } from './defaultCiMatrix';
 import { defaultResolutionQuestions } from './defaultResolutionQuestions';
 import { defaultOverallRules } from './defaultOverallRules';
 import { sampleTickets } from './sampleIncidents';
-import UploadSection from './components/UploadSection';
 import MetricCards from './components/MetricCards';
 import AssigneePerformanceHeatmap from './components/AssigneePerformanceHeatmap';
 import AuditDetails from './components/AuditDetails';
@@ -20,7 +19,6 @@ import AssigneeInsights from './components/AssigneeInsights';
 import AuditHistoryTab from './components/AuditHistoryTab';
 import AboutPortal from './components/AboutPortal';
 import AlertsConfigPage from './components/AlertsConfigPage';
-import RemittanceUploadDesk from './components/RemittanceUploadDesk';
 import UnifiedMatrixHub from './components/UnifiedMatrixHub';
 import ConfirmationDialog from './components/ConfirmationDialog';
 import { exportToColorfulExcel } from './utils/excelExporter';
@@ -1936,13 +1934,32 @@ export default function App() {
                   transition={{ type: "spring", stiffness: 150, damping: 20 }}
                   className="space-y-6"
                 >
-                  {/* Excel Parser module: Keep strictly on the dashboard tab only */}
-                  <UploadSection 
-                    onTicketsLoaded={handleTicketsParsed} 
-                    isLoading={isAuditing} 
-                    triggerPopup={triggerPopup}
-                    onTriggerAudit={triggerAuditRun}
-                  />
+                  {tickets.length === 0 && (
+                    <div className="bg-[#10131B] border border-[#232736] rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="space-y-1.5 text-center sm:text-left">
+                          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-mono font-bold">
+                            <Radio className="h-3.5 w-3.5 animate-pulse" />
+                            <span>Awaiting Ingestion</span>
+                          </div>
+                          <h3 className="text-base font-bold text-white tracking-tight">
+                            No Governance Incidents Loaded
+                          </h3>
+                          <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
+                            Connect directly to your ServiceNow instance via Table API or ingest Excel/CSV dump spreadsheets in Connection Setup to run automated quality audits.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('connectionSetup')}
+                          className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-mono font-bold shadow-lg shadow-blue-500/25 transition-all cursor-pointer shrink-0 flex items-center gap-2"
+                        >
+                          <Radio className="h-4 w-4" />
+                          <span>Open Connection Setup</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   <MetricCards 
                     reports={reports} 
@@ -2099,6 +2116,7 @@ export default function App() {
                     onTriggerAudit={triggerAuditRun}
                     auditedCount={reports.length}
                     totalRecordsCount={tickets.length}
+                    isLoading={isAuditing}
                   />
                 </motion.div>
               )}
