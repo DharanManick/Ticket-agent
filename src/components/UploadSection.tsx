@@ -4,7 +4,7 @@ import { Ticket } from '../types';
 import { sampleTickets } from '../sampleIncidents';
 import { 
   UploadCloud, FileSpreadsheet, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Sparkles, Filter, Info, 
-  ChevronDown, ChevronUp, BookOpen, Server, Terminal, Link, Database, RefreshCw, Key, Play 
+  ChevronDown, ChevronUp, BookOpen, Database 
 } from 'lucide-react';
 
 interface UploadSectionProps {
@@ -231,123 +231,6 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
     };
   }, []);
 
-  // ServiceNow dynamic credential form states with localStorage persistence & resilient defaults
-  const [activeSourceTab, setActiveSourceTab] = useState<'upload' | 'servicenow'>('servicenow');
-  const [instanceName, setInstanceName] = useState(() => localStorage.getItem('gov_snow_instance') || 'dev12000');
-  const [username, setUsername] = useState(() => localStorage.getItem('gov_snow_user') || 'admin');
-  const [password, setPassword] = useState(() => localStorage.getItem('gov_snow_pass') || 'admin');
-  const [syncLimit, setSyncLimit] = useState(() => {
-    const saved = localStorage.getItem('gov_snow_limit');
-    if (saved === '0' || saved?.toLowerCase() === 'off') return 0;
-    return Number(saved || '10');
-  });
-  const [syncType, setSyncType] = useState<'tickets' | 'kbs' | 'both'>(() => (localStorage.getItem('gov_snow_sync_type') as any) || 'both');
-  const [useSimulator, setUseSimulator] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncLogs, setSyncLogs] = useState<string[]>([]);
-
-  // Refresh credentials from localStorage whenever we switch tabs or render
-  useEffect(() => {
-    if (activeSourceTab === 'servicenow') {
-      setInstanceName(localStorage.getItem('gov_snow_instance') || 'dev12000');
-      setUsername(localStorage.getItem('gov_snow_user') || 'admin');
-      setPassword(localStorage.getItem('gov_snow_pass') || 'admin');
-      const savedLimit = localStorage.getItem('gov_snow_limit');
-      setSyncLimit(savedLimit === '0' || savedLimit?.toLowerCase() === 'off' ? 0 : Number(savedLimit || '10'));
-      setSyncType((localStorage.getItem('gov_snow_sync_type') as any) || 'both');
-      setUseSimulator(false);
-    }
-  }, [activeSourceTab]);
-
-  const triggerServiceNowSync = async (overrideOnlySolvePropose?: boolean) => {
-    const activeSolvePropose = overrideOnlySolvePropose !== undefined ? overrideOnlySolvePropose : onlySolvePropose;
-    setIsSyncing(true);
-    setFileName(null);
-    setParsedCount(null);
-    setOriginalCount(null);
-    setPendingTickets(null);
-    setErrorText(null);
-    setSyncLogs([`[${new Date().toLocaleTimeString()}] Dispatching REST sync pipeline thread...`]);
-    try {
-      const savedGroupFilter = localStorage.getItem('gov_snow_assignment_group_filter') || 'ALL';
-      const response = await fetch('/api/servicenow/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          instanceName,
-          username,
-          password,
-          syncType,
-          limit: syncLimit,
-          useSimulator,
-          assignmentGroupFilter: savedGroupFilter,
-          manualLoadEnabled,
-          onlySolvePropose: activeSolvePropose
-        })
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorData: any = null;
-        try { errorData = JSON.parse(errorText); } catch { }
-        throw new Error(errorData?.error || `Server responded with status ${response.status}`);
-      }
-
-      const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        throw new Error('Server returned an unexpected response (non-JSON format).');
-      }
-
-      const results = await response.json();
-      if (results.logs && Array.isArray(results.logs)) {
-        setSyncLogs(prev => [...prev, ...results.logs]);
-      } else {
-        setSyncLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Standard REST sync success status.`]);
-      }
-
-      triggerPopup(`ServiceNow Sync Completed! Synced ${results.ticketsSynced} incidents & ${results.articlesSynced} Articles.`, 'success');
-      
-      if (results.tickets && results.tickets.length > 0) {
-        const mappedTickets = results.tickets.map((t: any) => ({
-          ...t,
-          // Guarantee formatToStandardDate matches correctly
-          createdDate: t.createdDate ? formatToStandardDate(t.createdDate) : '',
-          closedDate: t.closedDate ? formatToStandardDate(t.closedDate) : ''
-        }));
-
-        let finalTickets = mappedTickets;
-        if (activeSolvePropose) {
-          finalTickets = mappedTickets.filter(isSolveProposeClient);
-        }
-        
-        setOriginalCount(mappedTickets.length);
-        setParsedCount(finalTickets.length);
-        setPendingTickets(finalTickets);
-        
-        onTicketsLoaded(finalTickets);
-        if (onTriggerAudit) {
-          triggerPopup(`Executing instant automated Compliance Audit run with ${finalTickets.length} ServiceNow records (${activeSolvePropose ? "Solve Propose Only" : "All Incidents"})...`, 'info');
-          await onTriggerAudit(finalTickets);
-        }
-      } else {
-        setParsedCount(0);
-        setPendingTickets([]);
-        onTicketsLoaded([]);
-        if (onTriggerAudit) {
-          await onTriggerAudit([]);
-        }
-        triggerPopup(`No incidents found (${activeSolvePropose ? "Solve Propose Only" : "All Incidents"}).`, 'info');
-      }
-    } catch (err: any) {
-      setErrorText(err.message || String(err));
-      setSyncLogs(prev => [...prev, `[ERROR] Connection failed: ${err.message || String(err)}`]);
-      triggerPopup(`ServiceNow Sync failed: ${err.message || String(err)}`, 'warning');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   const formatToStandardDate = (rawVal: any): string => {
     if (rawVal === undefined || rawVal === null) {
@@ -718,21 +601,10 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
 
     // 1. Sync state change to server automatically
     try {
-      const savedGroupFilter = localStorage.getItem('gov_snow_assignment_group_filter') || 'ALL';
-      const isAutoSync = localStorage.getItem('gov_snow_auto_sync') !== 'false';
-      
       await fetch('/api/servicenow/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instanceName,
-          username,
-          password,
-          limit: syncLimit,
-          syncType,
-          useSimulator,
-          autoSyncEnabled: isAutoSync,
-          assignmentGroupFilter: savedGroupFilter,
           onlySolvePropose: newValue
         })
       });
@@ -757,8 +629,7 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
       return;
     }
 
-    // 3. Otherwise (ServiceNow / Simulator data), re-fetch and audit immediately
-    await triggerServiceNowSync(newValue);
+    // 3. Dispatch event for active sync listeners
     window.dispatchEvent(new CustomEvent('governance_force_sync_trigger'));
   };
 
@@ -775,23 +646,10 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
 
     // Sync state change to server automatically
     try {
-      const savedGroupFilter = localStorage.getItem('gov_snow_assignment_group_filter') || 'ALL';
-      const isAutoSync = localStorage.getItem('gov_snow_auto_sync') !== 'false';
-      const storedOnlySolvePropose = localStorage.getItem('gov_only_solve_propose') === 'true';
-      
       await fetch('/api/servicenow/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instanceName,
-          username,
-          password,
-          limit: syncLimit,
-          syncType,
-          useSimulator,
-          autoSyncEnabled: isAutoSync,
-          assignmentGroupFilter: savedGroupFilter,
-          onlySolvePropose: storedOnlySolvePropose,
           manualLoadEnabled: newValue
         })
       });
@@ -804,312 +662,88 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
 
   return (
     <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-lg" id="upload-panel">
-      {/* Dynamic Source Tabs Switch */}
-      <div className="flex border-b border-[#2A2D35] mb-5">
-        <button
-          type="button"
-          onClick={() => { setActiveSourceTab('servicenow'); setErrorText(null); }}
-          className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
-            activeSourceTab === 'servicenow' 
-              ? 'border-indigo-500 text-white bg-indigo-500/5' 
-              : 'border-transparent text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          <Server className="h-4 w-4 text-indigo-400" />
-          <span>ServiceNow Direct REST Integration API</span>
-          <span className="bg-indigo-500/10 text-indigo-400 text-[9px] font-bold px-1.5 py-0.2 rounded font-mono border border-indigo-500/20">NEW</span>
-        </button>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+        <div>
+          <h4 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
+            <span className="w-2.5 h-2.5 bg-blue-500 rounded-sm"></span>
+            Governance Incident Dump Processor & Parser
+          </h4>
+          <p className="text-xs text-gray-400 mt-1">
+            Pick up all incident details from your attached excel file automatically to execute a valid audit sweep.
+          </p>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => { setActiveSourceTab('upload'); setErrorText(null); }}
-          className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
-            activeSourceTab === 'upload' 
-              ? 'border-blue-500 text-white bg-blue-500/5' 
-              : 'border-transparent text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          <FileSpreadsheet className="h-4 w-4 text-blue-400" />
-          <span>ServiceNow Spreadsheet Dump (.xlsx / .csv)</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Manual Load Mode Toggle */}
+          <button
+            type="button"
+            onClick={toggleManualLoad}
+            className="flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] hover:border-[#10B981] rounded-lg px-3 py-1.5 transition-all text-xs text-slate-300 cursor-pointer"
+            title="When ON, skips background automated incident fetches from ServiceNow, keeping manual uploads active. Knowledge articles are still pulled."
+          >
+            <Database className={`h-3 w-3 ${manualLoadEnabled ? 'text-emerald-400' : 'text-gray-500'}`} />
+            <span>Manual Load Mode:</span>
+            {manualLoadEnabled ? (
+              <span className="text-emerald-400 font-bold flex items-center space-x-1">
+                <span>ON</span>
+              </span>
+            ) : (
+              <span className="text-gray-500 font-semibold">OFF</span>
+            )}
+          </button>
+
+          {/* Solve Propose Only Filter Toggle */}
+          <button
+            type="button"
+            onClick={toggleOnlySolvePropose}
+            className="flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] hover:border-gray-600 rounded-lg px-3 py-1.5 transition-all text-xs text-slate-300"
+          >
+            <Filter className={`h-3 w-3 ${onlySolvePropose ? 'text-blue-400' : 'text-gray-500'}`} />
+            <span>Solve Proposes Only:</span>
+            {onlySolvePropose ? (
+              <span className="text-blue-400 font-bold flex items-center space-x-1">
+                <span>ON</span>
+              </span>
+            ) : (
+              <span className="text-gray-500 font-semibold">OFF</span>
+            )}
+          </button>
+        </div>
       </div>
 
-      {activeSourceTab === 'upload' ? (
-        <>
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
-            <div>
-              <h4 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-blue-500 rounded-sm"></span>
-                Governance Incident Dump Processor & Parser
-              </h4>
-              <p className="text-xs text-gray-400 mt-1">
-                Pick up all incident details from your attached excel file automatically to execute a valid audit sweep.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Manual Load Mode Toggle */}
-              <button
-                type="button"
-                onClick={toggleManualLoad}
-                className="flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] hover:border-[#10B981] rounded-lg px-3 py-1.5 transition-all text-xs text-slate-300 cursor-pointer"
-                title="When ON, skips background automated incident fetches from ServiceNow, keeping manual uploads active. Knowledge articles are still pulled."
-              >
-                <Database className={`h-3 w-3 ${manualLoadEnabled ? 'text-emerald-400' : 'text-gray-500'}`} />
-                <span>Manual Load Mode:</span>
-                {manualLoadEnabled ? (
-                  <span className="text-emerald-400 font-bold flex items-center space-x-1">
-                    <span>ON</span>
-                  </span>
-                ) : (
-                  <span className="text-gray-500 font-semibold">OFF</span>
-                )}
-              </button>
-
-              {/* Solve Propose Only Filter Toggle */}
-              <button
-                type="button"
-                onClick={toggleOnlySolvePropose}
-                className="flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] hover:border-gray-600 rounded-lg px-3 py-1.5 transition-all text-xs text-slate-300"
-              >
-                <Filter className={`h-3 w-3 ${onlySolvePropose ? 'text-blue-400' : 'text-gray-500'}`} />
-                <span>Solve Proposes Only:</span>
-                {onlySolvePropose ? (
-                  <span className="text-blue-400 font-bold flex items-center space-x-1">
-                    <span>ON</span>
-                  </span>
-                ) : (
-                  <span className="text-gray-500 font-semibold">OFF</span>
-                )}
-              </button>
-            </div>
+      <div
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+          dragActive 
+            ? 'border-blue-500 bg-blue-500/5' 
+            : 'border-[#2A2D35] hover:border-gray-600 bg-[#0A0C0F]/40'
+        }`}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".xlsx,.xls,.csv"
+          onChange={handleChange}
+        />
+        
+        <UploadCloud className="h-10 w-10 text-gray-500 mb-3" />
+        <p className="text-sm font-medium text-[#E0E0E0]">
+          Drag & drop your ServiceNow excel dump here, or <span className="text-blue-400 font-semibold underline">browse local directory</span>
+        </p>
+        <p className="text-[11px] text-gray-500 mt-1">Parsed to extract 24 specific parameters for complete alignment checks</p>
+        
+        {fileName && (
+          <div className="mt-4 flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] px-3.5 py-1.5 rounded-lg text-xs font-mono text-blue-400">
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            <span>{fileName}</span>
           </div>
-
-          <div
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
-              dragActive 
-                ? 'border-blue-500 bg-blue-500/5' 
-                : 'border-[#2A2D35] hover:border-gray-600 bg-[#0A0C0F]/40'
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".xlsx,.xls,.csv font-mono"
-              onChange={handleChange}
-            />
-            
-            <UploadCloud className="h-10 w-10 text-gray-500 mb-3" />
-            <p className="text-sm font-medium text-[#E0E0E0]">
-              Drag & drop your ServiceNow excel dump here, or <span className="text-blue-400 font-semibold underline">browse local directory</span>
-            </p>
-            <p className="text-[11px] text-gray-500 mt-1">Parsed to extract 24 specific parameters for complete alignment checks</p>
-            
-            {fileName && (
-              <div className="mt-4 flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] px-3.5 py-1.5 rounded-lg text-xs font-mono text-blue-400">
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                <span>{fileName}</span>
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
-            <div>
-              <h4 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-indigo-500 rounded-sm"></span>
-                ServiceNow Instance REST Connection API
-              </h4>
-              <p className="text-xs text-gray-400 mt-1">
-                Fetch incidents and knowledge articles directly via Table REST APIs to run real-time audits.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Manual Load Mode Toggle */}
-              <button
-                type="button"
-                onClick={toggleManualLoad}
-                className="flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] hover:border-[#10B981] rounded-lg px-3 py-1.5 transition-all text-xs text-slate-300 cursor-pointer"
-                title="When ON, skips background automated incident fetches from ServiceNow, keeping manual uploads active. Knowledge articles are still pulled."
-              >
-                <Database className={`h-3 w-3 ${manualLoadEnabled ? 'text-emerald-400' : 'text-gray-500'}`} />
-                <span>Manual Load Mode:</span>
-                {manualLoadEnabled ? (
-                  <span className="text-emerald-400 font-bold flex items-center space-x-1">
-                    <span>ON</span>
-                  </span>
-                ) : (
-                  <span className="text-gray-500 font-semibold">OFF</span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={toggleOnlySolvePropose}
-                className="flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] hover:border-gray-600 rounded-lg px-3 py-1.5 transition-all text-xs text-slate-300"
-              >
-                <Filter className={`h-3 w-3 ${onlySolvePropose ? 'text-blue-400' : 'text-gray-500'}`} />
-                <span>Solve Proposes Only:</span>
-                {onlySolvePropose ? (
-                  <span className="text-blue-400 font-bold flex items-center space-x-1">
-                    <span>ON</span>
-                  </span>
-                ) : (
-                  <span className="text-gray-500 font-semibold">OFF</span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-[#0A0C0F]/50 border border-[#2A2D35]/55 rounded-xl p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2A2D35]/40 pb-3">
-              <div className="flex items-center space-x-2 text-indigo-400 font-mono font-bold text-[11px] uppercase tracking-wider">
-                <Database className="h-4.5 w-4.5" />
-                <span>Active ServiceNow Connection Profile</span>
-              </div>
-              <span className="bg-[#12141C] text-emerald-400 border border-emerald-500/35 text-[9px] font-bold font-mono px-2 py-0.5 rounded flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                ACTIVE CONFIGURATION LOADED
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-              <div className="bg-[#111317] border border-[#2A2D35]/40 p-3 rounded-lg space-y-1">
-                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Target Host Url</span>
-                <span className="font-mono text-white font-semibold truncate block">https://{instanceName}.service-now.com</span>
-              </div>
-
-              <div className="bg-[#111317] border border-[#2A2D35]/40 p-3 rounded-lg space-y-1">
-                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Authorized Username</span>
-                <p className="font-mono text-white font-semibold truncate flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 shrink-0"></span>
-                  {username}
-                </p>
-              </div>
-
-              <div className="bg-[#111317] border border-[#2A2D35]/40 p-3 rounded-lg space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Record Fetch Limit</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = syncLimit === 0 ? 10 : 0;
-                      setSyncLimit(next);
-                      localStorage.setItem('gov_snow_limit', next === 0 ? 'off' : String(next));
-                      fetch('/api/servicenow/credentials', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ limit: next })
-                      }).catch(() => {});
-                    }}
-                    className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border transition-colors cursor-pointer ${
-                      syncLimit === 0 
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 hover:bg-amber-500/30' 
-                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/30'
-                    }`}
-                  >
-                    {syncLimit === 0 ? 'Set Limit (10)' : '⚡ Turn Limit OFF'}
-                  </button>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`font-mono font-extrabold text-xs truncate ${syncLimit === 0 ? 'text-emerald-400' : 'text-white'}`}>
-                    {syncLimit === 0 ? '⚡ OFF (All Tickets)' : `${syncLimit} Incidents`}
-                  </span>
-                  <select
-                    value={syncLimit === 0 ? 'off' : String(syncLimit)}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const next = val === 'off' ? 0 : Number(val);
-                      setSyncLimit(next);
-                      localStorage.setItem('gov_snow_limit', next === 0 ? 'off' : String(next));
-                      fetch('/api/servicenow/credentials', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ limit: next })
-                      }).catch(() => {});
-                    }}
-                    className="text-[10px] font-mono bg-[#090C12] border border-[#2A2D35] rounded px-1.5 py-0.5 text-gray-300 cursor-pointer"
-                  >
-                    <option value="off">OFF (All Tickets)</option>
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="250">250</option>
-                    <option value="500">500</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="bg-[#111317] border border-[#2A2D35]/40 p-3 rounded-lg space-y-1">
-                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Connection Environment</span>
-                <span className={`font-mono font-bold ${useSimulator ? 'text-amber-400' : 'text-green-400'}`}>
-                  {useSimulator ? 'Sandbox Simulator' : 'Production REST API'}
-                </span>
-              </div>
-            </div>
-
-            <p className="text-[10.5px] text-gray-500 leading-normal bg-black/15 p-2 rounded border border-[#2A2D35]/30">
-              💡 <strong>Security Instruction:</strong> Basic Authentication credentials and ingestion parameters can be modified permanently under the <strong>Settings &gt; ServiceNow API Connection</strong> tab in the sidebar.
-            </p>
-          </div>
-
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={triggerServiceNowSync}
-              disabled={isSyncing || isLoading}
-              className="flex-1 shrink-0 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold text-xs px-5 py-3 rounded-lg flex items-center justify-center space-x-2.5 transition-all cursor-pointer shadow-lg shadow-indigo-950/40 border border-indigo-400/30 hover:scale-[1.01]"
-            >
-              {isSyncing ? (
-                <RefreshCw className="h-4 w-4 animate-spin text-white" />
-              ) : (
-                <Play className="h-4 w-4 fill-white text-transparent" />
-              )}
-              <span>{isSyncing ? 'Connecting inside ServiceNow API...' : 'Trigger ServiceNow REST Connection & Sync Link'}</span>
-            </button>
-          </div>
-
-          {syncLogs.length > 0 && (
-            <div className="bg-[#090C12] border border-[#222836] rounded-xl p-3.5 font-mono text-[10px] text-gray-400 space-y-1.5 shadow-inner">
-              <div className="flex justify-between items-center text-gray-500 uppercase tracking-widest text-[8.5px] font-bold border-b border-[#222836] pb-1.5 mb-2">
-                <span className="flex items-center gap-1.5">
-                  <Terminal className="h-3.5 w-3.5 text-indigo-400" />
-                  Live REST Integration Log Stream
-                </span>
-                <button 
-                  type="button" 
-                  onClick={() => setSyncLogs([])} 
-                  className="hover:text-white transition-colors cursor-pointer text-[8px] bg-gray-800/60 px-1.5 py-0.5 rounded border border-gray-700/50"
-                >
-                  Clear Logs
-                </button>
-              </div>
-              <div className="max-h-[140px] overflow-y-auto space-y-1 pr-1 font-mono leading-relaxed">
-                {syncLogs.map((log, index) => {
-                  let colorClass = 'text-gray-400';
-                  if (log.includes('[ERROR]')) colorClass = 'text-rose-400 font-bold';
-                  else if (log.includes('Successfully')) colorClass = 'text-emerald-400';
-                  else if (log.includes('Connecting')) colorClass = 'text-sky-300';
-                  return (
-                    <div key={index} className={`${colorClass} leading-normal break-all`}>
-                      {log}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {errorText && (
         <div className="mt-4 flex items-center space-x-2.5 bg-rose-950/20 border border-rose-900/40 p-3 rounded-lg text-xs text-rose-400">

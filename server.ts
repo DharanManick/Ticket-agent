@@ -4389,6 +4389,37 @@ try {
   console.warn('[ServiceNow Server Setup] No stored config file. Using default in-memory credentials tracker.');
 }
 
+function applyServiceNowEnvCredentials() {
+  const envInstance = process.env.SERVICENOW_INSTANCE || process.env.SERVICENOW_INSTANCE_NAME;
+  const envUser = process.env.SERVICENOW_USERNAME || process.env.SERVICENOW_USER;
+  const envPass = process.env.SERVICENOW_PASSWORD || process.env.SERVICENOW_PASS;
+
+  let changed = false;
+  if (envInstance && envInstance.trim() !== '') {
+    storedServiceNowCredentials.instanceName = envInstance.trim();
+    changed = true;
+  }
+  if (envUser && envUser.trim() !== '') {
+    storedServiceNowCredentials.username = envUser.trim();
+    changed = true;
+  }
+  if (envPass && envPass.trim() !== '') {
+    storedServiceNowCredentials.password = envPass.trim();
+    changed = true;
+  }
+  if (envInstance || envUser || envPass) {
+    storedServiceNowCredentials.useSimulator = false;
+    changed = true;
+  }
+  if (changed) {
+    try {
+      fs.writeFileSync(snConfigPath, JSON.stringify(storedServiceNowCredentials, null, 2), 'utf8');
+      console.log('[ServiceNow Server Setup] Synchronized credentials from .env to servicenow_config.json.');
+    } catch (e) { }
+  }
+}
+applyServiceNowEnvCredentials();
+
 try {
   if (fs.existsSync(snAlertsConfigPath)) {
     storedAlertsConfig = JSON.parse(fs.readFileSync(snAlertsConfigPath, 'utf8'));
@@ -4958,7 +4989,12 @@ app.post('/api/servicenow/fetch-logs/clear', (req, res) => {
 });
 
 app.get('/api/servicenow/credentials', (req, res) => {
-  res.json(storedServiceNowCredentials);
+  applyServiceNowEnvCredentials();
+  res.json({
+    success: true,
+    credentials: storedServiceNowCredentials,
+    ...storedServiceNowCredentials
+  });
 });
 
 // ServiceNow Overall API Overview across core IT tables

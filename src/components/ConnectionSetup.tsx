@@ -119,8 +119,8 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
     fetch('/api/servicenow/credentials')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.credentials) {
-          const c = data.credentials;
+        const c = data.credentials || (data.instanceName ? data : null);
+        if (c) {
           if (c.instanceName) setInstanceName(c.instanceName);
           if (c.username) setUsername(c.username);
           if (c.password) setPassword(c.password);

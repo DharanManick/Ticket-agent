@@ -27,8 +27,6 @@ import {
   CheckSquare,
   ToggleLeft,
   ToggleRight,
-  Eye,
-  EyeOff,
   Users,
   RefreshCw,
   Trash2,
@@ -180,7 +178,7 @@ export default function OverallRulesEditor({
   triggerPopup
 }: OverallRulesEditorProps) {
   // Active config page sub-tab controller
-  const [currentTab, setCurrentTab] = useState<'audit_rules' | 'keyword_mappings' | 'assignment_group_cis' | 'resolution_checklist' | 'servicenow_api' | 'assignment_groups' | 'email_digest' | 'mandatory_metrics'>('mandatory_metrics');
+  const [currentTab, setCurrentTab] = useState<'audit_rules' | 'keyword_mappings' | 'assignment_group_cis' | 'resolution_checklist' | 'assignment_groups' | 'email_digest' | 'mandatory_metrics'>('mandatory_metrics');
   const [localRules, setLocalRules] = useState<OverallTicketAuditRule[]>(() => JSON.parse(JSON.stringify(rules)));
   const [subView, setSubView] = useState<'visual' | 'raw'>('visual');
   const [jsonText, setJsonText] = useState('');
@@ -378,7 +376,6 @@ export default function OverallRulesEditor({
   const [manualLoadEnabled, setManualLoadEnabled] = useState(() => localStorage.getItem('gov_snow_manual_load_enabled') === 'true');
   const [availableAssignmentGroups, setAvailableAssignmentGroups] = useState<string[]>([]);
   const [isLoadingAssignmentGroups, setIsLoadingAssignmentGroups] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   // Load available assignment groups
   const fetchAvailableAssignmentGroups = async () => {
@@ -557,55 +554,6 @@ export default function OverallRulesEditor({
     };
   }, []);
 
-  const handleSaveServiceNowApi = async () => {
-    // 1. Persist inside local storage
-    localStorage.setItem('gov_snow_instance', instanceName);
-    localStorage.setItem('gov_snow_user', username);
-    localStorage.setItem('gov_snow_pass', password);
-    localStorage.setItem('gov_snow_limit', syncLimit === 0 ? 'off' : String(syncLimit));
-    localStorage.setItem('gov_snow_sync_type', syncType);
-    localStorage.setItem('gov_snow_simulator', String(useSimulator));
-    localStorage.setItem('gov_snow_auto_sync', String(autoSyncEnabled));
-    localStorage.setItem('gov_snow_auto_fetch_enabled', String(autoFetchEnabled));
-    localStorage.setItem('gov_snow_auto_fetch_interval', String(autoFetchInterval));
-    localStorage.setItem('gov_only_solve_propose', String(onlySolvePropose));
-    localStorage.setItem('gov_snow_manual_load_enabled', String(manualLoadEnabled));
-    localStorage.setItem('gov_snow_assignment_group_filter', assignmentGroupFilter);
-
-    // 2. Perform server API storage persistence for full coverage on background checks
-    try {
-      const resp = await fetch('/api/servicenow/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          instanceName,
-          username,
-          password,
-          limit: syncLimit,
-          syncType,
-          useSimulator,
-          autoSyncEnabled,
-          autoFetchEnabled,
-          autoFetchInterval,
-          assignmentGroupFilter,
-          onlySolvePropose,
-          manualLoadEnabled,
-          trackedGroups: addedAssignmentGroups
-        })
-      });
-
-      if (resp.ok) {
-        triggerPopup('ServiceNow API Connection settings (including Auto-Fetch timer) saved permanently!', 'success');
-        window.dispatchEvent(new Event('storage'));
-        window.dispatchEvent(new CustomEvent('governance_manual_load_changed'));
-      } else {
-        triggerPopup('Credentials saved locally, but server registration returned an error.', 'warning');
-      }
-    } catch (err: any) {
-      console.error(err);
-      triggerPopup('Credentials saved locally. Server connection returned connection retry requirement.', 'info');
-    }
-  };
   
   // Local changes revert history cache
   const [historyLog, setHistoryLog] = useState<OverallTicketAuditRule[][]>([]);
@@ -827,17 +775,6 @@ export default function OverallRulesEditor({
           <span>Resolution Checkpoints Checklist</span>
         </button>
 
-        <button
-          onClick={() => setCurrentTab('servicenow_api')}
-          className={`flex-1 min-w-[140px] py-2 px-3.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-2 border cursor-pointer ${
-            currentTab === 'servicenow_api'
-              ? 'bg-[#4F46E5]/10 hover:bg-[#4F46E5]/15 text-indigo-400 border-indigo-500/30'
-              : 'text-gray-400 border-transparent hover:text-white hover:bg-gray-800/40'
-          }`}
-        >
-          <Server className="h-4 w-4" />
-          <span>ServiceNow API Connection</span>
-        </button>
 
         <button
           onClick={() => setCurrentTab('assignment_groups')}
@@ -1836,313 +1773,6 @@ export default function OverallRulesEditor({
         </div>
       )}
 
-      {currentTab === 'servicenow_api' && (
-        <div className="space-y-6 animate-fadeIn">
-          {/* Header Card */}
-          <div className="bg-[#15171C] border border-[#2A2D35] p-5 rounded-xl shadow-lg flex items-start space-x-4">
-            <div className="p-3 bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 rounded-xl">
-              <Server className="h-6 w-6 animate-pulse" />
-            </div>
-            <div className="space-y-1 flex-1">
-              <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">ServiceNow Direct REST API Integrations Vault</h4>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Configure your ServiceNow Basic Auth credentials to permanently link this compliance dashboard to your corporate instance. Settings saved here are persisted across sessions and utilized in the main compliance triggers.
-              </p>
-            </div>
-          </div>
-
-          {/* Form Card */}
-          <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-6 shadow-md space-y-6">
-            <div className="flex items-center space-x-2 border-b border-[#2A2D35]/65 pb-3">
-              <Settings className="h-4.5 w-4.5 text-indigo-400" />
-              <span className="text-xs font-bold text-gray-200 uppercase tracking-widest font-mono">ServiceNow Basic Auth and Ingestion Profiling</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Instance name / URL */}
-              <div className="space-y-2">
-                <label className="block text-[11px] font-mono tracking-wider text-gray-400 uppercase font-bold">ServiceNow Instance Name / URL</label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-2.5 text-xs text-gray-500 font-mono font-bold">https://</span>
-                  <input
-                    type="text"
-                    placeholder="dev12000.service-now.com"
-                    value={instanceName}
-                    onChange={(e) => setInstanceName(e.target.value)}
-                    className="pl-16 pr-4 w-full text-xs bg-[#0A0C0F] border border-[#2A2D35]/80 rounded-lg px-3.5 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 font-mono transition-all"
-                  />
-                </div>
-                <p className="text-[10px] text-gray-500 font-sans leading-normal">
-                  Enter your ServiceNow host prefix (e.g. <strong className="text-gray-400 font-semibold font-mono text-[9px]">dev12000</strong>) or the full target domain name.
-                </p>
-              </div>
-
-              {/* Username */}
-              <div className="space-y-2">
-                <label className="block text-[11px] font-mono tracking-wider text-gray-400 uppercase font-bold">ServiceNow Integration Account Username</label>
-                <input
-                  type="text"
-                  placeholder="admin"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full text-xs bg-[#0A0C0F] border border-[#2A2D35]/80 rounded-lg px-3.5 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 font-mono transition-all"
-                />
-                <p className="text-[10px] text-gray-500 font-sans leading-normal">
-                  Standard Basic Authentication username for querying the ServiceNow REST table endpoints.
-                </p>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-2">
-                <label className="block text-[11px] font-mono tracking-wider text-gray-400 uppercase font-bold">Secret Integration Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full text-xs bg-[#0A0C0F] border border-[#2A2D35]/80 rounded-lg pl-3.5 pr-10 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 font-mono transition-all"
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-300 transition-colors cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                <p className="text-[10px] text-gray-400 font-sans leading-normal">
-                  Authentication password. This will be stored securely inside your client-side profile cache.
-                </p>
-              </div>
-
-              {/* Limit */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-mono tracking-wider text-gray-400 uppercase font-bold">
-                    Incident Record Fetch Limit
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
-                      syncLimit === 0 
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
-                        : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                    }`}>
-                      {syncLimit === 0 ? 'LIMIT: OFF (ALL TICKETS)' : `${syncLimit} INCIDENTS`}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setSyncLimit(syncLimit === 0 ? 10 : 0)}
-                      className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded border transition-colors cursor-pointer ${
-                        syncLimit === 0
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
-                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                      }`}
-                    >
-                      {syncLimit === 0 ? 'Enable Limit (10)' : '⚡ Turn Limit OFF'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <select
-                    value={syncLimit === 0 ? 'off' : [10, 25, 50, 100, 250, 500].includes(syncLimit) ? String(syncLimit) : 'custom'}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === 'off') {
-                        setSyncLimit(0);
-                      } else if (val === 'custom') {
-                        setSyncLimit(syncLimit === 0 ? 50 : syncLimit);
-                      } else {
-                        setSyncLimit(Number(val));
-                      }
-                    }}
-                    className="w-full text-xs bg-[#0A0C0F] border border-[#2A2D35]/80 rounded-lg px-3.5 py-2.5 text-white focus:outline-none focus:border-indigo-500 font-mono transition-all h-[38px] cursor-pointer"
-                  >
-                    <option value="off">⚡ OFF (Fetch All Available Tickets in Instance)</option>
-                    <option value="10">10 Incidents (Fast Audit Sweep)</option>
-                    <option value="25">25 Incidents</option>
-                    <option value="50">50 Incidents</option>
-                    <option value="100">100 Incidents</option>
-                    <option value="250">250 Incidents</option>
-                    <option value="500">500 Incidents (High Volume)</option>
-                    <option value="custom">Custom Numeric Limit...</option>
-                  </select>
-
-                  {syncLimit !== 0 ? (
-                    <input
-                      type="number"
-                      min="1"
-                      max="5000"
-                      value={syncLimit}
-                      onChange={(e) => setSyncLimit(Math.max(1, Number(e.target.value) || 1))}
-                      placeholder="Enter incident limit..."
-                      className="w-full text-xs bg-[#0A0C0F] border border-[#2A2D35]/80 rounded-lg px-3.5 py-2.5 text-white focus:outline-none focus:border-indigo-500 font-mono transition-all animate-none"
-                    />
-                  ) : (
-                    <div className="w-full text-xs bg-emerald-950/30 border border-emerald-500/30 rounded-lg px-3.5 py-2 flex items-center gap-2 text-emerald-300 font-mono">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                      <span className="truncate">Limit OFF: Fetches 100% of tickets available in instance</span>
-                    </div>
-                  )}
-                </div>
-
-                <p className="text-[10px] text-gray-400 font-sans leading-normal">
-                  {syncLimit === 0 ? (
-                    <span className="text-emerald-400 font-medium">
-                      ✓ Fetch limit is <strong>OFF</strong>. The application will fetch <strong>all the tickets what all available in the ServiceNow instance</strong> without any record truncation.
-                    </span>
-                  ) : (
-                    `Limit the maximum number of recent operational records synced during a trigger sweep (${syncLimit} records). Select "OFF" above to fetch all tickets available.`
-                  )}
-                </p>
-              </div>
-
-              {/* Sync scope */}
-              <div className="space-y-2">
-                <label className="block text-[11px] font-mono tracking-wider text-gray-400 uppercase font-bold">Default Synchronization Scope</label>
-                <select
-                  value={syncType}
-                  onChange={(e) => setSyncType(e.target.value as any)}
-                  className="w-full text-xs bg-[#0A0C0F] border border-[#2A2D35]/80 rounded-lg px-3.5 py-2.5 text-white focus:outline-none focus:border-indigo-500 font-mono transition-all h-[38px] cursor-pointer"
-                >
-                  <option value="tickets">Tickets Only (Incident Table - incident)</option>
-                  <option value="cis">CI (Configuration Item) (CMDB Table - cmdb_ci)</option>
-                  <option value="kbs">KB Articles Catalog (Knowledge Table - kb_knowledge)</option>
-                  <option value="both">Tickets & KB Articles (incident & kb_knowledge)</option>
-                  <option value="all">All Tables (Tickets, CIs & KB Articles)</option>
-                </select>
-                <p className="text-[10px] text-gray-500 font-sans leading-normal">
-                  Select which ServiceNow tables to synchronize during compliance sweeps: Incidents, Configuration Items (CMDB), Knowledge Base articles, or combined multi-table sets.
-                </p>
-              </div>
-
-              {/* Connection Mode Status - Strictly Live ServiceNow as requested */}
-              <div className="space-y-2">
-                <label className="block text-[11px] font-mono tracking-wider text-gray-400 uppercase font-bold">ServiceNow Connection Mode</label>
-                <div className="bg-[#0A0C0F] px-4 py-3 rounded-lg border border-[#2A2D35]/80 flex items-center justify-between">
-                  <span className="text-xs font-mono text-emerald-400 font-bold flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Live ServiceNow Connection Active
-                  </span>
-                  <span className="text-[9px] font-mono text-emerald-300 px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-900/40 font-bold">LIVE PRODUCTION</span>
-                </div>
-                <p className="text-[10px] text-gray-500 font-sans leading-normal">
-                  Sandbox simulation has been removed. The portal is strictly configured to authenticate and synchronize directly with your live corporate ServiceNow instance.
-                </p>
-              </div>
-
-              {/* Auto-Fetch on Timer Configuration */}
-              <div className="space-y-2 md:col-span-2 bg-[#0A0C0F] border border-[#2A2D35]/80 rounded-xl p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#2A2D35]/60">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-indigo-400" />
-                      <span className="text-xs font-bold text-gray-200 uppercase font-mono tracking-wider">Auto-Fetch Tickets Timer</span>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-                      Automatically fetch updated ServiceNow tickets on a repeating schedule using incremental <code className="text-indigo-300 bg-indigo-950/50 px-1 py-0.2 rounded">sys_updated_on</code> polling.
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-3 bg-[#15171C] px-3.5 py-1.5 rounded-lg border border-[#2A2D35]/80">
-                    <span className="text-[11px] font-mono font-bold text-slate-300">
-                      {autoFetchEnabled ? 'Auto-fetch: ON' : 'Auto-fetch: OFF'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setAutoFetchEnabled(!autoFetchEnabled)}
-                      className="focus:outline-none cursor-pointer"
-                    >
-                      {autoFetchEnabled ? (
-                        <ToggleRight className="h-6 w-6 text-emerald-400" />
-                      ) : (
-                        <ToggleLeft className="h-6 w-6 text-gray-600" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 items-center">
-                  <div className="space-y-1.5">
-                    <label className="block text-[10.5px] font-mono text-gray-300 font-bold">
-                      Polling Interval (Minutes):
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="number"
-                        min="1"
-                        max="60"
-                        value={autoFetchInterval}
-                        disabled={!autoFetchEnabled}
-                        onChange={(e) => {
-                          const val = Math.max(1, Math.min(60, Number(e.target.value) || 2));
-                          setAutoFetchInterval(val);
-                        }}
-                        className="w-24 text-xs bg-[#15171C] border border-[#2A2D35] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500 disabled:opacity-40"
-                      />
-                      <span className="text-[11px] text-gray-400 font-mono">min (range: 1 - 60 min, default: 2)</span>
-                    </div>
-                  </div>
-
-                  <div className="text-[10px] text-gray-500 bg-[#12141C] p-2.5 rounded-lg border border-[#2A2D35]/40 leading-relaxed">
-                    💡 <strong className="text-gray-400">Incremental Optimization:</strong> Each polling cycle only fetches records modified since the previous sync watermark (<code className="text-indigo-400">sys_updated_on</code>), minimizing API overhead and preventing redundant full table re-fetches.
-                  </div>
-                </div>
-              </div>
-
-              {/* Solve Propose Filter Configuration (Workspace Checklist Only) */}
-              <div className="space-y-2 md:col-span-2 bg-[#0A0C0F] border border-[#2A2D35]/80 rounded-xl p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CheckSquare className="h-4 w-4 text-emerald-400" />
-                      <span className="text-xs font-bold text-gray-200 uppercase font-mono tracking-wider">Solve Propose Filter (Workspace Checklist Only)</span>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-0.5 leading-relaxed">
-                      When enabled, the <strong>Workspace Checklist</strong> quality audit will specifically evaluate tickets in <em>Solve Propose</em> state. Meanwhile, the <strong>Incident Empathy Dashboard</strong> continuously auto-fetches all ongoing/active tickets (excluding solve proposed, solve confirmed, resolved, or closed).
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-3 bg-[#15171C] px-3.5 py-1.5 rounded-lg border border-[#2A2D35]/80 shrink-0">
-                    <span className="text-[11px] font-mono font-bold text-slate-300">
-                      {onlySolvePropose ? 'Solve Propose: ON' : 'Solve Propose: OFF'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setOnlySolvePropose(!onlySolvePropose)}
-                      className="focus:outline-none cursor-pointer"
-                    >
-                      {onlySolvePropose ? (
-                        <ToggleRight className="h-6 w-6 text-emerald-400" />
-                      ) : (
-                        <ToggleLeft className="h-6 w-6 text-gray-600" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-
-            </div>
-
-            {/* Action Buttons */}
-            <div className="pt-4 border-t border-[#2A2D35]/60 flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-xs text-yellow-500 font-semibold font-mono">
-                <Info className="h-4 w-4 shrink-0" />
-                <span>Saved properties are encrypted locally inside client-auth store.</span>
-              </div>
-              
-              <button
-                type="button"
-                onClick={handleSaveServiceNowApi}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs px-5 py-2.5 rounded-lg flex items-center space-x-2 transition-all cursor-pointer shadow-lg shadow-indigo-950/20"
-              >
-                <Save className="h-4 w-4 text-white" />
-                <span>Save ServiceNow Credentials Permanently</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {currentTab === 'assignment_groups' && (() => {
         const fallbackAvailableGroups = [
