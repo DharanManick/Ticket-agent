@@ -1,17 +1,7 @@
 {
-  "DEFAULT": {
-    "affectedCi": true,
-    "suspectedCi": true,
-    "activityLogs": true,
-    "shortDescription": true,
-    "technicalDescription": true,
-    "serviceImpactDescription": true,
-    "businessImpactDescription": true,
-    "symptomCode": true,
-    "closureCode1": true,
-    "closureCode2": true,
-    "solutionCode": true,
-    "knowledgeArticle": true,
-    "resolutionDescription": true
+  "DEFAULT": {},
+  "Network": {
+    "affected_ci": true,
+    "resolution_code": false
   }
 }

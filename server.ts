@@ -4204,29 +4204,20 @@ export function isFetchLimitOff(val: any): boolean {
 }
 
 let storedServiceNowCredentials = {
-  instanceName: 'dev12000',
+  instanceName: 'dev423209',
   username: 'admin',
-  password: 'admin',
-  limit: 10,
+  password: 'BrwYffM0%X*1',
+  limit: 0,
   syncType: 'all',
   useSimulator: false,
   autoSyncEnabled: true,
   autoFetchEnabled: true,
-  autoFetchInterval: 1, // in minutes (range 1-60)
+  autoFetchInterval: 5, // in seconds (range 3-300)
   lastFetchedSysUpdatedOn: '',
   assignmentGroupFilter: 'ALL',
   onlySolvePropose: false,
   manualLoadEnabled: false,
-  trackedGroups: [
-    'Retail Payment Gateway',
-    'Database Administration',
-    'Data Ingestion Service',
-    'Network WAN Operations',
-    'SaaS Messaging Support',
-    'Database Support Services',
-    'Network Engineering Operations',
-    'Cloud Hosting DevOps Team'
-  ]
+  trackedGroups: [] as string[]
 };
 
 let storedAlertsConfig = {
@@ -4429,6 +4420,16 @@ function applyServiceNowEnvCredentials() {
   if (envInstance || envUser || envPass) {
     storedServiceNowCredentials.useSimulator = false;
     changed = true;
+  }
+  // Clear any legacy mock groups from trackedGroups
+  if (Array.isArray(storedServiceNowCredentials.trackedGroups)) {
+    const hasMock = storedServiceNowCredentials.trackedGroups.some(g =>
+      ['Retail Payment Gateway', 'Database Administration', 'Data Ingestion Service', 'Network WAN Operations', 'SaaS Messaging Support', 'Database Support Services', 'Network Engineering Operations', 'Cloud Hosting DevOps Team'].includes(g)
+    );
+    if (hasMock) {
+      storedServiceNowCredentials.trackedGroups = [];
+      changed = true;
+    }
   }
   if (changed) {
     try {
@@ -4834,8 +4835,16 @@ function isCiValidForGroup(ciName: string, groupName: string): { isValid: boolea
   return { isValid: false, authorizedCis: authorizedNames };
 }
 
-async function fetchAndCacheLiveAssignmentGroupsWithCreds(instanceName: string, username: string, password: string): Promise<string[]> {
+let lastGroupsFetchTime = 0;
+const GROUPS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache TTL
+
+async function fetchAndCacheLiveAssignmentGroupsWithCreds(instanceName: string, username: string, password: string, forceRefresh = false): Promise<string[]> {
   if (!instanceName || !username || !password) {
+    return cachedServiceNowGroups;
+  }
+
+  // Use cached groups if available and TTL hasn't expired, unless forceRefresh is requested
+  if (!forceRefresh && cachedServiceNowGroups.length > 0 && (Date.now() - lastGroupsFetchTime < GROUPS_CACHE_TTL_MS)) {
     return cachedServiceNowGroups;
   }
   
@@ -4892,6 +4901,7 @@ async function fetchAndCacheLiveAssignmentGroupsWithCreds(instanceName: string, 
 
     if (allFetchedNames.length > 0) {
       cachedServiceNowGroups = Array.from(new Set(allFetchedNames)).sort();
+      lastGroupsFetchTime = Date.now();
       saveServiceNowGroupsCache();
       console.log(`[ServiceNow Live] Successfully updated groups cache with ${cachedServiceNowGroups.length} unique groups across ${pagesFetched} pages.`);
       return cachedServiceNowGroups;
@@ -4914,42 +4924,31 @@ async function fetchAndCacheLiveAssignmentGroups(): Promise<string[]> {
 function getMergedAssignmentGroups(): string[] {
   const groupsSet = new Set<string>();
   
-  // 1. Add any from on-disk cache (fetched from live ServiceNow)
-  cachedServiceNowGroups.forEach(g => groupsSet.add(g));
-
-  // 2. Add from mock incidents
-  mockServiceNowIncidents.forEach(inc => {
-    if (inc.assignment_group?.display_value) {
-      groupsSet.add(inc.assignment_group.display_value);
-    }
+  // 1. Add any from on-disk cache (fetched from live ServiceNow sys_user_group)
+  cachedServiceNowGroups.forEach(g => {
+    if (g && g.trim()) groupsSet.add(g.trim());
   });
 
-  // 3. Add from currently configured CI Combinations
+  // 2. Add from currently configured CI Combinations
   if (Array.isArray(currentCiCombinations)) {
     currentCiCombinations.forEach(c => {
-      if (c.assignmentGroup) {
-        groupsSet.add(c.assignmentGroup);
+      if (c.assignmentGroup && c.assignmentGroup.trim()) {
+        groupsSet.add(c.assignmentGroup.trim());
       }
     });
   }
 
-  // 4. Add standard fallbacks
-  const standardGroups = [
-    "Database Support Services",
-    "Network Engineering Operations",
-    "Cloud Hosting DevOps Team",
-    "Application Integrity Group",
-    "Database Administration",
-    "Network Operations",
-    "General Operations",
-    "Hardware Operations",
-    "API Infrastructure",
-    "Retail Payment Gateway",
-    "Data Ingestion Service",
-    "SaaS Messaging Support",
-    "Network WAN Operations"
-  ];
-  standardGroups.forEach(g => groupsSet.add(g));
+  // 3. Add from mandatory metrics config file if present
+  try {
+    const mmPath = path.join(process.cwd(), 'mandatory_metrics_config.json');
+    if (fs.existsSync(mmPath)) {
+      const mmData = JSON.parse(fs.readFileSync(mmPath, 'utf8'));
+      const mmConfigs = mmData.config || mmData.configs || {};
+      Object.keys(mmConfigs).forEach(k => {
+        if (k && k !== 'DEFAULT') groupsSet.add(k.trim());
+      });
+    }
+  } catch (e) {}
 
   return Array.from(groupsSet).sort();
 }
@@ -4963,7 +4962,7 @@ export interface ServiceNowTableInfo {
   is_extendable?: boolean;
 }
 
-// Auto-Fetch Polling Interval Scheduler
+// Auto-Fetch Polling Interval Scheduler (Optimized for real-time responsiveness)
 let autoFetchIntervalTimer: NodeJS.Timeout | null = null;
 
 function resetAutoFetchSchedule() {
@@ -4973,9 +4972,10 @@ function resetAutoFetchSchedule() {
   }
 
   if (storedServiceNowCredentials.autoFetchEnabled) {
-    const minutes = Math.max(1, Math.min(60, Number(storedServiceNowCredentials.autoFetchInterval) || 2));
-    const intervalMs = minutes * 60 * 1000;
-    console.log(`[ServiceNow Auto-Fetch] Scheduled background polling every ${minutes} minute(s) (${intervalMs}ms) using sys_updated_on incremental synchronization.`);
+    const rawVal = Number(storedServiceNowCredentials.autoFetchInterval) || 5;
+    const seconds = Math.max(3, Math.min(300, rawVal));
+    const intervalMs = seconds * 1000;
+    console.log(`[ServiceNow Auto-Fetch] Scheduled real-time background polling every ${seconds} second(s) (${intervalMs}ms) using sys_updated_on incremental synchronization.`);
     autoFetchIntervalTimer = setInterval(() => {
       runBackgroundServiceNowSync(true).catch((err: any) => {
         console.error('[ServiceNow Auto-Fetch Error]', err);
@@ -5551,20 +5551,21 @@ app.post('/api/servicenow/sync', async (req, res) => {
     const isLimitOff = isFetchLimitOff(limit !== undefined ? limit : storedServiceNowCredentials.limit);
     const syncLimit = isLimitOff ? 0 : (parseInt(String(limit || storedServiceNowCredentials.limit || '10'), 10) || 10);
 
-    // Sync credentials with the server-wide profile automatically upon manual load/sync
-    const isDefaultOrMock = (!instanceName || instanceName === 'dev12000' || instanceName.includes('dev12000')) && (!username || username === 'admin');
-    const resolvedUseSimulator = useSimulator !== undefined ? useSimulator : isDefaultOrMock;
+    const effectiveInstance = instanceName || storedServiceNowCredentials.instanceName || 'dev423209';
+    const effectiveUser = username || storedServiceNowCredentials.username || 'admin';
+    const effectivePass = password || storedServiceNowCredentials.password || 'BrwYffM0%X*1';
+    const resolvedUseSimulator = false; // Never use simulator mode per user directive
 
     storedServiceNowCredentials = {
-      instanceName: instanceName || storedServiceNowCredentials.instanceName || 'dev12000',
-      username: username || storedServiceNowCredentials.username || 'admin',
-      password: password || storedServiceNowCredentials.password || 'admin',
+      instanceName: effectiveInstance,
+      username: effectiveUser,
+      password: effectivePass,
       limit: isLimitOff ? 0 : (syncLimit || 10),
       syncType: syncType || storedServiceNowCredentials.syncType || 'all',
-      useSimulator: resolvedUseSimulator,
+      useSimulator: false,
       autoSyncEnabled: autoSyncEnabled !== undefined ? autoSyncEnabled === true : storedServiceNowCredentials.autoSyncEnabled,
       autoFetchEnabled: autoFetchEnabled !== undefined ? autoFetchEnabled === true : storedServiceNowCredentials.autoFetchEnabled,
-      autoFetchInterval: Math.max(1, Math.min(60, Number(autoFetchInterval) || storedServiceNowCredentials.autoFetchInterval || 1)),
+      autoFetchInterval: Math.max(3, Math.min(300, Number(autoFetchInterval) || storedServiceNowCredentials.autoFetchInterval || 5)),
       lastFetchedSysUpdatedOn: storedServiceNowCredentials.lastFetchedSysUpdatedOn || '',
       assignmentGroupFilter: resolvedGroupFilter,
       onlySolvePropose: onlySolvePropose !== undefined ? onlySolvePropose === true : storedServiceNowCredentials.onlySolvePropose,
@@ -5579,25 +5580,24 @@ app.post('/api/servicenow/sync', async (req, res) => {
       console.warn('[ServiceNow Server Sync] Failed to write updated credentials to file system.', fsErr);
     }
     
-    if (!resolvedUseSimulator && instanceName && username && password) {
+    if (effectiveInstance && effectiveUser && effectivePass) {
       addLog("Triggering automatic ServiceNow assignment groups sync...");
-      await fetchAndCacheLiveAssignmentGroupsWithCreds(instanceName, username, password).catch(err => {
+      await fetchAndCacheLiveAssignmentGroupsWithCreds(effectiveInstance, effectiveUser, effectivePass).catch(err => {
         addLog(`[Groups Sync warning] Could not auto-sync live assignment groups: ${err.message || String(err)}`);
       });
     }
     
-    const isDefaultPlaceholder = (instanceName === 'dev12000' && username === 'admin' && password === 'admin');
     let fetchedLiveSuccessfully = false;
 
-    if (!resolvedUseSimulator && instanceName && username && password && !isDefaultPlaceholder) {
+    if (effectiveInstance && effectiveUser && effectivePass) {
       // --- LIVE HTTP MODE ---
       try {
-        const cleanUrl = instanceName.replace(/\/$/, '');
+        const cleanUrl = effectiveInstance.replace(/\/$/, '');
         const instanceHost = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}.service-now.com`;
         
-        addLog(`Dials gateway to live ServiceNow instance '${instanceHost}'...`);
+        addLog(`Connecting to live ServiceNow instance '${instanceHost}'...`);
 
-        const authHeader = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+        const authHeader = 'Basic ' + Buffer.from(`${effectiveUser}:${effectivePass}`).toString('base64');
         const headers = {
           'Authorization': authHeader,
           'Accept': 'application/json',
@@ -5610,20 +5610,7 @@ app.post('/api/servicenow/sync', async (req, res) => {
         } else if (syncType === 'tickets' || syncType === 'both' || syncType === 'all') {
           let queryParam = '';
           const rawTracked = storedServiceNowCredentials.trackedGroups || [];
-          const tracked = rawTracked.filter(g => {
-            const isDefaultMock = [
-              'Retail Payment Gateway',
-              'Database Administration',
-              'Data Ingestion Service',
-              'Network WAN Operations',
-              'SaaS Messaging Support'
-            ].includes(g);
-            if (isDefaultMock) {
-              const lowerCached = (cachedServiceNowGroups || []).map(cg => String(cg || '').toLowerCase());
-              return lowerCached.includes(g.toLowerCase());
-            }
-            return true;
-          });
+          const tracked = rawTracked.filter((g: string) => Boolean(g && g.trim()));
 
           if (tracked.length > 0) {
             const joinedNames = tracked.map(g => g.replace(/,/g, '\\,')).join(',');
@@ -5836,152 +5823,13 @@ app.post('/api/servicenow/sync', async (req, res) => {
         }
         fetchedLiveSuccessfully = true;
       } catch (liveErr: any) {
-        addLog(`Live ServiceNow fetch notice: ${liveErr?.message || String(liveErr)}. Using Sandbox Simulator mode as fallback.`);
-        console.log(`[ServiceNow Live Sync Notice] ${liveErr?.message || String(liveErr)}. Switching to Sandbox Simulator mode.`);
+        addLog(`Live ServiceNow fetch notice: ${liveErr?.message || String(liveErr)}. Verify connection parameters.`);
+        console.error(`[ServiceNow Live Sync Error]`, liveErr);
       }
     }
 
-    // --- FALLBACK / SIMULATOR MODE ---
     if (!fetchedLiveSuccessfully) {
-      addLog("Sandbox Simulator active: loading simulated records and KB articles.");
-      
-      const tracked = storedServiceNowCredentials.trackedGroups || [];
-      let filteredMock = mockServiceNowIncidents;
-      if (tracked.length > 0) {
-        filteredMock = mockServiceNowIncidents.filter(inc => {
-          let grpName = '';
-          if (inc.assignment_group) {
-            if (typeof inc.assignment_group === 'string') {
-              grpName = inc.assignment_group;
-            } else if (typeof inc.assignment_group === 'object') {
-              grpName = (inc.assignment_group as any).display_value || (inc.assignment_group as any).value || '';
-            }
-          }
-          grpName = grpName.trim().toLowerCase();
-          return tracked.some(g => g.trim().toLowerCase() === grpName);
-        });
-      } else if (resolvedGroupFilter && resolvedGroupFilter !== 'ALL') {
-        filteredMock = mockServiceNowIncidents.filter(inc => {
-          let grpName = '';
-          if (inc.assignment_group) {
-            if (typeof inc.assignment_group === 'string') {
-              grpName = inc.assignment_group;
-            } else if (typeof inc.assignment_group === 'object') {
-              grpName = (inc.assignment_group as any).display_value || (inc.assignment_group as any).value || '';
-            }
-          }
-          return grpName.trim().toLowerCase() === resolvedGroupFilter.trim().toLowerCase();
-        });
-      }
-
-      if (syncType === 'tickets' || syncType === 'both' || syncType === 'all') {
-        const parsedMockTickets = (isLimitOff ? filteredMock : filteredMock.slice(0, syncLimit)).map((inc: any) => {
-          const affectedCiVal = getSnowValue(inc, ['cmdb_ci', 'u_affected_ci', 'u_ci'], 'ServiceNow Desktop');
-          return {
-            id: getSnowValue(inc, ['sys_id', 'id']) || String(Date.now() + Math.random()),
-            incNumber: getSnowValue(inc, ['number', 'incNumber']) || "INC_LIVE_" + Math.floor(Math.random() * 900),
-            assignee: getSnowValue(inc, ['assigned_to', 'assignee']) || "Unassigned",
-            assignmentGroup: getSnowValue(inc, ['assignment_group', 'assignmentGroup']) || "Unassigned Group",
-            assigneeManager: getSnowValue(inc, ['resolved_by', 'assigneeManager']) || "Unassigned Manager",
-            createdDate: getSnowValue(inc, ['sys_created_on', 'createdDate']) || new Date().toISOString(),
-            closedDate: getSnowValue(inc, ['closed_at', 'closedDate']) || new Date().toISOString(),
-            incidentState: getSnowValue(inc, ['incident_state', 'incidentState']) || "Closed",
-            previousState: getSnowValue(inc, ['u_previous_state', 'previousState']) || "In Progress",
-            activityLogs: getSnowValue(inc, ['comments_and_work_notes', 'activityLogs']) || "",
-            shortDescription: getSnowValue(inc, ['short_description', 'shortDescription']) || "",
-            technicalDescription: getSnowValue(inc, ['description', 'technicalDescription']) || "",
-            serviceImpactDescription: getSnowValue(inc, ['u_service_impact', 'serviceImpactDescription', 'short_description']) || "",
-            businessImpactDescription: getSnowValue(inc, ['u_business_impact', 'businessImpactDescription', 'description']) || "",
-            affectedCi: affectedCiVal,
-            suspectedCi: getSnowValue(inc, ['suspected_ci', 'suspectedCi']) || affectedCiVal || "ServiceNow Desktop",
-            symptomCode: getSnowValue(inc, ['u_symptom_code', 'symptomCode', 'symptom_code']) || "Default Symptom Code",
-            closureCode1: getSnowValue(inc, ['close_code', 'closureCode1']) || "System Health Check",
-            closureCode2: getSnowValue(inc, ['u_closure_sub_code', 'closureCode2']) || "Routine Operational Audit",
-            solutionCode: getSnowValue(inc, ['u_solution_code', 'solutionCode']) || "Resolved via Patch",
-            knowledgeArticle: getSnowValue(inc, ['u_kb_article', 'knowledgeArticle', 'kb_article']) || "",
-            resolutionDescription: getSnowValue(inc, ['close_notes', 'resolutionDescription']) || "",
-            externalReference: getSnowValue(inc, ['externalReference']) || "",
-            acceptedAppCounter: getSnowValue(inc, ['u_accepted_app_counter', 'acceptedAppCounter']) || "1"
-          };
-        });
-
-        results.tickets = parsedMockTickets;
-        results.ticketsSynced = parsedMockTickets.length;
-        addLog(`Synchronized ${parsedMockTickets.length} simulated records from '${resolvedTable}'.`);
-      }
-
-      if (syncType === 'cis' || syncType === 'all') {
-        const mockCisList: any[] = [];
-        Object.entries(cachedGroupCis).forEach(([grp, cis]) => {
-          (cis || []).forEach(ci => {
-            if (!mockCisList.some(m => m.name.toLowerCase() === ci.name.toLowerCase())) {
-              mockCisList.push({
-                name: ci.name,
-                sysId: ci.sysId || `sys_ci_${mockCisList.length + 1}`,
-                category: ci.category || 'Infrastructure',
-                className: ci.className || 'cmdb_ci',
-                supportGroup: grp,
-                status: 'Operational'
-              });
-            }
-          });
-        });
-        results.cis = mockCisList;
-        results.cisSynced = mockCisList.length;
-        addLog(`Synchronized ${mockCisList.length} Configuration Items (CIs) from CMDB catalog.`);
-      }
-
-      if (syncType === 'kbs' || syncType === 'both' || syncType === 'all') {
-        const mockedKbs = [
-          {
-            id: "KA0010925",
-            title: "Database Cluster Replication Interlock Guide",
-            category: "Database Support Services",
-            summary: "Mandatory steps to partition and recover secondary database cluster locks after heartbeat failure under split-brain hazards.",
-            approvedSteps: [
-              "Check and ping node network interfaces.",
-              "Verify network routing table entries of VPC router.",
-              "Isolate the failing database node safely.",
-              "Bring up hot stand-by instance on backup host.",
-              "Test cluster replication consistency logs."
-            ]
-          },
-          {
-            id: "KA0010444",
-            title: "Proxy Authentication & OIDC Client Handshakes",
-            category: "Security Enterprise Architecture",
-            summary: "Guide to resolve OpenID Connect token rejection errors on access gateways, renewing client credentials, and issuing local CA certificates.",
-            approvedSteps: [
-              "Review proxy validation logs for rejection codes.",
-              "Verify identity provider OIDC metadata endpoints.",
-              "Renew the client authentication secret token safely.",
-              "Publish current certificate authority key to keychain.",
-              "Conduct handshake tests on reference proxy endpoints."
-            ]
-          }
-        ];
-
-        for (const kb of mockedKbs) {
-          const idx = currentKnowledgeArticles.findIndex(a => a.id.toUpperCase() === kb.id.toUpperCase());
-          if (idx !== -1) {
-            currentKnowledgeArticles[idx] = kb;
-          } else {
-            currentKnowledgeArticles.push(kb);
-          }
-
-          const text = `${kb.title}\n${kb.summary}\n${kb.approvedSteps.join('\n')}`;
-          await vectorDb.addRecord(kb.id, text, {
-            type: 'knowledge-article',
-            title: kb.title,
-            category: kb.category,
-            summary: kb.summary,
-            approvedSteps: kb.approvedSteps
-          });
-        }
-        results.articles = mockedKbs;
-        results.articlesSynced = mockedKbs.length;
-        addLog(`Indexed ${mockedKbs.length} simulated Knowledge Articles on RAG embeddings.`);
-      }
+      addLog("Live ServiceNow query could not retrieve records. Verify connection parameters in Connection Setup.");
     }
 
     if (results.tickets && results.tickets.length > 0) {
@@ -10468,170 +10316,36 @@ async function runBackgroundServiceNowSync(isAutoFetch: boolean = true) {
     let ticketsToUse: any[] = [];
     
     if (!isLive) {
-      if (storedServiceNowCredentials.manualLoadEnabled) {
-        addBackgroundLog("Manual Load mode active: skipping background simulated incident retrieval to preserve manually loaded dataset.");
+      addBackgroundLog("ServiceNow live credentials not configured. Please supply valid ServiceNow instance and credentials in Connection Setup.");
+      return;
+    }
+
+    addBackgroundLog(`Sending HTTP request to ServiceNow endpoint: /api/now/table/incident...`);
+    const authHeader = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+    const headers = {
+      'Authorization': authHeader,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'aistudio-build'
+    };
+    
+    if (storedServiceNowCredentials.manualLoadEnabled) {
+      addBackgroundLog("Manual Load mode active: skipping background live incident queries to preserve manually loaded dataset.");
+    } else if (currentSyncType === 'tickets' || currentSyncType === 'both' || currentSyncType === 'all') {
+      let queryFilters: string[] = [];
+      const rawTracked = storedServiceNowCredentials.trackedGroups || [];
+      const tracked = rawTracked.filter((g: string) => Boolean(g && g.trim()));
+
+      if (tracked.length > 0) {
+        const joinedNames = tracked.map(g => g.replace(/,/g, '\\,')).join(',');
+        queryFilters.push(`assignment_group.nameIN${joinedNames}`);
+        addBackgroundLog(`Filtering Live API background query for tracked Assignment Groups: ${tracked.join(', ')}`);
+      } else if (resolvedGroupFilter && resolvedGroupFilter !== 'ALL') {
+        queryFilters.push(`assignment_group.name=${resolvedGroupFilter}`);
+        addBackgroundLog(`Filtering Live API background query for Assignment Group Filter: ${resolvedGroupFilter}`);
       } else {
-        addBackgroundLog(`Polling Sandbox Simulator for incident records...`);
-        
-        const tracked = storedServiceNowCredentials.trackedGroups || [];
-        let filteredMock = mockServiceNowIncidents;
-        if (tracked.length > 0) {
-          filteredMock = mockServiceNowIncidents.filter(inc => {
-            let grpName = '';
-            if (inc.assignment_group) {
-              if (typeof inc.assignment_group === 'string') {
-                grpName = inc.assignment_group;
-              } else if (typeof inc.assignment_group === 'object') {
-                grpName = (inc.assignment_group as any).display_value || (inc.assignment_group as any).value || '';
-              }
-            }
-            grpName = grpName.trim().toLowerCase();
-            return tracked.some(g => g.trim().toLowerCase() === grpName);
-          });
-        } else if (resolvedGroupFilter && resolvedGroupFilter !== 'ALL') {
-          filteredMock = mockServiceNowIncidents.filter(inc => {
-            let grpName = '';
-            if (inc.assignment_group) {
-              if (typeof inc.assignment_group === 'string') {
-                grpName = inc.assignment_group;
-              } else if (typeof inc.assignment_group === 'object') {
-                grpName = (inc.assignment_group as any).display_value || (inc.assignment_group as any).value || '';
-              }
-            }
-            return grpName.trim().toLowerCase() === resolvedGroupFilter.trim().toLowerCase();
-          });
-        }
-
-        ticketsToUse = (isLimitOff ? filteredMock : filteredMock.slice(0, syncLimit)).map(inc => {
-          const affectedCiVal = getSnowValue(inc, ['cmdb_ci', 'affected_ci', 'affectedCi'], 'ServiceNow Desktop');
-          return enrichTicketWithAuditorLogs({
-            id: getSnowValue(inc, ['sys_id', 'id']) || String(Date.now() + Math.random()),
-            incNumber: getSnowValue(inc, ['number', 'incNumber']) || "INC_LIVE_" + Math.floor(Math.random() * 900),
-            assignee: getSnowValue(inc, ['assigned_to', 'assignee']) || "Unassigned",
-            assignmentGroup: getSnowValue(inc, ['assignment_group', 'assignmentGroup']) || "Unassigned Group",
-            assigneeManager: getSnowValue(inc, ['resolved_by', 'assigneeManager']) || "Unassigned Manager",
-            createdDate: getSnowValue(inc, ['sys_created_on', 'createdDate']) || new Date().toISOString(),
-            closedDate: getSnowValue(inc, ['closed_at', 'closedDate']) || new Date().toISOString(),
-            incidentState: getSnowValue(inc, ['incident_state', 'incidentState']) || "Closed",
-            previousState: getSnowValue(inc, ['u_previous_state', 'previousState']) || "In Progress",
-            activityLogs: getSnowValue(inc, ['comments_and_work_notes', 'activityLogs']) || "",
-            shortDescription: getSnowValue(inc, ['short_description', 'shortDescription']) || "",
-            technicalDescription: getSnowValue(inc, ['description', 'technicalDescription']) || "",
-            serviceImpactDescription: getSnowValue(inc, ['u_service_impact', 'serviceImpactDescription', 'short_description']) || "",
-            businessImpactDescription: getSnowValue(inc, ['u_business_impact', 'businessImpactDescription', 'description']) || "",
-            affectedCi: affectedCiVal,
-            suspectedCi: getSnowValue(inc, ['suspected_ci', 'suspectedCi']) || affectedCiVal || "ServiceNow Desktop",
-            symptomCode: getSnowValue(inc, ['u_symptom_code', 'symptomCode', 'symptom_code']) || "Default Symptom Code",
-            closureCode1: getSnowValue(inc, ['close_code', 'closureCode1']) || "System Health Check",
-            closureCode2: getSnowValue(inc, ['u_closure_sub_code', 'closureCode2']) || "Routine Operational Audit",
-            solutionCode: getSnowValue(inc, ['u_solution_code', 'solutionCode']) || "Resolved via Patch",
-            knowledgeArticle: getSnowValue(inc, ['u_kb_article', 'knowledgeArticle', 'kb_article']) || "",
-            resolutionDescription: getSnowValue(inc, ['close_notes', 'resolutionDescription']) || "",
-            externalReference: getSnowValue(inc, ['externalReference']) || "",
-            acceptedAppCounter: getSnowValue(inc, ['u_accepted_app_counter', 'acceptedAppCounter']) || "1"
-          });
-        });
+        addBackgroundLog(`No tracked Assignment Groups configured. Polling all latest incidents.`);
       }
-
-      // Fetch simulated CIs in background sync
-      if (currentSyncType === 'cis' || currentSyncType === 'all') {
-        addBackgroundLog(`Polling Sandbox Simulator for CMDB Configuration Items...`);
-        totalCisFetched = defaultCiCombinations.length;
-        addBackgroundLog(`Synced ${totalCisFetched} simulated Configuration Items (CIs) in background.`);
-      }
-
-      // Fetch simulated KB articles in background sync
-      if (currentSyncType === 'kbs' || currentSyncType === 'both' || currentSyncType === 'all') {
-        addBackgroundLog(`Polling Sandbox Simulator for KB knowledge articles...`);
-        const mockedKbs = [
-          {
-            id: "KA0010925",
-            title: "Database Cluster Replication Interlock Guide",
-            category: "Database Support Services",
-            summary: "Mandatory steps to partition and recover secondary database cluster locks after heartbeat failure under split-brain hazards.",
-            approvedSteps: [
-              "Check and ping node network interfaces.",
-              "Verify network routing table entries of VPC router.",
-              "Isolate the failing database node safely.",
-              "Bring up hot stand-by instance on backup host.",
-              "Test cluster replication consistency logs."
-            ]
-          },
-          {
-            id: "KA0010444",
-            title: "Proxy Authentication & OIDC Client Handshakes",
-            category: "Security Enterprise Architecture",
-            summary: "Guide to resolve OpenID Connect token rejection errors on access gateways, renewing client credentials, and issuing local CA certificates.",
-            approvedSteps: [
-              "Review proxy validation logs for rejection codes.",
-              "Verify identity provider OIDC metadata endpoints.",
-              "Renew the client authentication secret token safely.",
-              "Publish current certificate authority key to keychain.",
-              "Conduct handshake tests on reference proxy endpoints."
-            ]
-          }
-        ];
-
-        for (const kb of mockedKbs) {
-          const idx = currentKnowledgeArticles.findIndex(a => a.id.toUpperCase() === kb.id.toUpperCase());
-          if (idx !== -1) {
-            currentKnowledgeArticles[idx] = kb;
-          } else {
-            currentKnowledgeArticles.push(kb);
-          }
-          
-          const text = `${kb.title}\n${kb.summary}\n${kb.approvedSteps.join('\n')}`;
-          await vectorDb.addRecord(kb.id, text, {
-            type: 'knowledge-article',
-            title: kb.title,
-            category: kb.category,
-            summary: kb.summary,
-            approvedSteps: kb.approvedSteps
-          });
-        }
-        totalKbsFetched = mockedKbs.length;
-        addBackgroundLog(`Synced ${mockedKbs.length} simulated KB articles in background.`);
-      }
-    } else {
-      addBackgroundLog(`Sending HTTP request to ServiceNow endpoint: /api/now/table/incident...`);
-      const authHeader = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
-      const headers = {
-        'Authorization': authHeader,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'aistudio-build'
-      };
-      
-      if (storedServiceNowCredentials.manualLoadEnabled) {
-        addBackgroundLog("Manual Load mode active: skipping background live incident queries to preserve manually loaded dataset.");
-      } else if (currentSyncType === 'tickets' || currentSyncType === 'both' || currentSyncType === 'all') {
-        let queryFilters: string[] = [];
-        const rawTracked = storedServiceNowCredentials.trackedGroups || [];
-        const tracked = rawTracked.filter(g => {
-          const isDefaultMock = [
-            'Retail Payment Gateway',
-            'Database Administration',
-            'Data Ingestion Service',
-            'Network WAN Operations',
-            'SaaS Messaging Support'
-          ].includes(g);
-          if (isDefaultMock) {
-            const lowerCached = (cachedServiceNowGroups || []).map(cg => String(cg || '').toLowerCase());
-            return lowerCached.includes(g.toLowerCase());
-          }
-          return true;
-        });
-
-        if (tracked.length > 0) {
-          const joinedNames = tracked.map(g => g.replace(/,/g, '\\,')).join(',');
-          queryFilters.push(`assignment_group.nameIN${joinedNames}`);
-          addBackgroundLog(`Filtering Live API background query for tracked Assignment Groups: ${tracked.join(', ')}`);
-        } else if (resolvedGroupFilter && resolvedGroupFilter !== 'ALL') {
-          queryFilters.push(`assignment_group.name=${resolvedGroupFilter}`);
-          addBackgroundLog(`Filtering Live API background query for Assignment Group Filter: ${resolvedGroupFilter}`);
-        } else {
-          addBackgroundLog(`No tracked Assignment Groups configured. Polling all latest incidents.`);
-        }
 
         // Reuse existing incremental fetch logic (sys_updated_on-based polling) for auto-fetch
         if (isAutoFetch && storedServiceNowCredentials.lastFetchedSysUpdatedOn) {
@@ -10830,7 +10544,6 @@ async function runBackgroundServiceNowSync(isAutoFetch: boolean = true) {
           addBackgroundLog(`SLA warning: ServiceNow kb_knowledge REST lookup failing with status ${kbResponse.status}.`);
         }
       }
-    }
     
     // --- 1. WORKSPACE CHECKLIST TICKET AUDIT ---
     // Apply "Solve Propose Only" state filtering specifically for ticket audit under workspace checklist
@@ -10847,14 +10560,30 @@ async function runBackgroundServiceNowSync(isAutoFetch: boolean = true) {
       addBackgroundLog(`Running compliance audit across ${auditTicketsToUse.length} Workspace Checklist tickets...`);
       // Execute the audit loop to populate compliance caches
       const reports = await executeAudit(auditTicketsToUse, currentRules, currentCiCombinations, currentResolutionQuestions, currentOverallRules);
-      processedReportsCache = reports;
+      if (isAutoFetch && processedReportsCache.length > 0) {
+        // Delta merge into processedReportsCache so existing tickets aren't lost
+        const reportsMap = new Map<string, any>();
+        processedReportsCache.forEach(r => {
+          const key = (r.ticket.incNumber || r.ticket.id || '').toUpperCase();
+          if (key) reportsMap.set(key, r);
+        });
+        reports.forEach(r => {
+          const key = (r.ticket.incNumber || r.ticket.id || '').toUpperCase();
+          if (key) reportsMap.set(key, r);
+        });
+        processedReportsCache = Array.from(reportsMap.values());
+      } else {
+        processedReportsCache = reports;
+      }
 
       // Dispatch automatic alerts in the background if configured
       await runAutomaticAlertsForReports(reports).catch((alertErr) => {
         addBackgroundLog(`Error during automatic alerting sweep: ${alertErr.message || alertErr}`);
       });
     } else {
-      processedReportsCache = [];
+      if (!isAutoFetch) {
+        processedReportsCache = [];
+      }
       addBackgroundLog(`Workspace Checklist: 0 tickets matched the current filter criteria.`);
     }
 

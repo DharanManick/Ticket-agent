@@ -35,13 +35,18 @@ import {
 } from 'lucide-react';
 import { ActivityIncident, ActivityLogReference } from '../types';
 
+// Generate direct auto-login link to incident in ServiceNow (bypasses login screen)
 function getServiceNowIncidentUrl(incNumber: string, sysId?: string): string {
-  const rawInstance = (typeof window !== 'undefined' ? localStorage.getItem('gov_snow_instance') : '') || 'dev12000';
-  const cleanInstance = rawInstance.replace(/^https?:\/\//, '').replace(/\.service-now\.com.*$/, '').trim() || 'dev12000';
-  if (sysId && sysId.length === 32 && !sysId.includes('_') && !sysId.includes('.')) {
-    return `https://${cleanInstance}.service-now.com/nav_to.do?uri=incident.do?sys_id=${sysId}`;
-  }
-  return `https://${cleanInstance}.service-now.com/nav_to.do?uri=incident.do?sysparm_query=number=${encodeURIComponent(incNumber)}`;
+  const rawInstance = (typeof window !== 'undefined' ? localStorage.getItem('gov_snow_instance') : '') || 'dev423209';
+  const cleanInstance = rawInstance.replace(/^https?:\/\//, '').replace(/\.service-now\.com.*$/, '').trim() || 'dev423209';
+  const user = (typeof window !== 'undefined' ? localStorage.getItem('gov_snow_user') : '') || 'admin';
+  const pass = (typeof window !== 'undefined' ? localStorage.getItem('gov_snow_pass') : '') || 'BrwYffM0%X*1';
+
+  const targetUri = (sysId && sysId.length === 32 && !sysId.includes('_') && !sysId.includes('.'))
+    ? `incident.do?sys_id=${sysId}`
+    : `incident.do?sysparm_query=number=${encodeURIComponent(incNumber)}`;
+
+  return `https://${cleanInstance}.service-now.com/login.do?user_name=${encodeURIComponent(user)}&sys_action=sysverb_login&user_password=${encodeURIComponent(pass)}&sysparm_goto_url=${encodeURIComponent(targetUri)}`;
 }
 
 interface ActivityLogAuditDeskProps {

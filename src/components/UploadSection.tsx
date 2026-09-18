@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { Ticket } from '../types';
-import { sampleTickets } from '../sampleIncidents';
 import { 
   UploadCloud, FileSpreadsheet, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Sparkles, Filter, Info, 
   ChevronDown, ChevronUp, BookOpen, Database 

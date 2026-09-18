@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CiCombination } from '../types';
-import ConfirmationModal from './ConfirmationModal';
+import ConfirmationDialog from './ConfirmationDialog';
 import { 
   Plus, 
   Trash2, 
@@ -256,8 +256,8 @@ export default function CiMatrixEditor({
         </div>
       </div>
 
-      {/* CI Matrix Pairing Deletion Confirmation Modal */}
-      <ConfirmationModal
+      {/* CI Matrix Pairing Deletion Confirmation Dialog */}
+      <ConfirmationDialog
         isOpen={comboIndexToDelete !== null}
         title="Delete CI Governance Pairing?"
         message={`Are you sure you want to delete this CI compliance matrix mapping combination for Affected CI "${comboIndexToDelete !== null ? localCombos[comboIndexToDelete]?.affectedCi : ''}"?`}

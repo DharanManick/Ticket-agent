@@ -5,21 +5,16 @@ import { defaultAuditRules } from './defaultRules';
 import { defaultCiCombinations } from './defaultCiMatrix';
 import { defaultResolutionQuestions } from './defaultResolutionQuestions';
 import { defaultOverallRules } from './defaultOverallRules';
-import { sampleTickets } from './sampleIncidents';
 import MetricCards from './components/MetricCards';
 import AssigneePerformanceHeatmap from './components/AssigneePerformanceHeatmap';
 import AuditDetails from './components/AuditDetails';
-import RulesEditor from './components/RulesEditor';
 import OverallRulesEditor from './components/OverallRulesEditor';
-import CiMatrixEditor from './components/CiMatrixEditor';
-import ResolutionConfigEditor from './components/ResolutionConfigEditor';
 import TrendsPage from './components/TrendsPage';
 import AIChatInspector from './components/AIChatInspector';
 import AssigneeInsights from './components/AssigneeInsights';
 import AuditHistoryTab from './components/AuditHistoryTab';
 import AboutPortal from './components/AboutPortal';
-import AlertsConfigPage from './components/AlertsConfigPage';
-import UnifiedMatrixHub from './components/UnifiedMatrixHub';
+import AlertDispatchCenter from './components/AlertDispatchCenter';
 import ConfirmationDialog from './components/ConfirmationDialog';
 import { exportToColorfulExcel } from './utils/excelExporter';
 import * as XLSX from 'xlsx';
@@ -67,7 +62,6 @@ import {
   X
 } from 'lucide-react';
 import { ActivityLogAuditDesk } from './components/ActivityLogAuditDesk';
-import ServiceNowApiTester from './components/ServiceNowApiTester';
 import ConnectionSetup from './components/ConnectionSetup';
 import UsageTracking from './components/UsageTracking';
 import { useTheme } from './components/ThemeProvider';
@@ -111,6 +105,19 @@ export default function App() {
       } catch (err) {
         console.warn('Could not sync user profile from backend, using local cache:', err);
       }
+
+      try {
+        const snowRes = await fetch('/api/servicenow/credentials');
+        if (snowRes.ok) {
+          const snowData = await snowRes.json();
+          const c = snowData.credentials || (snowData.instanceName ? snowData : null);
+          if (c) {
+            if (c.instanceName) localStorage.setItem('gov_snow_instance', c.instanceName);
+            if (c.username) localStorage.setItem('gov_snow_user', c.username);
+            if (c.password) localStorage.setItem('gov_snow_pass', c.password);
+          }
+        }
+      } catch (e) {}
     }
     syncUserProfileFromBackend();
   }, [setTheme]);
@@ -1534,19 +1541,6 @@ export default function App() {
               </button>
 
               <button
-                onClick={() => setActiveTab('servicenowTest')}
-                title="ServiceNow API Testing"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
-                  activeTab === 'servicenowTest'
-                    ? 'bg-blue-600/15 text-blue-400 border border-blue-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
-                } ${isSidebarExpanded ? '' : 'justify-center'}`}
-              >
-                <Server className="h-3.5 w-3.5 shrink-0 text-blue-400" />
-                {isSidebarExpanded && <span className="ml-2 truncate">ServiceNow API Testing</span>}
-              </button>
-
-              <button
                 onClick={() => setActiveTab('usage')}
                 title="Usage & Telemetry"
                 className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
@@ -2133,69 +2127,6 @@ export default function App() {
                 </motion.div>
               )}
 
-              {activeTab === 'servicenowTest' && (
-                <motion.div
-                  key="servicenowTest"
-                  initial={{ opacity: 0, scale: 0.96, y: 15 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.96, y: -10 }}
-                  transition={{ type: "spring", stiffness: 150, damping: 20 }}
-                >
-                  <ServiceNowApiTester triggerPopup={triggerPopup} />
-                </motion.div>
-              )}
-
-              {activeTab === 'rules' && (
-                <motion.div
-                  key="rules"
-                  initial={{ opacity: 0, scale: 0.96, y: 15 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.96, y: -10 }}
-                  transition={{ type: "spring", stiffness: 150, damping: 20 }}
-                >
-                  <RulesEditor 
-                    rules={rules} 
-                    onRulesSave={handleSaveRules} 
-                    onResetToDefault={handleResetToDefaultRules} 
-                    triggerPopup={triggerPopup} 
-                  />
-                </motion.div>
-              )}
-
-              {activeTab === 'ciMatrix' && (
-                <motion.div
-                  key="ciMatrix"
-                  initial={{ opacity: 0, scale: 0.96, y: 15 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.96, y: -10 }}
-                  transition={{ type: "spring", stiffness: 150, damping: 20 }}
-                >
-                  <CiMatrixEditor 
-                    combinations={ciCombinations} 
-                    onCombinationsSave={handleSaveCiCombinations} 
-                    onResetToDefault={handleResetToDefaultCiCombinations} 
-                    triggerPopup={triggerPopup} 
-                  />
-                </motion.div>
-              )}
-
-              {activeTab === 'resolutionConfig' && (
-                <motion.div
-                  key="resolutionConfig"
-                  initial={{ opacity: 0, scale: 0.96, y: 15 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.96, y: -10 }}
-                  transition={{ type: "spring", stiffness: 150, damping: 20 }}
-                >
-                  <ResolutionConfigEditor 
-                    questions={resolutionQuestions} 
-                    onSaveQuestions={handleSaveResolutionQuestions} 
-                    onResetToDefault={handleResetToDefaultResolutionQuestions} 
-                    triggerPopup={triggerPopup} 
-                  />
-                </motion.div>
-              )}
-
               {activeTab === 'chatbot' && (
                 <motion.div
                   key="chatbot"
@@ -2223,13 +2154,9 @@ export default function App() {
                   exit={{ opacity: 0, scale: 0.96, y: -10 }}
                   transition={{ type: "spring", stiffness: 150, damping: 20 }}
                 >
-                  <AlertsConfigPage 
+                  <AlertDispatchCenter 
                      reports={reports} 
                      triggerPopup={triggerPopup}
-                     enabledColors={enabledColors}
-                     setEnabledColors={setEnabledColors}
-                     bypassTriggerFilters={bypassTriggerFilters}
-                     setBypassTriggerFilters={setBypassTriggerFilters}
                   />
                 </motion.div>
               )}

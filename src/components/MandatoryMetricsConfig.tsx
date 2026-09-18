@@ -46,6 +46,7 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
   const [searchFilter, setSearchFilter] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [newGroupInput, setNewGroupInput] = useState('');
+  const [liveServiceNowGroups, setLiveServiceNowGroups] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -92,7 +93,7 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
         const configs = data.config || data.configs || {};
         setGroupConfigs(configs);
 
-        // Extract unique groups from configs + availableAssignmentGroups + localStorage
+        // Extract unique groups from configs + availableAssignmentGroups + localStorage + live ServiceNow
         const discovered = new Set<string>(['DEFAULT', ...Object.keys(configs)]);
         if (availableAssignmentGroups && availableAssignmentGroups.length > 0) {
           availableAssignmentGroups.forEach(g => discovered.add(g));
@@ -100,6 +101,19 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
         if (initialSelectedGroup) {
           discovered.add(initialSelectedGroup);
         }
+
+        // Fetch live ServiceNow assignment groups
+        try {
+          const liveRes = await fetch('/api/servicenow/assignment-groups');
+          if (liveRes.ok) {
+            const liveData = await liveRes.json();
+            if (Array.isArray(liveData.groups)) {
+              const liveList = liveData.groups.filter((g: string) => Boolean(g && g.trim()));
+              liveList.forEach((g: string) => discovered.add(g.trim()));
+              setLiveServiceNowGroups(liveList);
+            }
+          }
+        } catch (e) {}
 
         // Also check localStorage tracked groups
         try {
@@ -332,39 +346,55 @@ export const MandatoryMetricsConfig: React.FC<MandatoryMetricsConfigProps> = ({
             <select
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}
-              className="bg-[#0A0C11] border border-[#2F364A] text-white text-xs font-mono rounded-xl px-3 py-2 outline-none focus:border-blue-500 min-w-[260px] cursor-pointer"
+              className="bg-[#0A0C11] border border-[#2F364A] text-white text-xs font-mono rounded-xl px-3 py-2 outline-none focus:border-blue-500 min-w-[280px] cursor-pointer"
             >
               <option value="DEFAULT">⭐ DEFAULT (Global Baseline for All Groups)</option>
-              {allGroups
-                .filter(g => g !== 'DEFAULT')
-                .map(group => {
-                  const hasCustom = Boolean(groupConfigs[group]);
-                  return (
-                    <option key={group} value={group}>
-                      {group} {hasCustom ? '• [Custom Rules Enforced]' : '• [Inherits Baseline]'}
-                    </option>
-                  );
-                })}
+              {liveServiceNowGroups.length > 0 && (
+                <optgroup label={`ServiceNow Live Groups (${liveServiceNowGroups.length})`}>
+                  {liveServiceNowGroups.map(group => {
+                    const hasCustom = Boolean(groupConfigs[group]);
+                    return (
+                      <option key={group} value={group}>
+                        {group} {hasCustom ? '• [Custom Rules Enforced]' : '• [Inherits Baseline]'}
+                      </option>
+                    );
+                  })}
+                </optgroup>
+              )}
+              {allGroups.filter(g => g !== 'DEFAULT' && !liveServiceNowGroups.includes(g)).length > 0 && (
+                <optgroup label="Custom / Added Groups">
+                  {allGroups
+                    .filter(g => g !== 'DEFAULT' && !liveServiceNowGroups.includes(g))
+                    .map(group => {
+                      const hasCustom = Boolean(groupConfigs[group]);
+                      return (
+                        <option key={group} value={group}>
+                          {group} {hasCustom ? '• [Custom Rules Enforced]' : '• [Inherits Baseline]'}
+                        </option>
+                      );
+                    })}
+                </optgroup>
+              )}
             </select>
 
-            {/* Quick Add Custom Group */}
+            {/* Quick Add Custom Group / Manual Input */}
             <div className="flex items-center gap-1.5">
               <input
                 type="text"
                 value={newGroupInput}
                 onChange={(e) => setNewGroupInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddNewGroup()}
-                placeholder="New group name..."
-                className="bg-[#0A0C11] border border-[#2F364A] text-white text-xs font-mono rounded-xl px-3 py-2 outline-none focus:border-blue-500 w-44"
+                placeholder="Add manual group name..."
+                className="bg-[#0A0C11] border border-[#2F364A] text-white text-xs font-mono rounded-xl px-3 py-2 outline-none focus:border-blue-500 w-52"
               />
               <button
                 type="button"
                 onClick={handleAddNewGroup}
-                className="bg-[#1A2130] hover:bg-blue-600 hover:text-white text-blue-400 border border-blue-500/30 px-2.5 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1"
-                title="Add custom assignment group"
+                className="bg-[#1A2130] hover:bg-blue-600 hover:text-white text-blue-400 border border-blue-500/30 px-3 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1"
+                title="Add and onboard custom assignment group"
               >
                 <Plus className="h-3.5 w-3.5" />
-                <span>Add</span>
+                <span>Add Group</span>
               </button>
             </div>
           </div>

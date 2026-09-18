@@ -30,16 +30,7 @@ import { Ticket } from '../types';
 import { MandatoryMetricsConfig } from './MandatoryMetricsConfig';
 import UploadSection from './UploadSection';
 
-const DEFAULT_TRACKED_GROUPS = [
-  'Retail Payment Gateway',
-  'Database Administration',
-  'Data Ingestion Service',
-  'Network WAN Operations',
-  'SaaS Messaging Support',
-  'Database Support Services',
-  'Network Engineering Operations',
-  'Cloud Hosting DevOps Team'
-];
+const DEFAULT_TRACKED_GROUPS: string[] = [];
 
 interface ConnectionSetupProps {
   triggerPopup: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
@@ -62,16 +53,16 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
   const [selectedMetricGroup, setSelectedMetricGroup] = useState<string>('DEFAULT');
   
   // Credentials
-  const [instanceName, setInstanceName] = useState(() => localStorage.getItem('gov_snow_instance') || 'dev12000');
+  const [instanceName, setInstanceName] = useState(() => localStorage.getItem('gov_snow_instance') || 'dev423209');
   const [username, setUsername] = useState(() => localStorage.getItem('gov_snow_user') || 'admin');
-  const [password, setPassword] = useState(() => localStorage.getItem('gov_snow_pass') || 'admin');
+  const [password, setPassword] = useState(() => localStorage.getItem('gov_snow_pass') || 'BrwYffM0%X*1');
   const [showPassword, setShowPassword] = useState(false);
   
   // Limits & Scope
   const [syncLimit, setSyncLimit] = useState<number>(() => {
     const saved = localStorage.getItem('gov_snow_limit');
     if (saved === '0' || saved?.toLowerCase() === 'off') return 0;
-    return Number(saved || '10');
+    return Number(saved || '0');
   });
   const [syncType, setSyncType] = useState<'tickets' | 'cis' | 'kbs' | 'both' | 'all'>(
     () => (localStorage.getItem('gov_snow_sync_type') as any) || 'all'
@@ -95,23 +86,14 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
 
   const [autoFetchInterval, setAutoFetchInterval] = useState<number>(() => {
     const saved = localStorage.getItem('gov_snow_auto_fetch_interval');
-    return Number(saved || '1');
+    return Number(saved || '5');
   });
 
   // Tracked assignment groups
   const [assignmentGroupFilter, setAssignmentGroupFilter] = useState<string>(
     () => localStorage.getItem('gov_snow_assignment_group_filter') || 'ALL'
   );
-  const [trackedGroups, setTrackedGroups] = useState<string[]>([
-    'Retail Payment Gateway',
-    'Database Administration',
-    'Data Ingestion Service',
-    'Network WAN Operations',
-    'SaaS Messaging Support',
-    'Database Support Services',
-    'Network Engineering Operations',
-    'Cloud Hosting DevOps Team'
-  ]);
+  const [trackedGroups, setTrackedGroups] = useState<string[]>([]);
   const [newGroupInput, setNewGroupInput] = useState('');
 
   // Status & Logs
@@ -344,10 +326,23 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
     triggerPopup('All tracked assignment groups removed. All incidents will be processed without queue filters.', 'info');
   };
 
-  const resetDefaultTrackedGroups = () => {
-    setTrackedGroups(DEFAULT_TRACKED_GROUPS);
-    saveCredentialsToServer({ trackedGroups: DEFAULT_TRACKED_GROUPS });
-    triggerPopup('Reset tracked assignment groups to standard enterprise queues.', 'success');
+  const resetDefaultTrackedGroups = async () => {
+    try {
+      const res = await fetch('/api/servicenow/assignment-groups');
+      if (res.ok) {
+        const data = await res.json();
+        const liveGroups = (data.groups || []).filter((g: string) => Boolean(g && g.trim()));
+        if (liveGroups.length > 0) {
+          setTrackedGroups(liveGroups);
+          saveCredentialsToServer({ trackedGroups: liveGroups });
+          triggerPopup(`Synchronized ${liveGroups.length} live ServiceNow assignment groups.`, 'success');
+          return;
+        }
+      }
+    } catch (e) {}
+    setTrackedGroups([]);
+    saveCredentialsToServer({ trackedGroups: [] });
+    triggerPopup('Tracked groups cleared — all incoming ServiceNow assignment groups will be processed.', 'info');
   };
 
   return (
@@ -632,13 +627,13 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
 
               {/* Auto Fetch Polling Interval */}
               <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1">
-                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Auto-Fetch Interval (Min)</span>
+                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Auto-Fetch Frequency (Sec)</span>
                 <input
                   type="number"
-                  min="1"
-                  max="60"
+                  min="3"
+                  max="120"
                   value={autoFetchInterval}
-                  onChange={(e) => setAutoFetchInterval(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+                  onChange={(e) => setAutoFetchInterval(Math.max(3, Math.min(120, Number(e.target.value) || 5)))}
                   className="w-full bg-[#0A0C0F] border border-[#2A2D35] rounded px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
                 />
               </div>

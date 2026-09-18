@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AuditRule } from '../types';
-import ConfirmationModal from './ConfirmationModal';
+import ConfirmationDialog from './ConfirmationDialog';
 import { 
   Sparkles, 
   Plus, 
@@ -697,8 +697,8 @@ export default function RulesEditor({
       </>
       )}
 
-      {/* Matrix Rule Deletion Confirmation Modal */}
-      <ConfirmationModal
+      {/* Matrix Rule Deletion Confirmation Dialog */}
+      <ConfirmationDialog
         isOpen={ruleIndexToDelete !== null}
         title="Delete Matrix Audit Rule?"
         message={`Are you sure you want to delete this validation matrix rule (keywords: "${ruleIndexToDelete !== null ? localRules[ruleIndexToDelete]?.keywords.join(', ') : ''}")?`}
