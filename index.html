@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ticket Audit Agent</title>
+    <meta name="description" content="An AI-powered GenAI ticket auditor of affected/suspected CIs, short/technical descriptions, closure codes alignment, and activity status logs for daily and monthly reporting." />
+    <meta property="og:title" content="Ticket Audit Agent" />
+    <meta property="og:description" content="An AI-powered GenAI ticket auditor of affected/suspected CIs, short/technical descriptions, closure codes alignment, and activity status logs for daily and monthly reporting." />
+    <script>
+      // Suppress benign Vite HMR websocket reconnection noise in preview sandbox
+      window.addEventListener('unhandledrejection', function(event) {
+        var msg = (event && event.reason && (event.reason.message || String(event.reason))) || '';
+        if (msg.indexOf('WebSocket') !== -1 || msg.indexOf('websocket') !== -1 || msg.indexOf('failed to connect') !== -1) {
+          event.preventDefault();
+          if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+        }
+      });
+      window.addEventListener('error', function(event) {
+        var msg = (event && (event.message || (event.error && event.error.message))) || '';
+        if (msg.indexOf('WebSocket') !== -1 || msg.indexOf('websocket') !== -1 || msg.indexOf('failed to connect') !== -1) {
+          event.preventDefault();
+          if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+        }
+      });
+    </script>
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('portal_theme') || localStorage.getItem('theme');
+          var isDark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches) || (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+            document.documentElement.classList.remove('light-mode');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.add('light-mode');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

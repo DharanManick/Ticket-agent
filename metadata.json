@@ -1,0 +1,6 @@
+{
+  "name": "Ticket Audit Agent",
+  "description": "An AI-powered GenAI ticket auditor of affected/suspected CIs, short/technical descriptions, closure codes alignment, and activity status logs for daily and monthly reporting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

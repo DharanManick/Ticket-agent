@@ -1,0 +1,280 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    /* =========================================================
+       ENTERPRISE LINEAR / VERCEL DUAL-THEME TOKENS (LIGHT MODE)
+       ========================================================= */
+    --background: 0 0% 98%;              /* #FAFAFA Clean Off-White Canvas */
+    --foreground: 240 10% 3.9%;          /* #09090B Deep Slate Text */
+    --card: 0 0% 100%;                   /* #FFFFFF Pure White Elevated Surface */
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;             /* #18181B */
+    --primary-foreground: 0 0% 98%;      /* #FAFAFA */
+    --secondary: 240 4.8% 95.9%;         /* #F4F4F5 */
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;             /* #F4F4F5 Soft neutral container */
+    --muted-foreground: 240 3.8% 46.1%;  /* #71717A Balanced secondary text */
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;              /* #E4E4E7 Subtle light border */
+    --input: 240 5.9% 90%;               /* #E4E4E7 Subtle input border */
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* =========================================================
+       ENTERPRISE LINEAR / VERCEL DUAL-THEME TOKENS (DARK MODE)
+       ========================================================= */
+    --background: 240 10% 3.9%;          /* #09090B Deep Dark Slate/Zinc */
+    --foreground: 0 0% 98%;              /* #FAFAFA Crisp Off-White */
+    --card: 240 5.9% 10%;                /* #18181B Elevated Dark Surface */
+    --card-foreground: 0 0% 98%;
+    --popover: 240 5.9% 10%;             /* #18181B */
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;                 /* #FAFAFA */
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;         /* #27272A */
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;             /* #27272A */
+    --muted-foreground: 240 5% 64.9%;    /* #A1A1AA Soft secondary text */
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;            /* #27272A Dark border */
+    --input: 240 3.7% 15.9%;             /* #27272A Dark input border */
+    --ring: 240 4.9% 83.9%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html, body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+}
+
+/* =========================================================
+   ELEVATION & VISUAL CONTRAST SYSTEM (LINEAR / VERCEL SPEC)
+   ========================================================= */
+
+/* Light Mode: Cards and dropdowns use subtle borders paired with soft ambient shadows */
+:root:not(.dark) .bg-card,
+:root:not(.dark) [class*="bg-card"],
+:root:not(.dark) .bg-\[\#15171C\],
+:root:not(.dark) aside.bg-\[\#15171C\] {
+  background-color: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+}
+
+:root:not(.dark) .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+:root:not(.dark) .shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04) !important;
+}
+
+:root:not(.dark) .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Dark Mode: Surface luminance steps (card background lighter than body), NO drop shadows */
+.dark .bg-card,
+.dark [class*="bg-card"],
+.dark .bg-\[\#15171C\],
+.dark aside.bg-\[\#15171C\] {
+  background-color: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+  box-shadow: none !important;
+}
+
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg {
+  box-shadow: none !important;
+}
+
+/* =========================================================
+   SEAMLESS MAPPING OF LEGACY HARDCODED COLOR UTILITIES
+   ========================================================= */
+
+/* Canvas backgrounds */
+.bg-\[\#0F1115\],
+[class*="bg-\[#0F1115\]"] {
+  background-color: hsl(var(--background)) !important;
+}
+
+/* Elevated cards */
+.bg-\[\#15171C\],
+[class*="bg-\[#15171C\]"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Secondary muted trays & items */
+.bg-\[\#0A0C0F\],
+.bg-\[\#111317\],
+.bg-\[\#1C1F26\],
+.bg-\[\#1A1D24\],
+.bg-\[\#22242C\] {
+  background-color: hsl(var(--muted)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Borders */
+.border-\[\#2A2D35\],
+.border-\[\#22242C\],
+.border-\[\#1E2433\],
+.border-\[\#1C1F26\] {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Text primary & secondary */
+.text-\[\#E0E0E0\] {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root:not(.dark) .text-white {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root:not(.dark) .text-gray-400,
+:root:not(.dark) .text-slate-400,
+:root:not(.dark) .text-zinc-400 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Preserve bright text for colored hero badges and action buttons */
+button.bg-blue-600,
+button.bg-blue-700,
+button.bg-emerald-600,
+button.bg-red-600,
+.bg-blue-600,
+.bg-blue-600 span,
+.bg-emerald-600 span {
+  color: #FFFFFF !important;
+}
+
+/* Form inputs & controls */
+:root:not(.dark) input,
+:root:not(.dark) select,
+:root:not(.dark) textarea {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+:root:not(.dark) input:focus,
+:root:not(.dark) select:focus,
+:root:not(.dark) textarea:focus {
+  border-color: hsl(var(--ring)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.15) !important;
+  outline: none !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: hsl(var(--ring)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.25) !important;
+  outline: none !important;
+}
+
+/* Recharts grid & text */
+:root:not(.dark) .recharts-cartesian-grid-horizontal line,
+:root:not(.dark) .recharts-cartesian-grid-vertical line {
+  stroke: hsl(var(--border)) !important;
+}
+
+:root:not(.dark) .recharts-text,
+:root:not(.dark) text {
+  fill: hsl(var(--muted-foreground)) !important;
+}
+
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
+  stroke: hsl(var(--border)) !important;
+}
+
+.dark .recharts-text,
+.dark text {
+  fill: hsl(var(--muted-foreground)) !important;
+}
+
+/* Subtle cross-fade for seamless switching */
+.theme-transitioning,
+.theme-transitioning * {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.25);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.45);
+}
+
+/* Hide scrollbars where requested */
+.workspace-checklist-container *,
+.workspace-checklist-container {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.workspace-checklist-container *::-webkit-scrollbar,
+.workspace-checklist-container::-webkit-scrollbar {
+  display: none !important;
+}

@@ -1,0 +1,860 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Server,
+  Database,
+  RefreshCw,
+  Sliders,
+  CheckCircle2,
+  AlertTriangle,
+  Terminal,
+  ExternalLink,
+  Lock,
+  Eye,
+  EyeOff,
+  Clock,
+  Filter,
+  Users,
+  Layers,
+  UploadCloud,
+  FileSpreadsheet,
+  Check,
+  X,
+  Radio,
+  Play,
+  ShieldCheck
+} from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { Ticket } from '../types';
+import { MandatoryMetricsConfig } from './MandatoryMetricsConfig';
+
+interface ConnectionSetupProps {
+  triggerPopup: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
+  onTicketsLoaded?: (tickets: Ticket[]) => void;
+  onTriggerAudit?: (tickets: Ticket[]) => Promise<void>;
+  auditedCount?: number;
+  totalRecordsCount?: number;
+}
+
+export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
+  triggerPopup,
+  onTicketsLoaded = (_tickets: Ticket[]) => {},
+  onTriggerAudit,
+  auditedCount = 0,
+  totalRecordsCount = 0
+}) => {
+  const [activeSubTab, setActiveSubTab] = useState<'rest' | 'upload' | 'metrics'>('rest');
+  
+  // Credentials
+  const [instanceName, setInstanceName] = useState(() => localStorage.getItem('gov_snow_instance') || 'dev12000');
+  const [username, setUsername] = useState(() => localStorage.getItem('gov_snow_user') || 'admin');
+  const [password, setPassword] = useState(() => localStorage.getItem('gov_snow_pass') || 'admin');
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // Limits & Scope
+  const [syncLimit, setSyncLimit] = useState<number>(() => {
+    const saved = localStorage.getItem('gov_snow_limit');
+    if (saved === '0' || saved?.toLowerCase() === 'off') return 0;
+    return Number(saved || '10');
+  });
+  const [syncType, setSyncType] = useState<'tickets' | 'cis' | 'kbs' | 'both' | 'all'>(
+    () => (localStorage.getItem('gov_snow_sync_type') as any) || 'all'
+  );
+  
+  // Toggles: default onlySolvePropose to FALSE
+  const [onlySolvePropose, setOnlySolvePropose] = useState<boolean>(() => {
+    const cached = localStorage.getItem('gov_only_solve_propose');
+    return cached === 'true'; // Strictly default to false
+  });
+  
+  const [manualLoadEnabled, setManualLoadEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('gov_snow_manual_load_enabled');
+    return saved === 'true';
+  });
+
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('gov_snow_auto_sync');
+    return saved !== 'false';
+  });
+
+  const [autoFetchInterval, setAutoFetchInterval] = useState<number>(() => {
+    const saved = localStorage.getItem('gov_snow_auto_fetch_interval');
+    return Number(saved || '1');
+  });
+
+  // Tracked assignment groups
+  const [assignmentGroupFilter, setAssignmentGroupFilter] = useState<string>(
+    () => localStorage.getItem('gov_snow_assignment_group_filter') || 'ALL'
+  );
+  const [trackedGroups, setTrackedGroups] = useState<string[]>([
+    'Retail Payment Gateway',
+    'Database Administration',
+    'Data Ingestion Service',
+    'Network WAN Operations',
+    'SaaS Messaging Support',
+    'Database Support Services',
+    'Network Engineering Operations',
+    'Cloud Hosting DevOps Team'
+  ]);
+  const [newGroupInput, setNewGroupInput] = useState('');
+
+  // Status & Logs
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [syncLogs, setSyncLogs] = useState<string[]>([
+    `[${new Date().toLocaleTimeString()}] Connection Setup ready. Live ServiceNow endpoint configured.`
+  ]);
+  const [connectionProfileActive, setConnectionProfileActive] = useState(true);
+
+  // File Upload state
+  const [dragActive, setDragActive] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [parsedCount, setParsedCount] = useState<number | null>(null);
+  const [originalCount, setOriginalCount] = useState<number | null>(null);
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load server config on mount
+  useEffect(() => {
+    fetch('/api/servicenow/credentials')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.credentials) {
+          const c = data.credentials;
+          if (c.instanceName) setInstanceName(c.instanceName);
+          if (c.username) setUsername(c.username);
+          if (c.password) setPassword(c.password);
+          if (c.limit !== undefined) setSyncLimit(c.limit);
+          if (c.syncType) setSyncType(c.syncType);
+          if (c.assignmentGroupFilter) setAssignmentGroupFilter(c.assignmentGroupFilter);
+          if (c.autoSyncEnabled !== undefined) setAutoSyncEnabled(c.autoSyncEnabled);
+          if (c.autoFetchInterval !== undefined) setAutoFetchInterval(c.autoFetchInterval);
+          if (c.manualLoadEnabled !== undefined) setManualLoadEnabled(c.manualLoadEnabled);
+          if (Array.isArray(c.trackedGroups)) setTrackedGroups(c.trackedGroups);
+          // Only update onlySolvePropose if explicitly true in server config
+          if (c.onlySolvePropose !== undefined) {
+            setOnlySolvePropose(c.onlySolvePropose === true);
+            localStorage.setItem('gov_only_solve_propose', String(c.onlySolvePropose === true));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveCredentialsToServer = async (customOverrides: Record<string, any> = {}) => {
+    const payload = {
+      instanceName,
+      username,
+      password,
+      limit: syncLimit,
+      syncType,
+      useSimulator: false,
+      autoSyncEnabled,
+      autoFetchEnabled: autoSyncEnabled,
+      autoFetchInterval,
+      assignmentGroupFilter,
+      onlySolvePropose,
+      manualLoadEnabled,
+      trackedGroups,
+      ...customOverrides
+    };
+
+    localStorage.setItem('gov_snow_instance', payload.instanceName);
+    localStorage.setItem('gov_snow_user', payload.username);
+    localStorage.setItem('gov_snow_pass', payload.password);
+    localStorage.setItem('gov_snow_limit', payload.limit === 0 ? 'off' : String(payload.limit));
+    localStorage.setItem('gov_snow_sync_type', payload.syncType);
+    localStorage.setItem('gov_snow_auto_sync', String(payload.autoSyncEnabled));
+    localStorage.setItem('gov_snow_assignment_group_filter', payload.assignmentGroupFilter);
+    localStorage.setItem('gov_only_solve_propose', String(payload.onlySolvePropose));
+    localStorage.setItem('gov_snow_manual_load_enabled', String(payload.manualLoadEnabled));
+
+    try {
+      const resp = await fetch('/api/servicenow/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return resp.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    setTestResult(null);
+    setSyncLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Testing live REST handshake with ${instanceName}...`]);
+
+    try {
+      const cleanUrl = instanceName.replace(/\/$/, '');
+      const instanceHost = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}.service-now.com`;
+      const authHeader = 'Basic ' + btoa(`${username}:${password}`);
+
+      const resp = await fetch('/api/servicenow/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instanceName, username, password, targetTable: 'incident' })
+      });
+
+      const data = await resp.json();
+      if (data.success) {
+        setTestResult({ success: true, message: `Connected successfully to ${instanceHost}! HTTP 200 OK.` });
+        setSyncLogs(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] Handshake SUCCESSFUL: ServiceNow Table API returned valid payload.`
+        ]);
+        triggerPopup('Live ServiceNow Connection Established!', 'success');
+      } else {
+        setTestResult({ success: false, message: data.error || 'Connection failed.' });
+        setSyncLogs(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] Handshake FAILED: ${data.error || 'Check credentials'}`
+        ]);
+        triggerPopup(data.error || 'ServiceNow authentication failed', 'error');
+      }
+    } catch (err: any) {
+      setTestResult({ success: false, message: err.message || 'Network request failed' });
+      triggerPopup('Network failure connecting to ServiceNow', 'error');
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const triggerLiveSync = async (solveProposeOverride?: boolean) => {
+    const activeSolve = solveProposeOverride !== undefined ? solveProposeOverride : onlySolvePropose;
+    setIsSyncing(true);
+    setSyncLogs(prev => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] Initiating live REST fetch (Table: incident, Limit: ${syncLimit === 0 ? 'OFF' : syncLimit}, Solve Proposes Only: ${activeSolve ? 'ON' : 'OFF'})...`
+    ]);
+
+    try {
+      await saveCredentialsToServer({ onlySolvePropose: activeSolve });
+
+      const response = await fetch('/api/servicenow/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instanceName,
+          username,
+          password,
+          syncType,
+          limit: syncLimit,
+          useSimulator: false,
+          assignmentGroupFilter,
+          manualLoadEnabled,
+          onlySolvePropose: activeSolve,
+          trackedGroups
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errText}`);
+      }
+
+      const data = await response.json();
+      if (data.logs && Array.isArray(data.logs)) {
+        setSyncLogs(prev => [...prev, ...data.logs]);
+      }
+
+      if (data.tickets && Array.isArray(data.tickets)) {
+        onTicketsLoaded(data.tickets);
+        if (onTriggerAudit) {
+          await onTriggerAudit(data.tickets);
+        }
+        triggerPopup(`Successfully synced ${data.tickets.length} live ServiceNow incidents into workspace!`, 'success');
+      }
+    } catch (err: any) {
+      setSyncLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Sync Error: ${err.message || String(err)}`]);
+      triggerPopup(`Sync failed: ${err.message || 'ServiceNow API unreachable'}`, 'error');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const toggleSolveProposeFilter = async () => {
+    const nextVal = !onlySolvePropose;
+    setOnlySolvePropose(nextVal);
+    localStorage.setItem('gov_only_solve_propose', String(nextVal));
+    triggerPopup(
+      nextVal
+        ? "Solve Propose filter ENABLED: Auditing only 'Solve Propose' tickets."
+        : "Solve Propose filter DISABLED: Auditing ALL tickets across the instance.",
+      'info'
+    );
+    await triggerLiveSync(nextVal);
+  };
+
+  const toggleManualLoad = async () => {
+    const nextVal = !manualLoadEnabled;
+    setManualLoadEnabled(nextVal);
+    localStorage.setItem('gov_snow_manual_load_enabled', String(nextVal));
+    await saveCredentialsToServer({ manualLoadEnabled: nextVal });
+    triggerPopup(
+      nextVal
+        ? "Manual Load Mode ON: Automatic incident overwrites paused."
+        : "Manual Load Mode OFF: Live ServiceNow polling active.",
+      'info'
+    );
+  };
+
+  const toggleAutoSync = async () => {
+    const nextVal = !autoSyncEnabled;
+    setAutoSyncEnabled(nextVal);
+    localStorage.setItem('gov_snow_auto_sync', String(nextVal));
+    await saveCredentialsToServer({ autoSyncEnabled: nextVal, autoFetchEnabled: nextVal });
+    triggerPopup(
+      nextVal
+        ? "Auto-Sync ENABLED: Continual background audit checks running."
+        : "Auto-Sync PAUSED: Background sweeps suspended.",
+      nextVal ? 'success' : 'info'
+    );
+  };
+
+  const addTrackedGroup = () => {
+    const trimmed = newGroupInput.trim();
+    if (!trimmed || trackedGroups.includes(trimmed)) return;
+    const next = [...trackedGroups, trimmed];
+    setTrackedGroups(next);
+    setNewGroupInput('');
+    saveCredentialsToServer({ trackedGroups: next });
+    triggerPopup(`Added '${trimmed}' to tracked assignment groups.`, 'success');
+  };
+
+  const removeTrackedGroup = (group: string) => {
+    const next = trackedGroups.filter(g => g !== group);
+    setTrackedGroups(next);
+    saveCredentialsToServer({ trackedGroups: next });
+  };
+
+  // Excel parser for dump alternative
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
+    else if (e.type === 'dragleave') setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) processFile(e.target.files[0]);
+  };
+
+  const processFile = (file: File) => {
+    setFileName(file.name);
+    setErrorText(null);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rawJson: any[] = XLSX.utils.sheet_to_json(sheet);
+        
+        if (!rawJson || rawJson.length === 0) {
+          throw new Error('Spreadsheet appears to be empty.');
+        }
+
+        const parsedTickets: Ticket[] = rawJson.map((row: any, idx: number) => ({
+          id: String(row.number || row.incNumber || row['Incident Number'] || `DUMP_${idx + 1}`),
+          incNumber: String(row.number || row.incNumber || row['Incident Number'] || `INC${idx + 1000}`),
+          assignee: String(row.assigned_to || row.assignee || row['Assigned To'] || 'Unassigned'),
+          assignmentGroup: String(row.assignment_group || row['Assignment Group'] || 'General Support'),
+          assigneeManager: String(row.manager || row.assigneeManager || 'Operations Manager'),
+          createdDate: String(row.sys_created_on || row.createdDate || new Date().toISOString()),
+          closedDate: String(row.closed_at || row.closedDate || new Date().toISOString()),
+          affectedCi: String(row.cmdb_ci || row.affectedCi || row['Affected CI'] || 'ServiceNow Server'),
+          suspectedCi: String(row.u_suspected_ci || row.suspectedCi || row.cmdb_ci || 'ServiceNow Server'),
+          symptomCode: String(row.u_symptom_code || row.symptomCode || 'Default Symptom'),
+          shortDescription: String(row.short_description || row.shortDescription || ''),
+          technicalDescription: String(row.description || row.technicalDescription || ''),
+          serviceImpactDescription: String(row.u_service_impact || row.serviceImpactDescription || ''),
+          businessImpactDescription: String(row.u_business_impact || row.businessImpactDescription || ''),
+          activityLogs: String(row.comments_and_work_notes || row.activityLogs || row.work_notes || ''),
+          closureCode1: String(row.close_code || row.closureCode1 || 'Solved (Work Around)'),
+          closureCode2: String(row.u_closure_sub_code || row.closureCode2 || 'Application Configuration'),
+          solutionCode: String(row.u_solution_code || row.solutionCode || 'Patch Applied'),
+          externalReference: String(row.u_external_reference || row.externalReference || ''),
+          knowledgeArticle: String(row.u_kb_article || row.knowledgeArticle || ''),
+          resolutionDescription: String(row.close_notes || row.resolutionDescription || ''),
+          incidentState: String(row.incident_state || row.state || 'Active')
+        }));
+
+        setOriginalCount(parsedTickets.length);
+        const finalTickets = onlySolvePropose
+          ? parsedTickets.filter(t => (t.incidentState || '').toLowerCase().includes('propose'))
+          : parsedTickets;
+        
+        setParsedCount(finalTickets.length);
+        onTicketsLoaded(finalTickets);
+        if (onTriggerAudit) onTriggerAudit(finalTickets);
+        triggerPopup(`Successfully ingested ${finalTickets.length} incidents from ${file.name}!`, 'success');
+      } catch (err: any) {
+        setErrorText(err.message || 'Failed to parse file.');
+        triggerPopup(err.message || 'File parsing failed', 'error');
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  return (
+    <div className="space-y-6 animate-fadeIn pb-12">
+      {/* Header Banner */}
+      <div className="bg-[#12141C] border border-[#2A2D35] rounded-xl p-5 shadow-lg">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 bg-blue-600/10 border border-blue-500/30 rounded-xl text-blue-400">
+              <Server className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base md:text-lg font-bold text-white tracking-tight">
+                  Connection Setup
+                </h2>
+                <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  REST Gateway Production Ready
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Manage live ServiceNow Table API authentication, auto-sync polling frequency, fetch limits, and real-time governance parameters.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Solve Proposes Only Toggle */}
+            <button
+              type="button"
+              onClick={toggleSolveProposeFilter}
+              className={`flex items-center space-x-2 border rounded-lg px-3 py-1.5 text-xs transition-all cursor-pointer ${
+                onlySolvePropose
+                  ? 'bg-blue-600/15 border-blue-500/40 text-blue-300 font-bold'
+                  : 'bg-[#1A1D24] border-[#2A2D35] text-gray-400 hover:text-white'
+              }`}
+              title="When OFF, audits all tickets across the instance. When ON, filters only tickets in Solve Propose state."
+            >
+              <Filter className={`h-3.5 w-3.5 ${onlySolvePropose ? 'text-blue-400' : 'text-gray-500'}`} />
+              <span>Solve Proposes Only:</span>
+              <span className={`font-mono font-black ${onlySolvePropose ? 'text-blue-400' : 'text-gray-500'}`}>
+                {onlySolvePropose ? 'ON' : 'OFF'}
+              </span>
+            </button>
+
+            {/* Manual Load Mode Toggle */}
+            <button
+              type="button"
+              onClick={toggleManualLoad}
+              className={`flex items-center space-x-2 border rounded-lg px-3 py-1.5 text-xs transition-all cursor-pointer ${
+                manualLoadEnabled
+                  ? 'bg-emerald-600/15 border-emerald-500/40 text-emerald-300 font-bold'
+                  : 'bg-[#1A1D24] border-[#2A2D35] text-gray-400 hover:text-white'
+              }`}
+              title="When ON, prevents background ServiceNow sweeps from replacing manual spreadsheet data."
+            >
+              <Database className={`h-3.5 w-3.5 ${manualLoadEnabled ? 'text-emerald-400' : 'text-gray-500'}`} />
+              <span>Manual Load Mode:</span>
+              <span className={`font-mono font-black ${manualLoadEnabled ? 'text-emerald-400' : 'text-gray-500'}`}>
+                {manualLoadEnabled ? 'ON' : 'OFF'}
+              </span>
+            </button>
+
+            {/* Auto-Sync Toggle */}
+            <button
+              type="button"
+              onClick={toggleAutoSync}
+              className={`flex items-center space-x-2 border rounded-lg px-3 py-1.5 text-xs transition-all cursor-pointer ${
+                autoSyncEnabled
+                  ? 'bg-indigo-600/15 border-indigo-500/40 text-indigo-300 font-bold'
+                  : 'bg-[#1A1D24] border-[#2A2D35] text-gray-400 hover:text-white'
+              }`}
+              title="Toggle automatic background sync checks"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${autoSyncEnabled ? 'text-indigo-400 animate-spin' : 'text-gray-500'}`} />
+              <span>Auto-Sync:</span>
+              <span className={`font-mono font-black ${autoSyncEnabled ? 'text-indigo-400' : 'text-gray-500'}`}>
+                {autoSyncEnabled ? 'ON' : 'OFF'}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Sub Navigation */}
+        <div className="flex border-b border-[#2A2D35] mt-5 gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('rest')}
+            className={`pb-2.5 px-3 text-xs font-bold font-mono transition-all flex items-center gap-2 cursor-pointer border-b-2 ${
+              activeSubTab === 'rest'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Server className="h-3.5 w-3.5" />
+            <span>ServiceNow Direct REST Integration API</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('metrics')}
+            className={`pb-2.5 px-3 text-xs font-bold font-mono transition-all flex items-center gap-2 cursor-pointer border-b-2 ${
+              activeSubTab === 'metrics'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>Mandatory Metrics Checks</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('upload')}
+            className={`pb-2.5 px-3 text-xs font-bold font-mono transition-all flex items-center gap-2 cursor-pointer border-b-2 ${
+              activeSubTab === 'upload'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            <span>Spreadsheet Dump Parser (.xlsx / .csv)</span>
+          </button>
+        </div>
+      </div>
+
+      {activeSubTab === 'rest' ? (
+        <div className="space-y-6">
+          {/* Active Connection Profile Summary Box */}
+          <div className="bg-[#0E1117] border border-[#2A2D35] rounded-xl p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2A2D35]/60 pb-3">
+              <div className="flex items-center space-x-2 text-indigo-400 font-mono font-bold text-xs uppercase tracking-wider">
+                <Database className="h-4 w-4" />
+                <span>Active ServiceNow Connection Profile</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleTestConnection}
+                  disabled={isTesting}
+                  className="px-2.5 py-1 bg-[#1A1D24] hover:bg-[#252A35] border border-[#2A2D35] hover:border-indigo-500/50 rounded text-[11px] font-mono text-indigo-300 font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`h-3 w-3 ${isTesting ? 'animate-spin' : ''}`} />
+                  <span>{isTesting ? 'Testing Handshake...' : 'Test Connection'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => saveCredentialsToServer().then(ok => ok && triggerPopup('Connection configuration saved successfully!', 'success'))}
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-[11px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow"
+                >
+                  <Check className="h-3 w-3" />
+                  <span>Save Configuration</span>
+                </button>
+              </div>
+            </div>
+
+            {testResult && (
+              <div className={`p-3 rounded-lg border text-xs font-mono flex items-center gap-2 ${
+                testResult.success 
+                  ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300' 
+                  : 'bg-rose-950/30 border-rose-500/30 text-rose-300'
+              }`}>
+                {testResult.success ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertTriangle className="h-4 w-4 shrink-0" />}
+                <span>{testResult.message}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              {/* Host URL Input */}
+              <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1">
+                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Instance Host / URL</span>
+                <input
+                  type="text"
+                  value={instanceName}
+                  onChange={(e) => setInstanceName(e.target.value)}
+                  placeholder="e.g. dev12000 or company.service-now.com"
+                  className="w-full bg-[#0A0C0F] border border-[#2A2D35] rounded px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                />
+                <span className="text-[9px] text-gray-500 font-mono block truncate">
+                  https://{instanceName.replace(/https?:\/\//, '').replace(/\/$/, '')}.service-now.com
+                </span>
+              </div>
+
+              {/* Username Input */}
+              <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1">
+                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Authorized Username</span>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="admin or service_account"
+                  className="w-full bg-[#0A0C0F] border border-[#2A2D35] rounded px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1">
+                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">API Secret / Password</span>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full bg-[#0A0C0F] border border-[#2A2D35] rounded pl-2.5 pr-8 py-1 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1.5 text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Fetch Limit Selector */}
+              <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Record Limit</span>
+                  <button
+                    type="button"
+                    onClick={() => setSyncLimit(syncLimit === 0 ? 10 : 0)}
+                    className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border transition-colors cursor-pointer ${
+                      syncLimit === 0 
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' 
+                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    }`}
+                  >
+                    {syncLimit === 0 ? 'Set Limit (10)' : '⚡ Turn Limit OFF'}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`font-mono font-extrabold text-xs truncate ${syncLimit === 0 ? 'text-emerald-400' : 'text-white'}`}>
+                    {syncLimit === 0 ? '⚡ OFF (All Tickets)' : `${syncLimit} Incidents`}
+                  </span>
+                  <select
+                    value={syncLimit === 0 ? 'off' : String(syncLimit)}
+                    onChange={(e) => setSyncLimit(e.target.value === 'off' ? 0 : Number(e.target.value))}
+                    className="text-[10px] font-mono bg-[#090C12] border border-[#2A2D35] rounded px-1.5 py-0.5 text-gray-300 cursor-pointer"
+                  >
+                    <option value="off">OFF (All Tickets)</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="250">250</option>
+                    <option value="500">500</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Sync Parameters */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              {/* Sync Scope */}
+              <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1">
+                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Sync Table Scope</span>
+                <select
+                  value={syncType}
+                  onChange={(e) => setSyncType(e.target.value as any)}
+                  className="w-full text-xs font-mono bg-[#0A0C0F] border border-[#2A2D35] rounded px-2 py-1 text-white"
+                >
+                  <option value="tickets">Incidents Only (incident)</option>
+                  <option value="cis">Configuration Items (cmdb_ci)</option>
+                  <option value="kbs">Knowledge Articles (kb_knowledge)</option>
+                  <option value="both">Incidents & Knowledge Base</option>
+                  <option value="all">All Tables (Tickets, CIs, KBs)</option>
+                </select>
+              </div>
+
+              {/* Assignment Group Filter */}
+              <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1">
+                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Group Filter</span>
+                <input
+                  type="text"
+                  value={assignmentGroupFilter}
+                  onChange={(e) => setAssignmentGroupFilter(e.target.value)}
+                  placeholder="ALL or specific group name"
+                  className="w-full bg-[#0A0C0F] border border-[#2A2D35] rounded px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Auto Fetch Polling Interval */}
+              <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1">
+                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Auto-Fetch Interval (Min)</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={autoFetchInterval}
+                  onChange={(e) => setAutoFetchInterval(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+                  className="w-full bg-[#0A0C0F] border border-[#2A2D35] rounded px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Tracked Assignment Groups */}
+            <div className="bg-[#141720] border border-[#2A2D35] p-3.5 rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-indigo-400" />
+                  <span>Tracked Assignment Groups ({trackedGroups.length})</span>
+                </span>
+                <span className="text-[9.5px] text-gray-500 font-mono">
+                  Only tickets matching these groups are audited (Leave empty to audit all groups)
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {trackedGroups.map((group) => (
+                  <span
+                    key={group}
+                    className="inline-flex items-center gap-1.5 bg-[#0A0C0F] border border-[#2A2D35] hover:border-red-500/40 px-2.5 py-1 rounded text-[11px] font-mono text-slate-200"
+                  >
+                    <span>{group}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeTrackedGroup(group)}
+                      className="text-gray-500 hover:text-rose-400"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  value={newGroupInput}
+                  onChange={(e) => setNewGroupInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addTrackedGroup()}
+                  placeholder="Enter assignment group name to track..."
+                  className="flex-1 bg-[#0A0C0F] border border-[#2A2D35] rounded px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={addTrackedGroup}
+                  className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs font-mono font-bold cursor-pointer"
+                >
+                  Add Group
+                </button>
+              </div>
+            </div>
+
+            {/* Primary Action Button */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+              <div className="text-xs text-gray-400 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>Active tickets currently loaded in workspace: <strong>{totalRecordsCount}</strong> records ({auditedCount} audited)</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => triggerLiveSync()}
+                disabled={isSyncing}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-mono font-bold tracking-wide shadow-lg cursor-pointer transition-all disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Synchronizing Live Records...' : 'Trigger ServiceNow REST Connection & Sync'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Live REST Sync Log Terminal */}
+          <div className="bg-[#0A0C0F] border border-[#2A2D35] rounded-xl p-4 space-y-2 shadow-inner">
+            <div className="flex items-center justify-between border-b border-[#1F232D] pb-2">
+              <div className="flex items-center space-x-2 text-xs font-mono font-bold text-gray-300">
+                <Terminal className="h-4 w-4 text-emerald-400" />
+                <span>ServiceNow Gateway REST Sync Terminal</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSyncLogs([`[${new Date().toLocaleTimeString()}] Terminal cleared.`])}
+                className="text-[10px] font-mono text-gray-500 hover:text-gray-300"
+              >
+                Clear Log
+              </button>
+            </div>
+
+            <div className="font-mono text-[11px] text-emerald-400 bg-[#050608] p-3 rounded-lg max-h-56 overflow-y-auto space-y-1 custom-scrollbar">
+              {syncLogs.map((log, idx) => (
+                <div key={idx} className="leading-relaxed">
+                  {log}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Excel / CSV Dump Alternative Tab */
+        <div className="space-y-4">
+          <div
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+              dragActive
+                ? 'border-blue-500 bg-blue-500/5'
+                : 'border-[#2A2D35] hover:border-gray-600 bg-[#0A0C0F]/40'
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFileInputChange}
+            />
+
+            <UploadCloud className="h-10 w-10 text-gray-500 mb-3" />
+            <p className="text-sm font-medium text-[#E0E0E0]">
+              Drag & drop your ServiceNow excel dump here, or <span className="text-blue-400 font-semibold underline">browse local directory</span>
+            </p>
+            <p className="text-[11px] text-gray-500 mt-1">
+              Parsed to extract all 24 specific parameters for complete governance alignment checks.
+            </p>
+
+            {fileName && (
+              <div className="mt-4 flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] px-3.5 py-1.5 rounded-lg text-xs font-mono text-blue-400">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span>{fileName}</span>
+                {parsedCount !== null && (
+                  <span className="text-emerald-400 font-bold ml-2">
+                    ({parsedCount} records ingested)
+                  </span>
+                )}
+              </div>
+            )}
+
+            {errorText && (
+              <p className="mt-2 text-xs text-rose-400 font-mono">
+                {errorText}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeSubTab === 'metrics' && (
+        <div className="space-y-6">
+          <MandatoryMetricsConfig
+            triggerPopup={triggerPopup}
+            availableAssignmentGroups={trackedGroups}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ConnectionSetup;
