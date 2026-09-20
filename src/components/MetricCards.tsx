@@ -525,8 +525,8 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                   onMouseEnter={() => setHoveredSlice('Green')}
                   onMouseLeave={() => setHoveredSlice(null)}
                   style={{
-                    borderColor: hoveredSlice === 'Green' ? '#22c55e' : 'rgba(35, 38, 45, 1)',
-                    backgroundColor: hoveredSlice === 'Green' ? 'rgba(34, 197, 94, 0.05)' : '#0A0C0F'
+                    borderColor: hoveredSlice === 'Green' ? '#22c55e' : undefined,
+                    backgroundColor: hoveredSlice === 'Green' ? 'rgba(34, 197, 94, 0.08)' : undefined
                   }}
                 >
                   <div className="flex items-center space-x-1.5">
@@ -544,8 +544,8 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                   onMouseEnter={() => setHoveredSlice('Amber')}
                   onMouseLeave={() => setHoveredSlice(null)}
                   style={{
-                    borderColor: hoveredSlice === 'Amber' ? '#eab308' : 'rgba(35, 38, 45, 1)',
-                    backgroundColor: hoveredSlice === 'Amber' ? 'rgba(234, 179, 8, 0.05)' : '#0A0C0F'
+                    borderColor: hoveredSlice === 'Amber' ? '#eab308' : undefined,
+                    backgroundColor: hoveredSlice === 'Amber' ? 'rgba(234, 179, 8, 0.08)' : undefined
                   }}
                 >
                   <div className="flex items-center space-x-1.5">
@@ -563,8 +563,8 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                   onMouseEnter={() => setHoveredSlice('Red')}
                   onMouseLeave={() => setHoveredSlice(null)}
                   style={{
-                    borderColor: hoveredSlice === 'Red' ? '#ef4444' : 'rgba(35, 38, 45, 1)',
-                    backgroundColor: hoveredSlice === 'Red' ? 'rgba(239, 68, 68, 0.05)' : '#0A0C0F'
+                    borderColor: hoveredSlice === 'Red' ? '#ef4444' : undefined,
+                    backgroundColor: hoveredSlice === 'Red' ? 'rgba(239, 68, 68, 0.08)' : undefined
                   }}
                 >
                   <div className="flex items-center space-x-1.5">

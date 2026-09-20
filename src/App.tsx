@@ -1799,7 +1799,7 @@ export default function App() {
                   }
                 }}
                 placeholder="Search tickets by INC#, assignee, or short description..."
-                className="w-full bg-background/90 hover:bg-background focus:bg-background border border-border focus:border-blue-500 rounded-xl pl-10 pr-24 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none transition-all shadow-xs focus:ring-1 focus:ring-blue-500 font-sans"
+                className="w-full bg-slate-50 dark:bg-background/90 hover:bg-white dark:hover:bg-background focus:bg-white dark:focus:bg-background border border-slate-200 dark:border-border focus:border-blue-500 rounded-xl pl-10 pr-24 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none transition-all shadow-xs focus:ring-1 focus:ring-blue-500 font-sans"
               />
               <div className="absolute right-2.5 flex items-center gap-1.5">
                 {globalSearchTerm ? (
@@ -1848,21 +1848,21 @@ export default function App() {
             {lastSyncInfo && (
               <div 
                 id="servicenow-sync-status-indicator"
-                className="flex items-center space-x-2 bg-[#12141A] border border-[#2E313A] px-3 py-1.5 rounded-lg text-[11px] font-mono shadow-inner cursor-default"
+                className="flex items-center space-x-2 bg-slate-100 dark:bg-[#12141A] border border-slate-200 dark:border-[#2E313A] px-3 py-1.5 rounded-lg text-[11px] font-mono shadow-inner cursor-default"
                 title={lastSyncInfo.errorMessage ? `Error: ${lastSyncInfo.errorMessage}` : "ServiceNow background polling sync is active every 15 seconds."}
               >
                 <span className="relative flex h-2 w-2">
                   <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${lastSyncInfo.errorMessage ? 'bg-rose-400' : 'bg-emerald-400'}`}></span>
                   <span className={`relative inline-flex rounded-full h-2 w-2 ${lastSyncInfo.errorMessage ? 'bg-rose-500' : 'bg-emerald-500'}`}></span>
                 </span>
-                <span className="text-gray-400 select-none">ServiceNow:</span>
-                <span className="text-slate-200 font-bold tracking-tight">
+                <span className="text-slate-500 dark:text-gray-400 select-none font-medium">ServiceNow:</span>
+                <span className="text-slate-900 dark:text-slate-200 font-bold tracking-tight">
                   {lastSyncInfo.timestamp ? lastSyncInfo.timestamp : 'Active'}
                 </span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold font-sans tracking-wide uppercase ${
                   lastSyncInfo.errorMessage 
-                    ? 'bg-rose-950/40 text-rose-400 border border-rose-500/10' 
-                    : 'bg-emerald-950/40 text-emerald-400 border border-emerald-500/10'
+                    ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/10' 
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/10'
                 }`}>
                   {lastSyncInfo.errorMessage ? 'Failed' : 'Synced'}
                 </span>
@@ -2262,7 +2262,7 @@ export default function App() {
         </div>
 
         {/* Corporate bottom credit */}
-        <footer className="border-t border-[#2A2D35] py-3.5 px-8 text-center text-[9px] font-mono text-gray-600 flex justify-between bg-[#15171C]">
+        <footer className="border-t border-slate-200 dark:border-[#2A2D35] py-3.5 px-8 text-center text-[9.5px] font-mono text-slate-500 dark:text-gray-500 flex justify-between bg-white dark:bg-[#15171C]">
           <span>ServiceNow Operational Security & Governance Platform &copy; 2026. Audit logs persisted.</span>
           <span>SaaS Orchestrator: Gemini 3.8 Flash | Real-Time Audit Integrity Status: Online</span>
         </footer>

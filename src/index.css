@@ -8,7 +8,10 @@
     /* =========================================================================
        CONCEPT A: "CYBER OBSIDIAN & ELECTRIC AZURE" — LIGHT THEME TOKENS
        ========================================================================= */
-    --background: 210 40% 98%;              /* #F8FAFC Pristine Cool Paper Canvas */
+    /* =========================================================================
+       CONCEPT 2: "EXECUTIVE NAVY SPLIT-TONE" — LIGHT THEME TOKENS
+       ========================================================================= */
+    --background: 215 28% 95%;              /* #EEF2F6 Cool Titanium Slate Canvas */
     --foreground: 222 47% 11%;              /* #0F172A Deep Obsidian Slate */
     --card: 0 0% 100%;                      /* #FFFFFF Pure White Elevated Surface */
     --card-foreground: 222 47% 11%;
@@ -24,8 +27,8 @@
     --accent-foreground: 222 47% 11%;
     --destructive: 347 77% 50%;            /* #E11D48 Vivid Rose */
     --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;                 /* #E2E8F0 Hairline Border */
-    --input: 214 32% 91%;
+    --border: 214 32% 88%;                 /* #CBD5E1 Cool Slate Border */
+    --input: 214 32% 88%;
     --ring: 221 83% 53%;
     --radius: 0.625rem;
   }
@@ -102,7 +105,7 @@
 }
 
 /* =============================================================================
-   ELEVATION & VISUAL CONTRAST SYSTEM (CONCEPT A: CYBER OBSIDIAN & SLATE LIGHT)
+   ELEVATION & VISUAL CONTRAST SYSTEM (CONCEPT 2: EXECUTIVE NAVY SPLIT-TONE)
    ============================================================================= */
 
 /* -----------------------------------------------------------------------------
@@ -112,196 +115,435 @@
   color-scheme: light;
 }
 
-:root:not(.dark) .bg-card,
-html.light .bg-card,
-:root:not(.dark) [class*="bg-card"],
-html.light [class*="bg-card"],
-:root:not(.dark) .bg-\[\#15171C\],
-html.light .bg-\[\#15171C\],
-:root:not(.dark) .bg-\[\#12151D\],
-html.light .bg-\[\#12151D\],
-:root:not(.dark) .bg-\[\#121620\],
-html.light .bg-\[\#121620\],
-:root:not(.dark) .bg-\[\#10131B\],
-html.light .bg-\[\#10131B\],
-:root:not(.dark) .bg-\[\#151922\],
-html.light .bg-\[\#151922\],
-:root:not(.dark) aside.bg-\[\#15171C\],
-html.light aside.bg-\[\#15171C\] {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05);
+/* 1. COMMAND NAVY SIDEBAR IN LIGHT MODE */
+:root:not(.dark) aside,
+html.light aside,
+html.light-mode aside {
+  background-color: #0f172a !important; /* Deep Command Navy */
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
 }
 
-/* Light mode for accordions, headers, and container blocks in desk */
-:root:not(.dark) .bg-\[\#171C28\],
-html.light .bg-\[\#171C28\],
-:root:not(.dark) .bg-\[\#0E121C\],
-html.light .bg-\[\#0E121C\] {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
+:root:not(.dark) aside *,
+html.light aside *,
+html.light-mode aside * {
+  border-color: #1e293b;
 }
 
-:root:not(.dark) .hover\:bg-\[\#1E2433\]:hover,
-html.light .hover\:bg-\[\#1E2433\]:hover,
-:root:not(.dark) .hover\:bg-\[\#161B27\]:hover,
-html.light .hover\:bg-\[\#161B27\]:hover {
+:root:not(.dark) aside h1,
+html.light aside h1 {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) aside .text-foreground,
+html.light aside .text-foreground {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) aside .text-muted-foreground,
+html.light aside .text-muted-foreground {
+  color: #94a3b8 !important;
+}
+
+:root:not(.dark) aside .text-gray-400,
+html.light aside .text-gray-400,
+:root:not(.dark) aside .text-gray-500,
+html.light aside .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+:root:not(.dark) aside button,
+html.light aside button {
+  color: #cbd5e1 !important;
+}
+
+:root:not(.dark) aside button:hover,
+html.light aside button:hover {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* Active sidebar item */
+:root:not(.dark) aside button[class*="bg-blue-600/10"],
+html.light aside button[class*="bg-blue-600/10"],
+:root:not(.dark) aside button[class*="bg-purple-600/10"],
+html.light aside button[class*="bg-purple-600/10"] {
+  background-color: rgba(14, 165, 233, 0.15) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(14, 165, 233, 0.4) !important;
+  font-weight: 700 !important;
+}
+
+:root:not(.dark) aside button[class*="bg-blue-600/10"] svg,
+html.light aside button[class*="bg-blue-600/10"] svg {
+  color: #38bdf8 !important;
+}
+
+/* Sidebar profile box at bottom */
+:root:not(.dark) aside div[class*="group/auditor"],
+html.light aside div[class*="group/auditor"],
+:root:not(.dark) aside .bg-\[\#0A0C0F\],
+html.light aside .bg-\[\#0A0C0F\] {
+  background-color: #0b1120 !important;
+  border-color: #1e293b !important;
+}
+
+:root:not(.dark) aside div[class*="group/auditor"] span.text-white,
+html.light aside div[class*="group/auditor"] span.text-white {
+  color: #ffffff !important;
+}
+
+/* 2. WORKSPACE CANVAS & CARDS IN LIGHT MODE */
+:root:not(.dark) section,
+html.light section {
+  background-color: #eef2f6 !important;
+}
+
+/* Header bar */
+:root:not(.dark) section > header,
+html.light section > header {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Cards & elevated modules */
+:root:not(.dark) section .bg-card,
+html.light section .bg-card,
+:root:not(.dark) section [class*="bg-card"],
+html.light section [class*="bg-card"],
+:root:not(.dark) section .bg-\[\#15171C\],
+html.light section .bg-\[\#15171C\],
+:root:not(.dark) section .bg-\[\#12151D\],
+html.light section .bg-\[\#12151D\],
+:root:not(.dark) section .bg-\[\#121620\],
+html.light section .bg-\[\#121620\],
+:root:not(.dark) section .bg-\[\#10131B\],
+html.light section .bg-\[\#10131B\],
+:root:not(.dark) section .bg-\[\#151922\],
+html.light section .bg-\[\#151922\] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03) !important;
+  border-radius: 0.75rem;
+}
+
+/* Accordions, headers, and container blocks */
+:root:not(.dark) section .bg-\[\#171C28\],
+html.light section .bg-\[\#171C28\],
+:root:not(.dark) section .bg-\[\#0E121C\],
+html.light section .bg-\[\#0E121C\] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Hover highlights */
+:root:not(.dark) section .hover\:bg-\[\#1E2433\]:hover,
+html.light section .hover\:bg-\[\#1E2433\]:hover,
+:root:not(.dark) section .hover\:bg-\[\#161B27\]:hover,
+html.light section .hover\:bg-\[\#161B27\]:hover,
+:root:not(.dark) section .hover\:bg-\[\#1C202B\]\/40:hover,
+html.light section .hover\:bg-\[\#1C202B\]\/40:hover {
   background-color: #f1f5f9 !important;
 }
 
-/* Light mode for nested inset trays, counters, badges, filter boxes */
-:root:not(.dark) .bg-\[\#0A0C0F\],
-html.light .bg-\[\#0A0C0F\],
-:root:not(.dark) .bg-\[\#0A0C10\],
-html.light .bg-\[\#0A0C10\],
-:root:not(.dark) .bg-\[\#090C12\],
-html.light .bg-\[\#090C12\],
-:root:not(.dark) .bg-\[\#0B0F17\],
-html.light .bg-\[\#0B0F17\],
-:root:not(.dark) .bg-\[\#111317\],
-html.light .bg-\[\#111317\],
-:root:not(.dark) .bg-\[\#1C1F26\],
-html.light .bg-\[\#1C1F26\],
-:root:not(.dark) .bg-\[\#1A1D24\],
-html.light .bg-\[\#1A1D24\],
-:root:not(.dark) .bg-\[\#141A26\],
-html.light .bg-\[\#141A26\],
-:root:not(.dark) .bg-\[\#22242C\],
-html.light .bg-\[\#22242C\] {
+/* Nested inset trays, counters, badges, filter boxes */
+:root:not(.dark) section .bg-\[\#0A0C0F\],
+html.light section .bg-\[\#0A0C0F\],
+:root:not(.dark) section .bg-\[\#0A0C10\],
+html.light section .bg-\[\#0A0C10\],
+:root:not(.dark) section .bg-\[\#090C12\],
+html.light section .bg-\[\#090C12\],
+:root:not(.dark) section .bg-\[\#0B0F17\],
+html.light section .bg-\[\#0B0F17\],
+:root:not(.dark) section .bg-\[\#0B0F19\],
+html.light section .bg-\[\#0B0F19\],
+:root:not(.dark) section .bg-\[\#111317\],
+html.light section .bg-\[\#111317\],
+:root:not(.dark) section .bg-\[\#12141A\],
+html.light section .bg-\[\#12141A\],
+:root:not(.dark) section .bg-\[\#1C1F26\],
+html.light section .bg-\[\#1C1F26\],
+:root:not(.dark) section .bg-\[\#1A1D24\],
+html.light section .bg-\[\#1A1D24\],
+:root:not(.dark) section .bg-\[\#141A26\],
+html.light section .bg-\[\#141A26\],
+:root:not(.dark) section .bg-\[\#22242C\],
+html.light section .bg-\[\#22242C\] {
   background-color: #f8fafc !important;
   border-color: #e2e8f0 !important;
+}
+
+/* Visible progress meter inactive tracks */
+:root:not(.dark) section .w-full.bg-\[\#0A0C0F\],
+html.light section .w-full.bg-\[\#0A0C0F\],
+:root:not(.dark) section [class*="rounded-full"].bg-\[\#0A0C0F\],
+html.light section [class*="rounded-full"].bg-\[\#0A0C0F\],
+:root:not(.dark) section [class*="rounded-full"].bg-\[\#090C12\],
+html.light section [class*="rounded-full"].bg-\[\#090C12\] {
+  background-color: #e2e8f0 !important;
 }
 
 /* Light mode border normalization */
-:root:not(.dark) .border-\[\#2A2D35\],
-html.light .border-\[\#2A2D35\],
-:root:not(.dark) .border-\[\#232736\],
-html.light .border-\[\#232736\],
-:root:not(.dark) .border-\[\#1E2330\],
-html.light .border-\[\#1E2330\],
-:root:not(.dark) .border-\[\#22242C\],
-html.light .border-\[\#22242C\],
-:root:not(.dark) .border-\[\#1E2433\],
-html.light .border-\[\#1E2433\],
-:root:not(.dark) .border-\[\#1E2533\],
-html.light .border-\[\#1E2533\],
-:root:not(.dark) .border-\[\#222836\],
-html.light .border-\[\#222836\],
-:root:not(.dark) .border-\[\#2E374A\],
-html.light .border-\[\#2E374A\],
-:root:not(.dark) .border-\[\#1C1F26\],
-html.light .border-\[\#1C1F26\] {
+:root:not(.dark) section .border-\[\#2A2D35\],
+html.light section .border-\[\#2A2D35\],
+:root:not(.dark) section .border-\[\#232736\],
+html.light section .border-\[\#232736\],
+:root:not(.dark) section .border-\[\#1E2330\],
+html.light section .border-\[\#1E2330\],
+:root:not(.dark) section .border-\[\#22242C\],
+html.light section .border-\[\#22242C\],
+:root:not(.dark) section .border-\[\#1E2433\],
+html.light section .border-\[\#1E2433\],
+:root:not(.dark) section .border-\[\#1E2533\],
+html.light section .border-\[\#1E2533\],
+:root:not(.dark) section .border-\[\#222836\],
+html.light section .border-\[\#222836\],
+:root:not(.dark) section .border-\[\#2E374A\],
+html.light section .border-\[\#2E374A\],
+:root:not(.dark) section .border-\[\#2E313A\],
+html.light section .border-\[\#2E313A\],
+:root:not(.dark) section .border-\[\#23262D\],
+html.light section .border-\[\#23262D\],
+:root:not(.dark) section .border-\[\#1C1F26\],
+html.light section .border-\[\#1C1F26\] {
+  border-color: #cbd5e1 !important;
+}
+
+/* Table divider lines */
+:root:not(.dark) section .divide-\[\#1D2433\] > :not([hidden]) ~ :not([hidden]),
+html.light section .divide-\[\#1D2433\] > :not([hidden]) ~ :not([hidden]),
+:root:not(.dark) section .divide-\[\#2A2D35\]\/50 > :not([hidden]) ~ :not([hidden]),
+html.light section .divide-\[\#2A2D35\]\/50 > :not([hidden]) ~ :not([hidden]) {
   border-color: #e2e8f0 !important;
 }
 
-/* Light mode table divider lines */
-:root:not(.dark) .divide-\[\#1D2433\] > :not([hidden]) ~ :not([hidden]),
-html.light .divide-\[\#1D2433\] > :not([hidden]) ~ :not([hidden]) {
-  border-color: #e2e8f0 !important;
-}
-
-/* Light mode table headers */
-:root:not(.dark) table thead tr,
-html.light table thead tr,
-:root:not(.dark) table thead th,
-html.light table thead th {
+/* Table headers */
+:root:not(.dark) section table thead tr,
+html.light section table thead tr,
+:root:not(.dark) section table thead th,
+html.light section table thead th {
   background-color: #f8fafc !important;
   color: #475569 !important;
-  border-bottom: 1px solid #e2e8f0 !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid #cbd5e1 !important;
 }
 
-/* Light mode typography */
-:root:not(.dark) h1, html.light h1,
-:root:not(.dark) h2, html.light h2,
-:root:not(.dark) h3, html.light h3,
-:root:not(.dark) h4, html.light h4,
-:root:not(.dark) h5, html.light h5,
-:root:not(.dark) h6, html.light h6 {
+/* 3. HIGH-CONTRAST TYPOGRAPHY IN LIGHT MODE */
+:root:not(.dark) section h1, html.light section h1,
+:root:not(.dark) section h2, html.light section h2,
+:root:not(.dark) section h3, html.light section h3,
+:root:not(.dark) section h4, html.light section h4,
+:root:not(.dark) section h5, html.light section h5,
+:root:not(.dark) section h6, html.light section h6 {
   color: #0f172a !important;
 }
 
-:root:not(.dark) .text-white:not(
+:root:not(.dark) section .text-white:not(
   button,
   button *,
-  [class*="bg-blue-"],
-  [class*="bg-blue-"] *,
-  [class*="bg-indigo-"],
-  [class*="bg-indigo-"] *,
-  [class*="bg-emerald-"],
-  [class*="bg-emerald-"] *,
-  [class*="bg-red-"],
-  [class*="bg-red-"] *,
-  [class*="bg-rose-"],
-  [class*="bg-rose-"] *,
-  [class*="bg-purple-"],
-  [class*="bg-purple-"] *,
-  [class*="bg-violet-"],
-  [class*="bg-violet-"] *,
-  [class*="bg-slate-900"],
-  [class*="bg-slate-900"] *,
-  [class*="bg-gray-900"],
-  [class*="bg-gray-900"] *
+  .bg-blue-600,
+  .bg-blue-600 *,
+  .bg-blue-700,
+  .bg-blue-700 *,
+  .bg-indigo-600,
+  .bg-indigo-600 *,
+  .bg-emerald-600,
+  .bg-emerald-600 *,
+  .bg-red-600,
+  .bg-red-600 *
 ),
-html.light .text-white:not(
+html.light section .text-white:not(
   button,
   button *,
-  [class*="bg-blue-"],
-  [class*="bg-blue-"] *,
-  [class*="bg-indigo-"],
-  [class*="bg-indigo-"] *,
-  [class*="bg-emerald-"],
-  [class*="bg-emerald-"] *,
-  [class*="bg-red-"],
-  [class*="bg-red-"] *,
-  [class*="bg-rose-"],
-  [class*="bg-rose-"] *,
-  [class*="bg-purple-"],
-  [class*="bg-purple-"] *,
-  [class*="bg-violet-"],
-  [class*="bg-violet-"] *,
-  [class*="bg-slate-900"],
-  [class*="bg-slate-900"] *,
-  [class*="bg-gray-900"],
-  [class*="bg-gray-900"] *
+  .bg-blue-600,
+  .bg-blue-600 *,
+  .bg-blue-700,
+  .bg-blue-700 *,
+  .bg-indigo-600,
+  .bg-indigo-600 *,
+  .bg-emerald-600,
+  .bg-emerald-600 *,
+  .bg-red-600,
+  .bg-red-600 *
 ) {
   color: #0f172a !important;
 }
 
-:root:not(.dark) .text-gray-200,
-html.light .text-gray-200,
-:root:not(.dark) .text-gray-300,
-html.light .text-gray-300 {
-  color: #334155 !important;
+/* High-contrast semantic accent colors in light mode */
+:root:not(.dark) section .text-cyan-300,
+html.light section .text-cyan-300,
+:root:not(.dark) section .text-cyan-400,
+html.light section .text-cyan-400 {
+  color: #0284c7 !important; /* Sky-600 */
 }
 
-:root:not(.dark) .text-gray-400,
-html.light .text-gray-400,
-:root:not(.dark) .text-slate-400,
-html.light .text-slate-400,
-:root:not(.dark) .text-zinc-400,
-html.light .text-zinc-400 {
-  color: #64748b !important;
+:root:not(.dark) section .text-purple-300,
+html.light section .text-purple-300,
+:root:not(.dark) section .text-purple-400,
+html.light section .text-purple-400 {
+  color: #6d28d9 !important; /* Violet-700 */
 }
 
-:root:not(.dark) .text-gray-500,
-html.light .text-gray-500,
-:root:not(.dark) .text-slate-500,
-html.light .text-slate-500 {
-  color: #64748b !important;
+:root:not(.dark) section .text-emerald-300,
+html.light section .text-emerald-300,
+:root:not(.dark) section .text-emerald-400,
+html.light section .text-emerald-400,
+:root:not(.dark) section .text-green-400,
+html.light section .text-green-400,
+:root:not(.dark) section .text-green-500,
+html.light section .text-green-500 {
+  color: #047857 !important; /* Emerald-700 */
+}
+
+:root:not(.dark) section .text-yellow-400,
+html.light section .text-yellow-400,
+:root:not(.dark) section .text-yellow-500,
+html.light section .text-yellow-500,
+:root:not(.dark) section .text-amber-400,
+html.light section .text-amber-400 {
+  color: #b45309 !important; /* Amber-700 */
+}
+
+:root:not(.dark) section .text-red-400,
+html.light section .text-red-400,
+:root:not(.dark) section .text-red-500,
+html.light section .text-red-500,
+:root:not(.dark) section .text-rose-400,
+html.light section .text-rose-400 {
+  color: #b91c1c !important; /* Red-700 */
+}
+
+:root:not(.dark) section .text-blue-300,
+html.light section .text-blue-300,
+:root:not(.dark) section .text-blue-400,
+html.light section .text-blue-400 {
+  color: #1d4ed8 !important; /* Blue-700 */
+}
+
+:root:not(.dark) section .text-gray-200,
+html.light section .text-gray-200,
+:root:not(.dark) section .text-gray-300,
+html.light section .text-gray-300,
+:root:not(.dark) section .text-slate-200,
+html.light section .text-slate-200,
+:root:not(.dark) section .text-slate-300,
+html.light section .text-slate-300 {
+  color: #1e293b !important; /* Slate-800 */
+}
+
+:root:not(.dark) section .text-gray-400,
+html.light section .text-gray-400,
+:root:not(.dark) section .text-slate-400,
+html.light section .text-slate-400,
+:root:not(.dark) section .text-zinc-400,
+html.light section .text-zinc-400 {
+  color: #475569 !important; /* Slate-600 */
+}
+
+:root:not(.dark) section .text-gray-500,
+html.light section .text-gray-500,
+:root:not(.dark) section .text-slate-500,
+html.light section .text-slate-500,
+:root:not(.dark) section .text-gray-600,
+html.light section .text-gray-600 {
+  color: #64748b !important; /* Slate-500 */
+}
+
+/* 4. SEMANTIC BADGES & ACTION CONTROLS IN LIGHT MODE */
+:root:not(.dark) section [class*="bg-red-500/10"],
+html.light section [class*="bg-red-500/10"],
+:root:not(.dark) section [class*="bg-red-600/20"],
+html.light section [class*="bg-red-600/20"],
+:root:not(.dark) section [class*="bg-red-500/20"],
+html.light section [class*="bg-red-500/20"] {
+  background-color: #fef2f2 !important;
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+  font-weight: 700 !important;
+}
+
+:root:not(.dark) section [class*="bg-green-500/10"],
+html.light section [class*="bg-green-500/10"],
+:root:not(.dark) section [class*="bg-emerald-600/20"],
+html.light section [class*="bg-emerald-600/20"],
+:root:not(.dark) section [class*="bg-emerald-600/10"],
+html.light section [class*="bg-emerald-600/10"] {
+  background-color: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+  font-weight: 700 !important;
+}
+
+:root:not(.dark) section [class*="bg-yellow-500/10"],
+html.light section [class*="bg-yellow-500/10"],
+:root:not(.dark) section [class*="bg-yellow-500/15"],
+html.light section [class*="bg-yellow-500/15"],
+:root:not(.dark) section [class*="bg-amber-500/10"],
+html.light section [class*="bg-amber-500/10"],
+:root:not(.dark) section [class*="bg-amber-500/15"],
+html.light section [class*="bg-amber-500/15"],
+:root:not(.dark) section [class*="bg-orange-500/20"],
+html.light section [class*="bg-orange-500/20"] {
+  background-color: #fffbeb !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+  font-weight: 700 !important;
+}
+
+:root:not(.dark) section [class*="bg-blue-500/10"],
+html.light section [class*="bg-blue-500/10"],
+:root:not(.dark) section [class*="bg-blue-600/10"],
+html.light section [class*="bg-blue-600/10"],
+:root:not(.dark) section [class*="bg-blue-600/20"],
+html.light section [class*="bg-blue-600/20"],
+:root:not(.dark) section [class*="bg-blue-600/15"],
+html.light section [class*="bg-blue-600/15"] {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+  font-weight: 700 !important;
+}
+
+:root:not(.dark) section [class*="bg-purple-500/10"],
+html.light section [class*="bg-purple-500/10"],
+:root:not(.dark) section [class*="bg-purple-600/20"],
+html.light section [class*="bg-purple-600/20"],
+:root:not(.dark) section [class*="bg-purple-600/30"],
+html.light section [class*="bg-purple-600/30"] {
+  background-color: #faf5ff !important;
+  color: #6d28d9 !important;
+  border-color: #e9d5ff !important;
+  font-weight: 700 !important;
+}
+
+/* Ghost & inspect buttons */
+:root:not(.dark) section button[class*="bg-blue-600/10"],
+html.light section button[class*="bg-blue-600/10"] {
+  background-color: #ffffff !important;
+  color: #1d4ed8 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+}
+:root:not(.dark) section button[class*="bg-blue-600/10"]:hover,
+html.light section button[class*="bg-blue-600/10"]:hover {
+  background-color: #eff6ff !important;
+  border-color: #93c5fd !important;
+  color: #1e40af !important;
 }
 
 /* Light mode inputs, selects, textareas */
-:root:not(.dark) input, html.light input,
-:root:not(.dark) select, html.light select,
-:root:not(.dark) textarea, html.light textarea {
+:root:not(.dark) section input, html.light section input,
+:root:not(.dark) section select, html.light section select,
+:root:not(.dark) section textarea, html.light section textarea {
   background-color: #ffffff !important;
   color: #0f172a !important;
   border: 1px solid #cbd5e1 !important;
 }
 
-:root:not(.dark) input:focus, html.light input:focus,
-:root:not(.dark) select:focus, html.light select:focus,
-:root:not(.dark) textarea:focus, html.light textarea:focus {
+:root:not(.dark) section input:focus, html.light section input:focus,
+:root:not(.dark) section select:focus, html.light section select:focus,
+:root:not(.dark) section textarea:focus, html.light section textarea:focus {
   border-color: #2563eb !important;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
   outline: none !important;
