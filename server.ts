@@ -1148,6 +1148,114 @@ function isMetricMandatoryForGroup(metricId: string, assignmentGroup?: string): 
   return defaultVal;
 }
 
+function generateEnhancedAuditComments(
+  ticket: Ticket,
+  scores: any,
+  grp?: string,
+  percentage?: number,
+  statusColor?: string,
+  totalScore?: number,
+  matchedRule?: any
+): { generalComments: string; suggestedActions: string[]; exemptMetrics: string[] } {
+  const suggestedActions: string[] = [];
+  const exemptMetrics: string[] = [];
+
+  const check = (key: string, name: string, condition: boolean, action: string) => {
+    if (!isMetricMandatoryForGroup(key, grp)) {
+      exemptMetrics.push(name);
+      return; // Excluded: NEVER mention or prescribe actions for optional metrics
+    }
+    if (condition) {
+      suggestedActions.push(action);
+    }
+  };
+
+  const logs = (ticket.activityLogs || '').toLowerCase();
+  const techLen = (ticket.technicalDescription || '').length;
+
+  check('affectedCi', 'Affected CI', (scores.affectedCi?.score ?? 0) < 2,
+    `CMDB Coupling: Realign Assignment Group '${ticket.assignmentGroup || 'N/A'}' with Affected CI '${ticket.affectedCi || 'N/A'}' according to CMDB authorization rules.`
+  );
+
+  check('suspectedCi', 'Suspected CI', (scores.suspectedCi?.score ?? 0) < 2,
+    `Causal Infrastructure: Populate Suspected CI with the root-cause infrastructure component or copy Affected CI '${ticket.affectedCi || 'infrastructure'}'.`
+  );
+
+  const targetSymp = matchedRule?.symptomCode || 'standard incident symptom code';
+  check('symptomCode', 'Symptom Code', (scores.symptomCode?.score ?? 0) < 2,
+    `Taxonomy: Update Symptom Code to '${targetSymp}' matching standard incident categorization.`
+  );
+
+  check('shortDescription', 'Short Description', (scores.shortDescription?.score ?? 0) < 2,
+    `Indexing: Refine Short Description to clearly describe the failing component and specific operational fault pattern.`
+  );
+
+  check('technicalDescription', 'Technical Description', (scores.technicalDescription?.score ?? 0) < 2,
+    `Diagnostic Depth: Expand Technical Description beyond ${techLen} characters (minimum 50 required) detailing troubleshooting steps, logs inspected, and corrective patches.`
+  );
+
+  check('serviceImpactDescription', 'Service Impact', (scores.serviceImpactDescription?.score ?? 0) < 2,
+    `Service Fallout: Document specific user-facing disruption, outage scope, and impacted business capabilities.`
+  );
+
+  check('businessImpactDescription', 'Business Impact', (scores.businessImpactDescription?.score ?? 0) < 2,
+    `Business Risk: Articulate operational or financial downtime exposure in the Business Impact field.`
+  );
+
+  const isBypassed = logs.includes('progress') && logs.includes('confirm') && !logs.includes('propose');
+  const actAction = isBypassed
+    ? `Governance Flow: Critical bypass detected — log 'Solve Propose' transitional review status in work notes before final closure.`
+    : `Audit Trail: Ensure activity log notes capture sequential customer updates and engineer troubleshooting milestones.`;
+  check('activityLogs', 'Activity Logs', (scores.activityLogs?.score ?? 0) < 2 || isBypassed, actAction);
+
+  const targetC1 = matchedRule?.closureCode || 'primary diagnostic closure code';
+  check('closureCode1', 'Closure Code 1', (scores.closureCode1?.score ?? 0) < 2,
+    `Diagnostic State: Set primary Closure Code 1 to '${targetC1}' aligned with actual resolution outcome.`
+  );
+
+  const targetC2 = matchedRule?.closureCode2 || 'secondary sub-diagnostic code';
+  check('closureCode2', 'Closure Code 2', (scores.closureCode2?.score ?? 0) < 2,
+    `Technical Outcome: Set secondary Closure Code 2 to '${targetC2}' reflecting root technical action.`
+  );
+
+  const targetSol = matchedRule?.solutionCode || 'authorized catalog solution code';
+  check('solutionCode', 'Solution Code', (scores.solutionCode?.score ?? 0) < 2,
+    `Remediation Type: Assign authorized Solution Code '${targetSol}' matching the resolution path.`
+  );
+
+  check('knowledgeArticle', 'Knowledge Article', (scores.knowledgeArticle?.score ?? 0) < 2 || !ticket.knowledgeArticle,
+    `Knowledge Loop: Link an active ServiceNow Knowledge Base article (e.g. KB0010xxx) to fulfill self-service documentation standards.`
+  );
+
+  check('resolutionDescription', 'Resolution Description', (scores.resolutionDescription?.score ?? 0) < 2,
+    `Resolution Checklist: Expand Resolution Description into a sequential 8-point checklist detailing root diagnosis, KB applied, validation tests, and customer sign-off.`
+  );
+
+  const pct = percentage ?? Math.round(((totalScore ?? 0) / 26) * 100);
+  const tier = (statusColor ?? (pct >= 80 ? 'Green' : pct >= 50 ? 'Amber' : 'Red')).toUpperCase();
+  const pts = totalScore ?? 0;
+  const inc = ticket.incNumber || 'Incident';
+  const groupLabel = grp || 'General';
+
+  let generalComments = '';
+  if (suggestedActions.length === 0) {
+    if (exemptMetrics.length > 0) {
+      generalComments = `Audit Verdict: FULLY COMPLIANT (${pct}% - ${tier} | ${pts}/26 pts). All mandatory ITIL quality standards verified for ${inc} (Assignment Group: '${groupLabel}'). Note: ${exemptMetrics.length} non-mandatory check(s) (${exemptMetrics.join(', ')}) are configured as optional for this group and safely excluded from compliance requirements. Ready for governance closure.`;
+    } else {
+      generalComments = `Audit Verdict: FULLY COMPLIANT (${pct}% - ${tier} | ${pts}/26 pts). Documentation and ITIL classifications meet all 13 audit quality checkpoints for ${inc} (Assignment Group: '${groupLabel}'). Conforms fully to ServiceNow governance standards.`;
+    }
+  } else {
+    const exemptNotice = exemptMetrics.length > 0
+      ? ` Note: ${exemptMetrics.length} check(s) (${exemptMetrics.join(', ')}) are configured as optional/exempt for '${groupLabel}' and excluded from requirements.`
+      : '';
+    generalComments = `Audit Verdict: ACTION REQUIRED (${pct}% - ${tier} | ${pts}/26 pts). ${suggestedActions.length} mandatory governance remediation item(s) pending for ${inc} (Assignment Group: '${groupLabel}').${exemptNotice} Directives: ` +
+      suggestedActions.map((act, i) => `[${i + 1}] ${act}`).join(' ') +
+      ` | Corrections must be completed directly in ServiceNow prior to final quality approval.`;
+  }
+
+  return { generalComments, suggestedActions, exemptMetrics };
+}
+
 function applyMandatoryMetricsConfigToReport(rep: TicketAuditReport): TicketAuditReport {
   if (!rep || !rep.ticket) return rep;
   const ticket = rep.ticket;
@@ -1239,53 +1347,8 @@ function applyMandatoryMetricsConfigToReport(rep: TicketAuditReport): TicketAudi
   const percentage = Math.round((totalScore / 26) * 100);
   const statusColor: 'Green' | 'Amber' | 'Red' = percentage >= 80 ? 'Green' : percentage >= 50 ? 'Amber' : 'Red';
 
-  const suggestedActions: string[] = [];
-  if (newScores.affectedCi?.score < 2 && isMetricMandatoryForGroup('affectedCi', grp)) {
-    suggestedActions.push(`Align Assignment Group '${ticket.assignmentGroup || 'N/A'}' with Affected CI '${ticket.affectedCi || 'N/A'}' in CMDB.`);
-  }
-  if (newScores.suspectedCi?.score < 2 && isMetricMandatoryForGroup('suspectedCi', grp)) {
-    suggestedActions.push(`Map a valid Suspected CI node matching '${ticket.affectedCi || 'infrastructure'}'.`);
-  }
-  if (newScores.symptomCode?.score < 2 && isMetricMandatoryForGroup('symptomCode', grp)) {
-    suggestedActions.push(`Update Symptom Code.`);
-  }
-  if (newScores.shortDescription?.score < 2 && isMetricMandatoryForGroup('shortDescription', grp)) {
-    suggestedActions.push(`Clarify Short Description to include affected component and specific failure pattern.`);
-  }
-  if (newScores.technicalDescription?.score < 2 && isMetricMandatoryForGroup('technicalDescription', grp)) {
-    suggestedActions.push(`Provide comprehensive technical diagnostic details (minimum 50 characters).`);
-  }
-  if (newScores.serviceImpactDescription?.score < 2 && isMetricMandatoryForGroup('serviceImpactDescription', grp)) {
-    suggestedActions.push(`Document specific Service Outage / Degradation tier.`);
-  }
-  if (newScores.businessImpactDescription?.score < 2 && isMetricMandatoryForGroup('businessImpactDescription', grp)) {
-    suggestedActions.push(`Document Business Disruption justification and commercial operations impact.`);
-  }
-  if (newScores.activityLogs?.score < 2 && isMetricMandatoryForGroup('activityLogs', grp)) {
-    suggestedActions.push(`Record customer closure consent and user communication in work notes.`);
-  }
-  if (newScores.closureCode1?.score < 2 && isMetricMandatoryForGroup('closureCode1', grp)) {
-    suggestedActions.push(`Select primary Closure Code 1 aligned with the root resolution.`);
-  }
-  if (newScores.closureCode2?.score < 2 && isMetricMandatoryForGroup('closureCode2', grp)) {
-    suggestedActions.push(`Select secondary Closure Code 2 aligned with detailed diagnostics.`);
-  }
-  if (newScores.solutionCode?.score < 2 && isMetricMandatoryForGroup('solutionCode', grp)) {
-    suggestedActions.push(`Apply appropriate permanent or workaround Solution Code.`);
-  }
-  if (newScores.knowledgeArticle?.score < 2 && isMetricMandatoryForGroup('knowledgeArticle', grp)) {
-    suggestedActions.push(`Link a valid ServiceNow Knowledge Base (KB) article.`);
-  }
-  if (newScores.resolutionDescription?.score < 2 && isMetricMandatoryForGroup('resolutionDescription', grp)) {
-    suggestedActions.push(`Structure resolution steps according to the 8-point checklist.`);
-  }
-
-  let generalComments = '';
-  if (suggestedActions.length === 0) {
-    generalComments = `Fully compliant: Documentation and ITIL classifications meet all audit quality checks.`;
-  } else {
-    generalComments = `Action required (${suggestedActions.length}): ` + suggestedActions.map((act, i) => `${i + 1}. ${act}`).join(' ');
-  }
+  // Enhanced audit comments compilation: 100% in sync with mandatory metric exemptions
+  const { generalComments } = generateEnhancedAuditComments(ticket, newScores, grp, percentage, statusColor, totalScore);
 
   return {
     ...rep,
@@ -3190,61 +3253,8 @@ AUDIT REQUIREMENTS:
       `Resolution Steps: ${scores.resolutionDescription.rating} (${scores.resolutionDescription.score}/2)`
     ].join(' | ');
 
-    // Compile dynamic generalComments text block containing concise actionable recommendations
-    let generalComments = '';
-    const suggestedActions: string[] = [];
-
-    if (affectedCiScore.score < 2 && isMetricMandatoryForGroup('affectedCi', grp)) {
-      suggestedActions.push(`Align Assignment Group '${ticket.assignmentGroup || 'N/A'}' with Affected CI '${ticket.affectedCi || 'N/A'}' in CMDB.`);
-    }
-    if (suspectedCiScore.score < 2 && isMetricMandatoryForGroup('suspectedCi', grp)) {
-      suggestedActions.push(`Map a valid Suspected CI node matching '${ticket.affectedCi || 'infrastructure'}'.`);
-    }
-    if (symptomCodeScore.score < 2 && isMetricMandatoryForGroup('symptomCode', grp)) {
-      const targetSymp = matchedRule ? matchedRule.symptomCode : 'the correct symptom code';
-      suggestedActions.push(`Update Symptom Code to '${targetSymp}'.`);
-    }
-    if (shortDescScore.score < 2 && isMetricMandatoryForGroup('shortDescription', grp)) {
-      suggestedActions.push(`Draft a descriptive Short Description summarizing root issue.`);
-    }
-    if (techDescScore.score < 2 && isMetricMandatoryForGroup('technicalDescription', grp)) {
-      suggestedActions.push(`Expand Technical Description beyond ${techLen} characters (min 50 chars).`);
-    }
-    if (serviceImpactScore.score <= 1 && isMetricMandatoryForGroup('serviceImpactDescription', grp)) {
-      suggestedActions.push(`Document specific service disruption and outage fallout details.`);
-    }
-    if (businessImpactScore.score === 0 && isMetricMandatoryForGroup('businessImpactDescription', grp)) {
-      suggestedActions.push(`Provide commercial and operational fallout details in Business Impact.`);
-    }
-    if (activityScore.score < 2 && isMetricMandatoryForGroup('activityLogs', grp)) {
-      if (logs.includes('confirm') && !logs.includes('propose')) {
-        suggestedActions.push(`Log 'Solve Propose' review status in activity work notes before closure.`);
-      } else {
-        suggestedActions.push(`Ensure follow-up activity logs document sequential status progress.`);
-      }
-    }
-    if ((closureCode1Score.score === 0 || closureCode2Score.score === 0) && (isMetricMandatoryForGroup('closureCode1', grp) || isMetricMandatoryForGroup('closureCode2', grp))) {
-      const targetC1 = matchedRule ? matchedRule.closureCode : 'the correct primary code';
-      const targetC2 = matchedRule ? matchedRule.closureCode2 : 'the correct secondary code';
-      suggestedActions.push(`Correct Closure Codes to '${targetC1}' and '${targetC2}'.`);
-    }
-    if (solutionCodeScore.score === 0 && isMetricMandatoryForGroup('solutionCode', grp)) {
-      const targetSol = matchedRule ? matchedRule.solutionCode : 'the correct solution code';
-      suggestedActions.push(`Set Solution Code to '${targetSol}'.`);
-    }
-    if (kaScore.score === 0 && isMetricMandatoryForGroup('knowledgeArticle', grp)) {
-      suggestedActions.push(`Link a valid Knowledge Base (KB) article.`);
-    }
-    if (resolutionDescScore.score <= 1 && isMetricMandatoryForGroup('resolutionDescription', grp)) {
-      const targetCount = rResDesc?.resDescMinPointsCount ?? resolutionQuestions.length ?? 8;
-      suggestedActions.push(`Document complete ${targetCount}-point resolution sequence in notes.`);
-    }
-
-    if (suggestedActions.length === 0) {
-      generalComments = `Fully compliant: Documentation and ITIL classifications meet all audit quality checks.`;
-    } else {
-      generalComments = `Action required (${suggestedActions.length}): ` + suggestedActions.map((act, i) => `${i + 1}. ${act}`).join(' ');
-    }
+    // Enhanced audit comments compilation: 100% synchronized with mandatory metric exemptions
+    const { generalComments } = generateEnhancedAuditComments(ticket, scores, grp, percentage, statusColor, totalScore, matchedRule);
 
     const parsedCounter = (ticket.acceptedAppCounter || '').trim();
     const numVal = parseInt(parsedCounter, 10);

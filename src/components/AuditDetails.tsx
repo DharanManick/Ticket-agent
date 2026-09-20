@@ -832,8 +832,15 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   const logs = (ticket.activityLogs || '').toLowerCase();
   const isBypassed = logs.includes('progress') && logs.includes('confirm') && !logs.includes('propose');
 
+  // Helper: check if a metric is configured as optional (exempt) for this ticket's assignment group
+  const isExempt = (key: string): boolean => {
+    const item = scores[key];
+    if (!item) return false;
+    return typeof item.comment === 'string' && item.comment.toLowerCase().startsWith('exempt');
+  };
+
   // 1. Activity Logs & State Sequence
-  const isActExempt = typeof scores.activityLogs?.comment === 'string' && scores.activityLogs.comment.toLowerCase().startsWith('exempt');
+  const isActExempt = isExempt('activityLogs');
   const actScore = isActExempt ? 2 : (scores.activityLogs?.score ?? (isBypassed ? 0 : 2));
   if (!isActExempt && (isBypassed || actScore < 2)) {
     mistakes.push({
@@ -851,7 +858,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 2. Affected CI & Assignment Group
-  if (scores.affectedCi && scores.affectedCi.score < 2) {
+  if (!isExempt('affectedCi') && scores.affectedCi && scores.affectedCi.score < 2) {
     const s = scores.affectedCi.score;
     mistakes.push({
       key: 'affectedCi',
@@ -866,7 +873,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 3. Suspected CI
-  if (scores.suspectedCi && scores.suspectedCi.score < 2) {
+  if (!isExempt('suspectedCi') && scores.suspectedCi && scores.suspectedCi.score < 2) {
     const s = scores.suspectedCi.score;
     mistakes.push({
       key: 'suspectedCi',
@@ -881,7 +888,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 4. Technical Description
-  if (scores.technicalDescription && scores.technicalDescription.score < 2) {
+  if (!isExempt('technicalDescription') && scores.technicalDescription && scores.technicalDescription.score < 2) {
     const s = scores.technicalDescription.score;
     const len = (ticket.technicalDescription || '').length;
     mistakes.push({
@@ -897,7 +904,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 5. Short Description
-  if (scores.shortDescription && scores.shortDescription.score < 2) {
+  if (!isExempt('shortDescription') && scores.shortDescription && scores.shortDescription.score < 2) {
     const s = scores.shortDescription.score;
     mistakes.push({
       key: 'shortDescription',
@@ -912,7 +919,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 6. Service Impact
-  if (scores.serviceImpactDescription && scores.serviceImpactDescription.score < 2) {
+  if (!isExempt('serviceImpactDescription') && scores.serviceImpactDescription && scores.serviceImpactDescription.score < 2) {
     const s = scores.serviceImpactDescription.score;
     mistakes.push({
       key: 'serviceImpactDescription',
@@ -927,7 +934,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 7. Business Impact
-  if (scores.businessImpactDescription && scores.businessImpactDescription.score < 2) {
+  if (!isExempt('businessImpactDescription') && scores.businessImpactDescription && scores.businessImpactDescription.score < 2) {
     const s = scores.businessImpactDescription.score;
     mistakes.push({
       key: 'businessImpactDescription',
@@ -942,7 +949,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 8. Symptom Code
-  if (scores.symptomCode && scores.symptomCode.score < 2) {
+  if (!isExempt('symptomCode') && scores.symptomCode && scores.symptomCode.score < 2) {
     const s = scores.symptomCode.score;
     mistakes.push({
       key: 'symptomCode',
@@ -957,7 +964,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 9. Closure Code 1
-  if (scores.closureCode1 && scores.closureCode1.score < 2) {
+  if (!isExempt('closureCode1') && scores.closureCode1 && scores.closureCode1.score < 2) {
     const s = scores.closureCode1.score;
     mistakes.push({
       key: 'closureCode1',
@@ -972,7 +979,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 10. Closure Code 2
-  if (scores.closureCode2 && scores.closureCode2.score < 2) {
+  if (!isExempt('closureCode2') && scores.closureCode2 && scores.closureCode2.score < 2) {
     const s = scores.closureCode2.score;
     mistakes.push({
       key: 'closureCode2',
@@ -987,7 +994,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 11. Solution Code
-  if (scores.solutionCode && scores.solutionCode.score < 2) {
+  if (!isExempt('solutionCode') && scores.solutionCode && scores.solutionCode.score < 2) {
     const s = scores.solutionCode.score;
     mistakes.push({
       key: 'solutionCode',
@@ -1002,7 +1009,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 12. Knowledge Article
-  if (scores.knowledgeArticle && (scores.knowledgeArticle.score < 2 || !ticket.knowledgeArticle)) {
+  if (!isExempt('knowledgeArticle') && scores.knowledgeArticle && (scores.knowledgeArticle.score < 2 || !ticket.knowledgeArticle)) {
     const s = scores.knowledgeArticle ? scores.knowledgeArticle.score : 0;
     mistakes.push({
       key: 'knowledgeArticle',
@@ -1017,7 +1024,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   }
 
   // 13. Resolution Description
-  if (scores.resolutionDescription && scores.resolutionDescription.score < 2) {
+  if (!isExempt('resolutionDescription') && scores.resolutionDescription && scores.resolutionDescription.score < 2) {
     const s = scores.resolutionDescription.score;
     mistakes.push({
       key: 'resolutionDescription',
@@ -1062,7 +1069,6 @@ export function AuditorGeneralCommentsAndMistakesCard({
   const [showGuideModal, setShowGuideModal] = useState(false);
 
   const mistakes = useMemo(() => extractTicketMistakes(report), [report]);
-  const generalComments = report.generalComments || 'No overall auditor comments recorded for this ticket.';
 
   // Build the complete 13-metric breakdown matching the exact order of Audit Metrics
   const allMetricsData = useMemo(() => {
@@ -1243,6 +1249,37 @@ export function AuditorGeneralCommentsAndMistakesCard({
 
   const infractionsCount = useMemo(() => allMetricsData.filter(m => m.isInfraction).length, [allMetricsData]);
   const passedCount = useMemo(() => allMetricsData.filter(m => !m.isInfraction).length, [allMetricsData]);
+  const exemptMetrics = useMemo(() => allMetricsData.filter(m => m.isExempt), [allMetricsData]);
+  const mandatoryInfractions = useMemo(() => allMetricsData.filter(m => !m.isExempt && m.isInfraction), [allMetricsData]);
+
+  // Enhanced audit comments compilation: strictly synchronized with mandatory metrics configuration
+  const enhancedComments = useMemo(() => {
+    const inc = report.ticket.incNumber || 'Incident';
+    const grp = report.ticket.assignmentGroup || 'General';
+    const pct = report.percentage;
+    const tier = report.statusColor.toUpperCase();
+    const pts = report.totalScore;
+
+    if (mandatoryInfractions.length === 0) {
+      if (exemptMetrics.length > 0) {
+        return `Audit Verdict: FULLY COMPLIANT (${pct}% - ${tier} | ${pts}/26 pts). All mandatory ITIL quality standards verified for ${inc} (Assignment Group: '${grp}'). Note: ${exemptMetrics.length} non-mandatory check(s) (${exemptMetrics.map(m => m.label).join(', ')}) are configured as optional for this group and safely excluded from compliance requirements. Ready for governance closure.`;
+      }
+      return `Audit Verdict: FULLY COMPLIANT (${pct}% - ${tier} | ${pts}/26 pts). Documentation and ITIL classifications meet all 13 audit quality checkpoints for ${inc} (Assignment Group: '${grp}'). Conforms fully to ServiceNow governance standards.`;
+    }
+
+    const exemptNotice = exemptMetrics.length > 0
+      ? ` Note: ${exemptMetrics.length} check(s) (${exemptMetrics.map(m => m.label).join(', ')}) are configured as optional/exempt for '${grp}' and excluded from requirements.`
+      : '';
+
+    const directives = mandatoryInfractions.map((m, i) => {
+      const act = m.remediationAction || m.failureReason || `Remediate ${m.label} to align with ITIL standards.`;
+      return `[${i + 1}] ${m.label}: ${act}`;
+    }).join(' ');
+
+    return `Audit Verdict: ACTION REQUIRED (${pct}% - ${tier} | ${pts}/26 pts). ${mandatoryInfractions.length} mandatory governance remediation item(s) pending for ${inc} (Assignment Group: '${grp}').${exemptNotice} Directives: ${directives} | Corrections must be completed directly in ServiceNow prior to final quality approval.`;
+  }, [report, mandatoryInfractions, exemptMetrics]);
+
+  const generalComments = enhancedComments;
 
   // Parse action points from general comments
   const parsedActions = useMemo(() => {
@@ -1266,18 +1303,29 @@ ${metric.isInfraction && metric.failureReason ? `Infraction Reason: ${metric.fai
     setTimeout(() => setCopiedMetricKey(null), 2500);
   };
 
-  // Copy overall executive verdict
+  // Copy overall executive verdict with full policy scope breakdown
   const handleCopyOverallComments = () => {
+    const exemptionsBlock = exemptMetrics.length > 0
+      ? `\nPOLICY EXEMPTIONS (${exemptMetrics.length} Optional Checks Excluded):\n` +
+        exemptMetrics.map(m => `• ${m.label}: Configured as optional for group '${report.ticket.assignmentGroup || 'General'}'`).join('\n')
+      : '';
+
+    const gapsBlock = mandatoryInfractions.length > 0
+      ? `\nREMAINING MANDATORY ACTIONS (${mandatoryInfractions.length} Pending):\n` +
+        mandatoryInfractions.map((m, i) => `${i + 1}. [${m.category}] (${m.severity.toUpperCase()}): ${m.remediationAction || m.failureReason}`).join('\n')
+      : '\nREMAINING MANDATORY ACTIONS: None (All mandatory quality checks satisfied)';
+
     const clipboardText = `--- SERVICENOW AUDIT EXECUTIVE VERDICT FOR ${report.ticket.incNumber} ---
-Overall Score: ${report.percentage}% (${report.statusColor.toUpperCase()}) | Total: ${report.totalScore}/26
-Assignee: ${report.ticket.assignee || 'N/A'} (Manager: ${report.ticket.assigneeManager || 'N/A'})
+Overall Score: ${report.percentage}% (${report.statusColor.toUpperCase()}) | Total: ${report.totalScore}/26 pts
+Incident: ${report.ticket.incNumber}
+Assignee: ${report.ticket.assignee || 'Unassigned'} (Manager: ${report.ticket.assigneeManager || 'N/A'})
 Assignment Group: ${report.ticket.assignmentGroup || 'N/A'}
+Audit Scope: ${13 - exemptMetrics.length} Mandatory Checks | ${exemptMetrics.length} Optional Checks
+${exemptionsBlock}
 
 OVERALL AUDIT COMMENTS & VERDICT:
 ${generalComments}
-
-DETECTED GAPS (${infractionsCount} Infractions):
-${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.category}] (${m.scoreDisplay}): ${m.failureReason || m.comment}`).join('\n')}
+${gapsBlock}
 `;
     navigator.clipboard.writeText(clipboardText);
     setCopiedMetricKey('overall');
@@ -1794,7 +1842,7 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
           </div>
 
           {/* Executive Overview Badge Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs font-mono">
             <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-2 rounded-lg">
               <span className="text-[9px] text-slate-500 block uppercase">Incident</span>
               <span className="font-bold text-blue-700 dark:text-blue-400">{report.ticket.incNumber}</span>
@@ -1804,44 +1852,136 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
               <span className="font-bold text-slate-900 dark:text-slate-200 truncate block">{report.ticket.assignee || 'Unassigned'}</span>
             </div>
             <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-2 rounded-lg">
-              <span className="text-[9px] text-slate-500 block uppercase">KSL Loop</span>
-              <span className={`font-bold ${report.ksl === 'Yes' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-                {report.ksl === 'Yes' ? 'Verified (Yes)' : 'Missing (No)'}
-              </span>
+              <span className="text-[9px] text-slate-500 block uppercase">Assignment Group</span>
+              <span className="font-bold text-slate-900 dark:text-slate-200 truncate block">{report.ticket.assignmentGroup || 'General'}</span>
             </div>
             <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-2 rounded-lg">
+              <span className="text-[9px] text-slate-500 block uppercase">Policy Scope</span>
+              <span className="font-bold text-purple-700 dark:text-purple-400 block truncate">
+                {13 - exemptMetrics.length} Mand. &bull; {exemptMetrics.length} Opt.
+              </span>
+            </div>
+            <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-2 rounded-lg col-span-2 sm:col-span-1">
               <span className="text-[9px] text-slate-500 block uppercase">Checkpoints</span>
               <span className="font-bold text-slate-900 dark:text-slate-200">{passedCount}/13 Met</span>
             </div>
           </div>
 
+          {/* Assignment Group Policy Exemption Banner (when optional checks exist) */}
+          {exemptMetrics.length > 0 && (
+            <div className="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/40 rounded-xl p-3 flex items-start gap-2.5 text-xs">
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
+                    Assignment Group Policy Scope Sync:
+                  </span>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30">
+                    {exemptMetrics.length} Optional Check{exemptMetrics.length > 1 ? 's' : ''} Excluded
+                  </span>
+                </div>
+                <p className="text-slate-700 dark:text-slate-300 text-[11.5px] leading-relaxed font-medium">
+                  The following {exemptMetrics.length} metric{exemptMetrics.length > 1 ? 's are' : ' is'} configured as non-mandatory (optional) for assignment group <strong className="font-semibold text-slate-900 dark:text-white">'{report.ticket.assignmentGroup || 'General'}'</strong> and <strong className="font-semibold text-emerald-700 dark:text-emerald-400">100% excluded</strong> from audit penalty scoring and remediation comments:
+                </p>
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  {exemptMetrics.map(m => (
+                    <span key={m.key} className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-white dark:bg-[#12141A] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
+                      ✓ {m.label} (Optional)
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* General Comments Body */}
           <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] rounded-xl p-4 relative space-y-2">
-            <span className="text-[9px] font-mono uppercase font-bold text-purple-700 dark:text-purple-400 tracking-wider block">
-              Overall Appraisal Note for Audit Records:
-            </span>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-[9.5px] font-mono uppercase font-bold text-purple-700 dark:text-purple-400 tracking-wider flex items-center gap-1.5">
+                <MessageSquare className="h-3 w-3" />
+                Executive Quality &amp; Governance Appraisal:
+              </span>
+              <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full uppercase ${
+                mandatoryInfractions.length === 0 
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300 border border-emerald-200' 
+                  : 'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300 border border-rose-200'
+              }`}>
+                {mandatoryInfractions.length === 0 ? 'Compliant Sign-Off' : `${mandatoryInfractions.length} Action(s) Pending`}
+              </span>
+            </div>
             <p className="text-slate-800 dark:text-slate-200 font-sans text-xs md:text-[13px] leading-relaxed select-text whitespace-pre-wrap font-medium">
               "{generalComments}"
             </p>
           </div>
 
-          {/* Actionable Directives Breakdown if available */}
-          {parsedActions.length > 1 && (
+          {/* Actionable Directives Breakdown */}
+          {mandatoryInfractions.length > 0 ? (
             <div className="space-y-2 pt-1">
-              <span className="text-[9px] font-mono uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block">
-                Sequential Remediation Directives ({parsedActions.length}):
-              </span>
-              <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-                {parsedActions.map((action, idx) => (
-                  <div key={idx} className="flex items-start gap-2 bg-white dark:bg-[#0E1117] p-2.5 rounded-lg border border-slate-200 dark:border-[#23262D] text-xs">
-                    <span className="text-emerald-700 dark:text-emerald-400 mt-0.5 shrink-0 font-mono font-black text-[10px] bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20">
-                      ACT-0{idx + 1}
-                    </span>
-                    <p className="text-slate-700 dark:text-slate-300 font-medium leading-normal text-[11px]">
-                      {action}
-                    </p>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[9.5px] font-mono uppercase font-bold text-slate-600 dark:text-slate-400 tracking-wider block">
+                  Mandatory Remediation Directives ({mandatoryInfractions.length}):
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">
+                  {mandatoryInfractions.filter(m => m.severity === 'critical').length} Critical &bull; {mandatoryInfractions.filter(m => m.severity !== 'critical').length} Warning(s)
+                </span>
+              </div>
+              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
+                {mandatoryInfractions.map((m, idx) => (
+                  <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0E1117] p-3 rounded-lg border border-slate-200 dark:border-[#23262D] text-xs shadow-2xs">
+                    <div className="flex items-start gap-2.5">
+                      <span className={`shrink-0 font-mono font-black text-[10px] px-2 py-0.5 rounded border ${
+                        m.severity === 'critical' 
+                          ? 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30'
+                          : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30'
+                      }`}>
+                        ACT-0{idx + 1}
+                      </span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-slate-900 dark:text-white font-mono text-[11px]">{m.category}</span>
+                          <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
+                            m.severity === 'critical' ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'
+                          }`}>
+                            {m.severity === 'critical' ? 'Critical Gap' : 'Warning'}
+                          </span>
+                          <span className="text-[9.5px] font-mono text-slate-500">Current: {m.scoreDisplay}</span>
+                        </div>
+                        <p className="text-slate-700 dark:text-slate-300 font-sans text-[11.5px] leading-normal font-medium">
+                          {m.remediationAction || m.failureReason}
+                        </p>
+                      </div>
+                    </div>
+                    {onSelectMetric && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectMetric(m.key);
+                          setCategoryView('metrics');
+                          triggerPopup(`Navigated to metric: ${m.label}`, 'info');
+                        }}
+                        className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 dark:bg-[#1C202B] dark:hover:bg-blue-900/30 dark:text-slate-300 dark:hover:text-blue-300 dark:border-[#2E3342] transition-colors shrink-0 self-end sm:self-center cursor-pointer shadow-2xs"
+                        title={`Jump to ${m.label} in Metric-by-Metric view`}
+                      >
+                        <span>Inspect Metric</span>
+                        <Target className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                      </button>
+                    )}
                   </div>
                 ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 rounded-xl p-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-bold text-emerald-900 dark:text-emerald-200 uppercase font-mono">
+                  All Mandatory ITIL Documentation Standards Met
+                </h4>
+                <p className="text-[11.5px] text-slate-700 dark:text-slate-300">
+                  Zero mandatory quality deviations detected for incident {report.ticket.incNumber}. All in-scope criteria conform to ServiceNow audit guidelines and are ready for governance sign-off.
+                </p>
               </div>
             </div>
           )}
