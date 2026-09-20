@@ -1,0 +1,32 @@
+services:
+  ticket-audit-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ticket-audit-agent
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SERVICENOW_INSTANCE=${SERVICENOW_INSTANCE:-dev423209}
+      - SERVICENOW_USERNAME=${SERVICENOW_USERNAME:-admin}
+      - SERVICENOW_PASSWORD=${SERVICENOW_PASSWORD}
+      - OUTLOOK_CLIENT_ID=${OUTLOOK_CLIENT_ID}
+      - OUTLOOK_CLIENT_SECRET=${OUTLOOK_CLIENT_SECRET}
+      - OUTLOOK_TENANT_ID=${OUTLOOK_TENANT_ID}
+      - TEAMS_WEBHOOK_URL=${TEAMS_WEBHOOK_URL}
+    volumes:
+      - data-volume:/app/node_modules/.cache/servicenow
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/servicenow/credentials"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  data-volume:
+    name: ticket_audit_data

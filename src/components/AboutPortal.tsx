@@ -120,9 +120,9 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
       customerName: "",
       customerDesignation: "Director of Service Desk & Infrastructure",
       problemStatement: "ServiceNow incident audits are performed manually and retrospectively. This leads to substantial data oversight, unchecked state transitions (e.g. bypassing 'Solve Propose' audit validation stages), missing corporate Knowledge Articles (KAs), inaccurate causal CIs, and incomplete description documentation.",
-      solutionProposal: "An automated real-time incident compliance portal utilizing fuzzy string mapping algorithms, deterministic local auditing gates across 13 core metrics, visual trends tracking, direct manager operational portfolios, and generative AI via Gemini 3.5 Flash for peer coaching synthesis.",
+      solutionProposal: "An automated real-time incident compliance portal utilizing fuzzy string mapping algorithms, deterministic local auditing gates across 13 core metrics, visual trends tracking, direct manager operational portfolios, and generative AI via Gemini 3.8 Flash for peer coaching synthesis.",
       potentialImpact: "Guarantees 100% resolution documentation audits. Eliminates external cloud data leaks by processing files entirely in the local sandbox browser environment. Delivers immediate, customized performance coaching actions for team managers, while reducing service ticket state bypasses by over 45%.",
-      techStack: "React 18, Vite, Tailwind CSS, Recharts, Lucide, Gemini 3.5 Flash SDK",
+      techStack: "React 18, Vite, Tailwind CSS, Recharts, Lucide, Gemini 3.8 Flash SDK",
       squadLocation: "",
       teamNameBottom: ""
     };
@@ -149,9 +149,9 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
       customerName: "",
       customerDesignation: "Director of Service Desk & Infrastructure",
       problemStatement: "ServiceNow incident audits are performed manually and retrospectively. This leads to substantial data oversight, unchecked state transitions (e.g. bypassing 'Solve Propose' audit validation stages), missing corporate Knowledge Articles (KAs), inaccurate causal CIs, and incomplete description documentation.",
-      solutionProposal: "An automated real-time incident compliance portal utilizing fuzzy string mapping algorithms, deterministic local auditing gates across 13 core metrics, visual trends tracking, direct manager operational portfolios, and generative AI via Gemini 3.5 Flash for peer coaching synthesis.",
+      solutionProposal: "An automated real-time incident compliance portal utilizing fuzzy string mapping algorithms, deterministic local auditing gates across 13 core metrics, visual trends tracking, direct manager operational portfolios, and generative AI via Gemini 3.8 Flash for peer coaching synthesis.",
       potentialImpact: "Guarantees 100% resolution documentation audits. Eliminates external cloud data leaks by processing files entirely in the local sandbox browser environment. Delivers immediate, customized performance coaching actions for team managers, while reducing service ticket state bypasses by over 45%.",
-      techStack: "React 18, Vite, Tailwind CSS, Recharts, Lucide, Gemini 3.5 Flash SDK",
+      techStack: "React 18, Vite, Tailwind CSS, Recharts, Lucide, Gemini 3.8 Flash SDK",
       squadLocation: "",
       teamNameBottom: ""
     };
@@ -849,7 +849,7 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
                   </div>
 
                   <div className="p-2.5 bg-[#15131C] border border-purple-500/10 rounded-lg text-[11px]">
-                    <span className="font-bold text-purple-300 block mb-0.5">🤖 Gemini 3.5 LLM Connector</span>
+                    <span className="font-bold text-purple-300 block mb-0.5">🤖 Gemini 3.8 LLM Connector</span>
                     <span className="text-gray-400 leading-normal text-[10px] block font-sans">
                       Hosts background express routers <code className="text-[9.5px] text-purple-400">/api/teams-format-bot</code> and <code className="text-[9.5px] text-purple-400">/api/chat-bot</code> to inject contextual incident parameters into Gemini client loaders.
                     </span>
@@ -1017,7 +1017,7 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
                         Assembles violated audit metrics under Gemini prompts. Compiles formatted Slack mentoring scripts or team summaries for direct queue leadership remediation.
                       </p>
                     </div>
-                    <div className="pt-2 text-[9px] font-mono text-emerald-400 uppercase tracking-widest text-right">🧠 Gemini 3.5 API</div>
+                    <div className="pt-2 text-[9px] font-mono text-emerald-400 uppercase tracking-widest text-right">🧠 Gemini 3.8 API</div>
                   </div>
                 </div>
               </div>
@@ -1055,14 +1055,14 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
                   </p>
                 </div>
 
-                {/* Tech Item 3: Gemini 3.5 Generative Flash SDK */}
+                {/* Tech Item 3: Gemini 3.8 Generative Flash SDK */}
                 <div className="p-3 bg-[#15171C] border border-[#2A2D35]/60 rounded-lg space-y-1">
                   <div className="flex justify-between items-center text-xs">
                     <strong className="text-white">@google/genai TypeScript SDK</strong>
                     <span className="text-[9px] font-mono text-indigo-400 bg-indigo-500/10 px-1 rounded">Intelligence Layer</span>
                   </div>
                   <p className="text-[11px] text-gray-400 font-sans leading-normal">
-                    Integrates Gemini 3.5 Flash server-side. Leverages the SDK specifically for compiling structured JSON prompt guidelines, synthesizing summaries, and powering the live interactive companion.
+                    Integrates Gemini 3.8 Flash server-side. Leverages the SDK specifically for compiling structured JSON prompt guidelines, synthesizing summaries, and powering the live interactive companion.
                   </p>
                 </div>
 
@@ -1253,7 +1253,7 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
             <div className="bg-[#0A0C0F] rounded-lg border border-[#2A2D35]/60 p-4 space-y-3 font-mono text-xs">
               <div className="flex justify-between items-center pb-2 border-b border-[#2A2D35]/40">
                 <span className="text-gray-500">Configured Model</span>
-                <span className="text-indigo-300 font-bold">Gemini 3.5 Flash</span>
+                <span className="text-indigo-300 font-bold">Gemini 3.8 Flash</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-[#2A2D35]/40">
                 <span className="text-gray-500">SDK Environment</span>

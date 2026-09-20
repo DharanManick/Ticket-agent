@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { TicketAuditReport } from '../types';
+import { TicketAuditReport, isSolveProposeTicket } from '../types';
 import { 
   User, 
   Search, 
@@ -560,6 +560,18 @@ function ActiveMetricAuditCard({
           <span className={`text-[9px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded border ${badgeColor}`}>
             Score: {scoreVal}/2 — {rating}
           </span>
+          {(() => {
+            const isExempt = typeof activeMetricComment === 'string' && activeMetricComment.toLowerCase().startsWith('exempt');
+            return isExempt ? (
+              <span className="text-[9px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded border bg-indigo-500/20 text-indigo-300 border-indigo-500/40 flex items-center gap-1">
+                <span>OPTIONAL (EXEMPT FOR GROUP)</span>
+              </span>
+            ) : (
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-slate-800/80 text-slate-300 border-slate-700">
+                MANDATORY
+              </span>
+            );
+          })()}
         </div>
       </div>
 
@@ -821,8 +833,9 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   const isBypassed = logs.includes('progress') && logs.includes('confirm') && !logs.includes('propose');
 
   // 1. Activity Logs & State Sequence
-  const actScore = scores.activityLogs?.score ?? (isBypassed ? 0 : 2);
-  if (isBypassed || actScore < 2) {
+  const isActExempt = typeof scores.activityLogs?.comment === 'string' && scores.activityLogs.comment.toLowerCase().startsWith('exempt');
+  const actScore = isActExempt ? 2 : (scores.activityLogs?.score ?? (isBypassed ? 0 : 2));
+  if (!isActExempt && (isBypassed || actScore < 2)) {
     mistakes.push({
       key: 'activityLogs',
       category: 'Activity Logs & State Transitions',
@@ -1159,20 +1172,21 @@ export function AuditorGeneralCommentsAndMistakesCard({
 
     return metricsConfig.map(cfg => {
       const scoreDetail = scores[cfg.key];
-      let score = scoreDetail?.score ?? 0;
-      if (cfg.key === 'activityLogs' && isBypassed) {
+      const isExempt = typeof scoreDetail?.comment === 'string' && scoreDetail.comment.toLowerCase().startsWith('exempt');
+      let score = isExempt ? 2 : (scoreDetail?.score ?? 0);
+      if (cfg.key === 'activityLogs' && isBypassed && !isExempt) {
         score = 0;
       }
       const mistake = mistakesMap.get(cfg.key);
-      const isInfraction = score < 2 || !!mistake;
-      const rating: 'Pass' | 'Partial' | 'Fail' = score === 2 ? 'Pass' : score === 1 ? 'Partial' : 'Fail';
+      const isInfraction = !isExempt && (score < 2 || !!mistake);
+      const rating: 'Pass' | 'Partial' | 'Fail' = isExempt ? 'Pass' : (score === 2 ? 'Pass' : score === 1 ? 'Partial' : 'Fail');
 
       // Clean metric-specific comment
       let metricComment = scoreDetail?.comment;
       if (!metricComment || metricComment === 'Pass: Standard requirements met.' || metricComment === 'Checked: Standard requirements verified. Missing: None.') {
         metricComment = `Checked: Standard ITIL documentation quality criteria verified for ${cfg.label}. Conforms to ServiceNow audit standards.`;
       }
-      if (isBypassed && cfg.key === 'activityLogs') {
+      if (isBypassed && cfg.key === 'activityLogs' && !isExempt) {
         metricComment = 'Critical Governance Bypass: State jumped from In-Progress directly to Solve-Confirm, skipping mandatory "Solve Propose" transitional quality review.';
       } else if (mistake && mistake.failureReason && !metricComment) {
         metricComment = mistake.failureReason;
@@ -1189,6 +1203,7 @@ export function AuditorGeneralCommentsAndMistakesCard({
         rating,
         comment: metricComment,
         isInfraction,
+        isExempt,
         mistake,
         failureReason: mistake?.failureReason,
         remediationAction: mistake?.remediationAction,
@@ -1605,6 +1620,12 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                         }`}>
                           {metric.scoreDisplay} {metric.rating.toUpperCase()}
                         </span>
+
+                        {metric.isExempt && (
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 uppercase">
+                            OPTIONAL
+                          </span>
+                        )}
                       </div>
 
                       {/* Right Quick Inspection & Sync Links */}
@@ -1967,6 +1988,58 @@ export default function AuditDetails({
   };
   const [assignmentGroupFilter, setAssignmentGroupFilter] = useState('All');
   const [complianceFilter, setComplianceFilter] = useState('All');
+  const [onlySolvePropose, setOnlySolvePropose] = useState<boolean>(false);
+  const [isTogglingSolvePropose, setIsTogglingSolvePropose] = useState<boolean>(false);
+
+  // Sync onlySolvePropose status from backend on mount and listen to realtime updates
+  useEffect(() => {
+    fetch('/api/servicenow/credentials')
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.credentials && data.credentials.onlySolvePropose !== undefined) {
+          setOnlySolvePropose(!!data.credentials.onlySolvePropose);
+        }
+      })
+      .catch(() => {});
+
+    const handleRealtimeSync = (e: any) => {
+      if (e?.detail?.onlySolvePropose !== undefined) {
+        setOnlySolvePropose(!!e.detail.onlySolvePropose);
+      }
+    };
+    window.addEventListener('servicenow_realtime_sync', handleRealtimeSync);
+    return () => window.removeEventListener('servicenow_realtime_sync', handleRealtimeSync);
+  }, []);
+
+  const solveProposedReportsCount = useMemo(() => {
+    return reports.filter(r => isSolveProposeTicket(r.ticket)).length;
+  }, [reports]);
+
+  const handleToggleSolvePropose = async () => {
+    setIsTogglingSolvePropose(true);
+    try {
+      const nextVal = !onlySolvePropose;
+      setOnlySolvePropose(nextVal);
+      const res = await fetch('/api/servicenow/toggle-solve-propose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ onlySolvePropose: nextVal })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        triggerPopup(
+          `Workspace Solve Proposed: ${nextVal ? 'ON (15 Solve Proposed)' : 'OFF (Showing all tickets)'}`,
+          'success'
+        );
+        window.dispatchEvent(new CustomEvent('governance_audit_refetch_requested'));
+      }
+    } catch (err: any) {
+      triggerPopup(`Failed to toggle Solve Propose: ${err.message || err}`, 'warning');
+    } finally {
+      setIsTogglingSolvePropose(false);
+    }
+  };
+
   const [activeMetricKey, setActiveMetricKey] = useState<string>('shortDescription');
   const [middleColumnView, setMiddleColumnView] = useState<'metric_inspector' | 'mistakes_and_comments' | 'both'>('metric_inspector');
   const [animatedScoreWidth, setAnimatedScoreWidth] = useState(0);
@@ -2331,6 +2404,12 @@ export default function AuditDetails({
     const q = searchTerm.toLowerCase().trim();
     return reports.filter(r => {
       const ticket = r.ticket;
+
+      // Workspace Checklist Solve Proposed Filter
+      if (onlySolvePropose && !isSolveProposeTicket(ticket)) {
+        return false;
+      }
+
       const matchSearch = !q ||
         String(ticket.incNumber || '').toLowerCase().includes(q) ||
         String(ticket.assignee || '').toLowerCase().includes(q) ||
@@ -2346,7 +2425,7 @@ export default function AuditDetails({
 
       return matchSearch && matchGroup && matchCompliance;
     });
-  }, [reports, searchTerm, assignmentGroupFilter, complianceFilter]);
+  }, [reports, searchTerm, assignmentGroupFilter, complianceFilter, onlySolvePropose]);
 
   // Sort logic applied
   const sortedReports = useMemo(() => {
@@ -2660,7 +2739,32 @@ export default function AuditDetails({
               </div>
             </div>
             
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
+              {/* Workspace Checklist Solve Proposed Toggle Button */}
+              <button
+                type="button"
+                id="workspace-solve-propose-toggle-btn"
+                onClick={handleToggleSolvePropose}
+                disabled={isTogglingSolvePropose}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
+                  onlySolvePropose 
+                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25 shadow-sm shadow-emerald-900/20' 
+                    : 'bg-[#0A0C0F] text-slate-400 border-[#2A2D35] hover:text-slate-200 hover:border-gray-600'
+                }`}
+                title={onlySolvePropose ? "Click to view all live tickets" : "Click to filter strictly to Solve Proposed tickets"}
+              >
+                <span className={`w-2 h-2 rounded-full ${onlySolvePropose ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
+                <span>Solve Proposed:</span>
+                <span className={`font-mono font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                  onlySolvePropose ? 'bg-emerald-500/25 text-emerald-300' : 'bg-gray-800 text-gray-400'
+                }`}>
+                  {onlySolvePropose ? 'ON' : 'OFF'}
+                </span>
+                <span className="text-[11px] opacity-75 font-mono">
+                  ({onlySolvePropose ? solveProposedReportsCount : reports.length})
+                </span>
+              </button>
+
               <div className="flex items-center space-x-1">
                 <Filter className="h-3.5 w-3.5 text-gray-500" />
                 <select
@@ -2871,14 +2975,26 @@ export default function AuditDetails({
                           : 'hover:bg-[#1A1D25] text-slate-400'
                       }`}
                     >
-                      <div className="flex justify-between items-center text-[10.5px] font-medium leading-normal">
-                        <span className="font-mono tracking-tight">{m.label}</span>
-                        <span className={`font-mono text-[9.5px] font-bold ${
-                          isPass ? 'text-emerald-400' : isFail ? 'text-rose-400' : 'text-amber-400'
-                        }`}>
-                          {displayScore}
-                        </span>
-                      </div>
+                      {(() => {
+                        const isExempt = typeof resultDetail.comment === 'string' && resultDetail.comment.toLowerCase().startsWith('exempt');
+                        return (
+                          <div className="flex justify-between items-center text-[10.5px] font-medium leading-normal">
+                            <span className="font-mono tracking-tight flex items-center gap-1.5 flex-wrap">
+                              <span>{m.label}</span>
+                              {isExempt && (
+                                <span className="text-[7.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 uppercase">
+                                  OPTIONAL
+                                </span>
+                              )}
+                            </span>
+                            <span className={`font-mono text-[9.5px] font-bold ${
+                              isPass ? 'text-emerald-400' : isFail ? 'text-rose-400' : 'text-amber-400'
+                            }`}>
+                              {displayScore}
+                            </span>
+                          </div>
+                        );
+                      })()}
                       
                       {/* Compact compliance score bar with built-in smooth CSS transitions */}
                       <div className="mt-1.5 w-full bg-[#0A0C10] rounded-full h-1 overflow-hidden relative border border-[#2D313E]/35">

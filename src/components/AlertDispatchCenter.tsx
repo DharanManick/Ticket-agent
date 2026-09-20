@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Bell, 
@@ -19,6 +19,7 @@ import {
   Database
 } from 'lucide-react';
 import { TicketAuditReport } from '../types';
+import ManagementEmailDigestConfig from './ManagementEmailDigestConfig';
 
 interface AlertDispatchCenterProps {
   reports: TicketAuditReport[];
@@ -26,6 +27,9 @@ interface AlertDispatchCenterProps {
 }
 
 export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDispatchCenterProps) {
+  // Navigation Sub-tab
+  const [activeTab, setActiveTab] = useState<'realtime_alerts' | 'email_digest'>('realtime_alerts');
+
   // Configuration Profile State
   const [webhookUrl, setWebhookUrl] = useState('https://enterprise.webhook.office.com/v1/teams/remediation-alerts-channel...');
   const [managerWebhookUrl, setManagerWebhookUrl] = useState('https://enterprise.webhook.office.com/v1/teams/manager-escalations-channel...');
@@ -43,6 +47,26 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
   // Operational states
   const [isSaving, setIsSaving] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isSendingDigest, setIsSendingDigest] = useState(false);
+  const [selectedDigestGroup, setSelectedDigestGroup] = useState('ALL');
+  const [digestManagerEmail, setDigestManagerEmail] = useState('manager@global-mnc-it.com');
+  const [lastDigestResult, setLastDigestResult] = useState<{
+    success: boolean;
+    assignmentGroup: string;
+    totalAudited: number;
+    totalFlagged: number;
+    timestamp: string;
+  } | null>(null);
+
+  const availableGroups = useMemo(() => {
+    const s = new Set<string>();
+    reports.forEach(r => {
+      const g = r.ticket?.assignmentGroup;
+      if (g && g.trim()) s.add(g.trim());
+    });
+    return Array.from(s).sort();
+  }, [reports]);
+
   const [lastTestResult, setLastTestResult] = useState<{
     success: boolean;
     timestamp: string;
@@ -180,6 +204,43 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
     triggerPopup('Outlook Graph API connection preset loaded!', 'info');
   };
 
+  const handleDispatchGroupDigest = async () => {
+    if (!reports || reports.length === 0) {
+      triggerPopup('No ticket audit reports available to build consolidated digest.', 'warning');
+      return;
+    }
+    setIsSendingDigest(true);
+    try {
+      const res = await fetch('/api/alerts/dispatch-group-digest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assignmentGroup: selectedDigestGroup,
+          reports,
+          targetManagerEmail: digestManagerEmail,
+          cutoffThreshold: lowScoreThreshold
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLastDigestResult({
+          success: true,
+          assignmentGroup: data.assignmentGroup,
+          totalAudited: data.totalAuditedInGroup,
+          totalFlagged: data.totalFlagged,
+          timestamp: new Date().toLocaleTimeString()
+        });
+        triggerPopup(`Consolidated manager digest dispatched for ${data.assignmentGroup}! (${data.totalFlagged} non-compliant tickets)`, 'success');
+      } else {
+        triggerPopup(data.error || 'Failed to dispatch group digest.', 'warning');
+      }
+    } catch (err: any) {
+      triggerPopup(`Failed to dispatch group digest: ${err.message}`, 'warning');
+    } finally {
+      setIsSendingDigest(false);
+    }
+  };
+
   const toggleFilter = (tier: string) => {
     setSelectedFilters(prev => 
       prev.includes(tier) ? prev.filter(t => t !== tier) : [...prev, tier]
@@ -218,8 +279,39 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
         </button>
       </div>
 
-      {/* TWO PART CONFIGURATION CONTAINER */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* SUB-TAB NAVIGATION BAR */}
+      <div className="flex items-center space-x-2 border-b border-[#232836] pb-3 font-mono text-xs">
+        <button
+          type="button"
+          onClick={() => setActiveTab('realtime_alerts')}
+          className={`px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === 'realtime_alerts'
+              ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/40 shadow-sm'
+              : 'text-gray-400 hover:text-white hover:bg-gray-800/40 border border-transparent'
+          }`}
+        >
+          <Bell className="h-3.5 w-3.5" />
+          <span>Real-Time Alert Triggers (Teams & Outlook)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('email_digest')}
+          className={`px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === 'email_digest'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+              : 'text-gray-400 hover:text-white hover:bg-gray-800/40 border border-transparent'
+          }`}
+        >
+          <Mail className="h-3.5 w-3.5" />
+          <span>Email Digest Automation</span>
+        </button>
+      </div>
+
+      {activeTab === 'realtime_alerts' && (
+        <>
+          {/* TWO PART CONFIGURATION CONTAINER */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* PART 1: MICROSOFT TEAMS (Power Automate) */}
         <div className="bg-[#0A0C0F] border border-[#1E2433] rounded-lg p-5 space-y-4 flex flex-col justify-between hover:border-[#1E2433]/80 transition-all">
@@ -566,6 +658,103 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
         </div>
 
       </div>
+
+      {/* CONSOLIDATED MANAGER EMAIL DIGEST BY ASSIGNMENT GROUP */}
+      <div className="bg-[#0A0C0F] border border-[#1E2433] rounded-lg p-5 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800/60 pb-3">
+          <div>
+            <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2">
+              <Mail className="h-4 w-4 text-emerald-400" /> Manager Consolidated Digest by Assignment Group
+            </h3>
+            <p className="text-xs text-gray-400 mt-1">
+              Groups all non-compliant incidents (&lt; {lowScoreThreshold}%) for a specific ServiceNow Assignment Group into a single, high-fidelity executive review email for the team manager.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-gray-400">Total Monitored Queues:</span>
+            <span className="text-xs font-mono font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+              {availableGroups.length} Live Groups
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          <div>
+            <label className="block text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Target Assignment Group
+            </label>
+            <select
+              value={selectedDigestGroup}
+              onChange={(e) => setSelectedDigestGroup(e.target.value)}
+              className="w-full bg-[#121620] border border-[#222836] focus:border-emerald-500/50 rounded p-2 text-xs font-mono text-gray-200 focus:outline-none"
+            >
+              <option value="ALL">All Monitored Assignment Groups</option>
+              {availableGroups.map((grp) => (
+                <option key={grp} value={grp}>{grp}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Manager Recipient Email
+            </label>
+            <input
+              type="email"
+              value={digestManagerEmail}
+              onChange={(e) => setDigestManagerEmail(e.target.value)}
+              placeholder="manager@global-mnc-it.com"
+              className="w-full bg-[#121620] border border-[#222836] focus:border-emerald-500/50 rounded p-2 text-xs font-mono text-gray-200 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex items-end">
+            <button
+              onClick={handleDispatchGroupDigest}
+              disabled={isSendingDigest || reports.length === 0}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold font-mono transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+            >
+              {isSendingDigest ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  Compiling & Dispatching Digest...
+                </>
+              ) : (
+                <>
+                  <Send className="h-3.5 w-3.5" />
+                  Dispatch Consolidated Group Email
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {lastDigestResult && (
+          <div className="bg-[#121620] border border-emerald-500/30 rounded p-3 text-xs font-mono flex flex-wrap items-center justify-between gap-2 mt-2">
+            <div className="flex items-center gap-2 text-emerald-400">
+              <Check className="h-4 w-4" />
+              <span>Consolidated Digest Delivered for <strong>{lastDigestResult.assignmentGroup}</strong></span>
+            </div>
+            <div className="flex items-center gap-4 text-gray-400 text-[11px]">
+              <span>Audited: <strong className="text-white">{lastDigestResult.totalAudited}</strong></span>
+              <span>Flagged (&lt;{lowScoreThreshold}%): <strong className="text-rose-400">{lastDigestResult.totalFlagged}</strong></span>
+              <span>Time: <strong className="text-white">{lastDigestResult.timestamp}</strong></span>
+            </div>
+          </div>
+        )}
+      </div>
+        </>
+      )}
+
+      {/* LEADERSHIP EMAIL DIGEST AUTOMATION SUB-TAB */}
+      {activeTab === 'email_digest' && (
+        <div className="space-y-6 animate-fadeIn">
+          <ManagementEmailDigestConfig
+            triggerPopup={triggerPopup}
+            availableAssignmentGroups={availableGroups}
+          />
+        </div>
+      )}
 
     </div>
   );

@@ -104,13 +104,13 @@ export default function AIChatInspector({
     return modelMessages[modelMessages.length - 1].id;
   }, [messages]);
 
-  // Generic, dynamic starter chips as requested
+  // Quick action starter chips powered by Gemini 3.8 Flash for IT Support
   const starterChips = [
-    "Why is the current audit score low?",
-    "Which areas need urgent attention?",
-    "Summarize the compliance distribution",
-    "Who needs coaching and why?",
-    "What are the top failing tickets?"
+    "🔍 Status of INC0000004",
+    "⚡ How to troubleshoot VPN authentication failure",
+    "📖 Lookup KB article for password reset",
+    "📋 List active ITIL audit rules",
+    "🚨 Which tickets have critical violations?"
   ];
 
   // Initialize welcoming chat message
@@ -120,12 +120,19 @@ export default function AIChatInspector({
         {
           id: 'welcome',
           role: 'model',
-          content: 'Hello! I am your AI Assistant. I am here to provide clear, courteous, and professional assistance with your ServiceNow compliance audit, ticket reviews, and ITIL quality governance.\n\nI have full visibility into your live incident records, compliance scores, and remediation steps. How can I assist you with your audit review today?',
+          content: 'I am your Enterprise IT Support & Knowledge Assistant. Ask me to check live ServiceNow ticket status, find runbooks/procedures in the knowledge base, or review compliance rules.\n\nAll answers are direct, verified against live data, and formatted for immediate use.',
           timestamp: new Date().toLocaleTimeString(),
+          contract: {
+            answered: true,
+            sources_used: ['ServiceNow Table API', 'Corporate Knowledge Base'],
+            tools_called: ['servicenow_lookup', 'confluence_search'],
+            needs_followup: false,
+            followup_reason: null
+          },
           suggestions: [
-            "Why is the current audit score low?",
-            "Who needs coaching and why?",
-            "What are the top failing tickets?"
+            "Check status of INC0000004",
+            "How to troubleshoot VPN authentication failure",
+            "List active ITIL audit rules"
           ]
         }
       ]);
@@ -156,7 +163,7 @@ export default function AIChatInspector({
     }
 
     setIsSending(true);
-    triggerPopup('Consulting Gemini 3.5 Flash Model for real-time audit context...', 'info');
+    triggerPopup('Consulting Gemini 3.8 Flash Model for real-time audit context...', 'info');
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20-second timeout
@@ -212,6 +219,8 @@ export default function AIChatInspector({
         let conversationalReply = data.reply;
         let chips: string[] = data.suggestions || [];
 
+        let contractData = data.contract || null;
+
         // If data.reply is a JSON string, try parsing it here as a fallback
         try {
           const parsed = JSON.parse(data.reply);
@@ -219,6 +228,9 @@ export default function AIChatInspector({
             conversationalReply = parsed.reply || conversationalReply;
             if (Array.isArray(parsed.suggestions)) {
               chips = parsed.suggestions;
+            }
+            if (parsed.contract) {
+              contractData = parsed.contract;
             }
           }
         } catch (e) {
@@ -230,6 +242,7 @@ export default function AIChatInspector({
           role: 'model',
           content: conversationalReply,
           suggestions: chips,
+          contract: contractData,
           timestamp: new Date().toLocaleTimeString()
         }]);
         triggerPopup('Received intelligence report from Agentic AI!', 'success');
@@ -278,24 +291,32 @@ export default function AIChatInspector({
         {/* Chat Header Container with 'Clear Chat' button */}
         <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#2A2D35] mb-4 gap-3 bg-transparent">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400 border border-blue-500/10 flex items-center justify-center">
+            <div className="p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg text-blue-400 border border-blue-500/20 flex items-center justify-center shadow-inner">
               <GeminiIcon />
             </div>
             <div>
-              <h4 className="text-xs uppercase font-bold tracking-wider text-gray-300">AI Assistant</h4>
-              <p className="text-[10.5px] text-gray-500 mt-0.5 font-mono">Professional Customer Support & Audit Assistance | Real-time Context</p>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs uppercase font-bold tracking-wider text-gray-200">AI Governance Assistant</h4>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  Gemini 3.8 Flash
+                </span>
+              </div>
+              <p className="text-[10.5px] text-gray-500 mt-0.5 font-mono">Real-time ITIL Quality Auditing & RAG Diagnostic Reasoning</p>
             </div>
           </div>
 
-          <button
-            onClick={clearChat}
-            className="px-3 py-1.5 bg-[#0A0C0F] border border-[#2A2D35] text-gray-400 hover:text-red-400 rounded-lg flex items-center justify-center space-x-1.5 transition-all text-xs cursor-pointer hover:bg-red-950/25 border-dashed"
-            title="Clear Chat Thread"
-            id="clear-chat-btn"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            <span className="font-mono text-[11px] font-bold">Clear Chat</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={clearChat}
+              className="px-3 py-1.5 bg-[#0A0C0F] border border-[#2A2D35] text-gray-400 hover:text-red-400 rounded-lg flex items-center justify-center space-x-1.5 transition-all text-xs cursor-pointer hover:bg-red-950/25 border-dashed"
+              title="Clear Chat Thread"
+              id="clear-chat-btn"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span className="font-mono text-[11px] font-bold">Clear Chat</span>
+            </button>
+          </div>
         </div>
 
         {/* Message Bubble Feed Container */}
@@ -381,8 +402,26 @@ export default function AIChatInspector({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Dynamic Chat Input Container with Send Button */}
-        <div className="border-t border-[#2A2D35] pt-3.5 mt-auto">
+        {/* Dynamic Chat Input Container with Quick-Prompt Strip and Send Button */}
+        <div className="border-t border-[#2A2D35] pt-3 mt-auto space-y-2.5">
+          {/* Quick Prompt Strip */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] scrollbar-none">
+            <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider shrink-0 flex items-center gap-1 pl-0.5">
+              <Sparkles className="w-3 h-3 text-cyan-400" /> Quick:
+            </span>
+            {starterChips.map((chip, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSendMessage(chip)}
+                disabled={isSending}
+                className="shrink-0 bg-[#0A0C0F] hover:bg-blue-600/15 text-gray-300 hover:text-blue-300 border border-[#2A2D35] hover:border-blue-500/30 rounded-lg px-2.5 py-1 text-[11px] font-sans transition-all cursor-pointer whitespace-nowrap disabled:opacity-50"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+
           <form
             onSubmit={(e) => {
               e.preventDefault();

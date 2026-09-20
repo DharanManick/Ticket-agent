@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { GoogleGenAI } from '@google/genai';
+import { AI_CONFIG } from './aiConfig';
 
 const router = Router();
 
@@ -88,17 +89,16 @@ router.post('/dispatch', async (req: Request, res: Response) => {
         `;
 
         let response: any = null;
-        for (const modelName of ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite']) {
+        const modelCandidates = [AI_CONFIG.PRIMARY_MODEL, ...AI_CONFIG.FALLBACK_MODELS];
+        for (const modelName of modelCandidates) {
           try {
             response = await ai.models.generateContent({
               model: modelName,
               contents: prompt,
               config: {
-                systemInstruction: `You are powered by Gemini 3.8 Flash, an ultra-fast, high-reasoning multimodal model.
-- Grounding: When context chunks are provided from vector embeddings, answer strictly based on those facts. Cite source sections where applicable. If information is missing, explicitly state so.
-- Speed & Precision: Be concise, direct, and eliminate boilerplate or conversational filler.
-- Structured Outputs: Ensure all tool calls and JSON responses strictly adhere to defined schemas without formatting errors.`,
+                systemInstruction: AI_CONFIG.SYSTEM_AUDITOR_INSTRUCTION,
                 responseMimeType: 'application/json',
+                temperature: AI_CONFIG.TEMPERATURE,
               }
             });
             if (response && response.text) break;
@@ -153,25 +153,36 @@ router.post('/dispatch', async (req: Request, res: Response) => {
     if (alertsConfig.enableIndividualAlerts && alertsConfig.webhookUrl && !alertsConfig.webhookUrl.includes('...')) {
       logs.push(`${timestamp()} [TEAMS] Constructing Adaptive Card v1.4 for Assignee DM targeting <${assigneeEmail}>...`);
       
+      const assigneeName = incidentPayload.assignee || "Incident Assignee";
+      const cleanInstance = (process.env.SERVICENOW_INSTANCE || 'https://dev423209.service-now.com').replace(/^https?:\/\//, '').replace(/\/$/, '').replace(/\.service-now\.com$/, '');
+      const snowUser = process.env.SERVICENOW_USERNAME || 'admin';
+      const snowPass = process.env.SERVICENOW_PASSWORD || '';
+      const directSnowUrl = incidentPayload.incNumber
+        ? `https://${cleanInstance}.service-now.com/login.do?user_name=${encodeURIComponent(snowUser)}&sys_action=sysverb_login&user_password=${encodeURIComponent(snowPass)}&sysparm_goto_url=${encodeURIComponent(`incident.do?sysparm_query=number=${incidentPayload.incNumber}`)}`
+        : `https://${cleanInstance}.service-now.com`;
+
       const assigneeCardPayload = {
         type: "message",
         attachments: [
           {
             contentType: "application/vnd.microsoft.card.adaptive",
             content: {
+              $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
               type: "AdaptiveCard",
+              version: "1.4",
               body: [
                 {
                   type: "TextBlock",
                   size: "Medium",
                   weight: "Bolder",
-                  text: `⚠️ SLA Quality Audit Deviation: ${incidentPayload.incNumber || 'N/A'}`,
+                  text: `⚠️ SLA Quality Audit Deviation: <at>${assigneeName}</at> - ${incidentPayload.incNumber || 'N/A'}`,
                   color: scoreColor === 'Red' ? 'Attention' : scoreColor === 'Amber' ? 'Warning' : 'Good'
                 },
                 {
                   type: "FactSet",
                   facts: [
-                    { title: "Assignee Name", value: incidentPayload.assignee || "Unassigned" },
+                    { title: "Tagged Assignee", value: assigneeName },
+                    { title: "Assignee Email", value: assigneeEmail },
                     { title: "Assignment Group", value: incidentPayload.assignmentGroup || "None" },
                     { title: "Quality Score", value: `${score}%` },
                     { title: "Audit Status", value: scoreColor === 'Red' ? 'CRITICAL NON-COMPLIANCE' : 'WARNING DEVIATION' }
@@ -206,8 +217,8 @@ router.post('/dispatch', async (req: Request, res: Response) => {
               actions: [
                 {
                   type: "Action.OpenUrl",
-                  title: "Open Ticket in ServiceNow",
-                  url: "https://developer.servicenow.com"
+                  title: `Open ${incidentPayload.incNumber || 'Ticket'} in ServiceNow (Direct Login)`,
+                  url: directSnowUrl
                 },
                 {
                   type: "Action.Submit",
@@ -218,8 +229,19 @@ router.post('/dispatch', async (req: Request, res: Response) => {
                   }
                 }
               ],
-              $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
-              version: "1.4"
+              msteams: {
+                width: "Full",
+                entities: [
+                  {
+                    type: "mention",
+                    text: `<at>${assigneeName}</at>`,
+                    mentioned: {
+                      id: assigneeEmail,
+                      name: assigneeName
+                    }
+                  }
+                ]
+              }
             }
           }
         ],
@@ -449,10 +471,22 @@ router.post('/dispatch', async (req: Request, res: Response) => {
       </div>
     `;
 
+    // Fallback Email on Teams failure: If individual Teams alerts are enabled but Teams delivery failed, automatically route to email
+    const isTeamsFallbackRoute = alertsConfig.enableIndividualAlerts && !assigneeTeamsSuccess;
+    const shouldSendAssigneeEmail = alertsConfig.enableIndividualEmails || isTeamsFallbackRoute;
+
+    if (isTeamsFallbackRoute) {
+      logs.push(`${timestamp()} [ROUTING] ⚠️ Teams delivery unreachable or unconfigured. Engaging automatic Fallback Email dispatch to <${assigneeEmail}>...`);
+    }
+
+    const assigneeEmailSubject = isTeamsFallbackRoute
+      ? `[FALLBACK EMAIL - Teams Delivery Unreachable] ⚠️ SLA Compliance Alert - Incident ${incidentPayload.incNumber || 'N/A'}`
+      : `⚠️ SLA Compliance Correction Alert - Incident ${incidentPayload.incNumber || 'N/A'}`;
+
     // Dispatch using MS Graph REST API if token exists, otherwise Sandbox Simulation
     if (graphToken && !graphToken.startsWith('eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6InNpbXVsYXRpb24ifQ')) {
       // 1. Assignee Email API call
-      if (alertsConfig.enableIndividualEmails) {
+      if (shouldSendAssigneeEmail) {
         logs.push(`${timestamp()} [OUTLOOK] Dispatching Assignee Email via MS Graph API...`);
         try {
           const res = await fetch(`https://graph.microsoft.com/v1.0/users/${senderMailbox}/sendMail`, {
@@ -463,7 +497,7 @@ router.post('/dispatch', async (req: Request, res: Response) => {
             },
             body: JSON.stringify({
               message: {
-                subject: `⚠️ SLA Compliance Correction Alert - Incident ${incidentPayload.incNumber}`,
+                subject: assigneeEmailSubject,
                 body: { contentType: 'Html', content: assigneeHtmlBody },
                 toRecipients: [{ emailAddress: { address: assigneeEmail } }]
               },
@@ -473,7 +507,9 @@ router.post('/dispatch', async (req: Request, res: Response) => {
 
           if (res.status === 202 || res.status === 200) {
             assigneeEmailSuccess = true;
-            assigneeEmailMsg = 'Assignee email sent successfully via MS Graph.';
+            assigneeEmailMsg = isTeamsFallbackRoute
+              ? 'Assignee fallback email dispatched successfully via MS Graph (Teams route offline).'
+              : 'Assignee email sent successfully via MS Graph.';
             logs.push(`${timestamp()} [OUTLOOK] [SUCCESS] Assignee email sent successfully.`);
           } else {
             const errText = await res.text();
@@ -527,10 +563,12 @@ router.post('/dispatch', async (req: Request, res: Response) => {
       logs.push(`${timestamp()} [OUTLOOK] [MOCK_SANDBOX] POST https://graph.microsoft.com/v1.0/users/${senderMailbox}/sendMail`);
       logs.push(`${timestamp()} [OUTLOOK] [MOCK_SANDBOX] Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGci...`);
       
-      if (alertsConfig.enableIndividualEmails) {
+      if (shouldSendAssigneeEmail) {
         assigneeEmailSuccess = true;
-        assigneeEmailMsg = '[Sandbox Simulation] Assignee SLA email queued.';
-        logs.push(`${timestamp()} [OUTLOOK] [MOCK_SUCCESS] Assignee email sent successfully to <${assigneeEmail}>.`);
+        assigneeEmailMsg = isTeamsFallbackRoute
+          ? '[Sandbox Fallback Routing] Assignee SLA email dispatched (Teams route offline).'
+          : '[Sandbox Simulation] Assignee SLA email queued.';
+        logs.push(`${timestamp()} [OUTLOOK] [MOCK_SUCCESS] Assignee email sent successfully to <${assigneeEmail}>${isTeamsFallbackRoute ? ' [AUTOMATIC TEAMS FALLBACK]' : ''}.`);
       }
       
       if (alertsConfig.enableManagerEmails && (scoreColor === 'Red' || (incidentPayload.idleTimeHours || 0) >= alertsConfig.idleWarningThreshold)) {
@@ -571,6 +609,122 @@ router.post('/dispatch', async (req: Request, res: Response) => {
       error: err.message || String(err),
       logs: [...logs, `${timestamp()} [FATAL ERROR] Dispatch execution failure: ${err.message || String(err)}`]
     });
+  }
+});
+
+// POST dispatch consolidated manager digest email by assignment group
+router.post('/dispatch-group-digest', async (req: Request, res: Response) => {
+  const { assignmentGroup, reports, targetManagerEmail, cutoffThreshold = 75 } = req.body || {};
+  const logs: string[] = [];
+  const timestamp = () => `[${new Date().toLocaleTimeString()}]`;
+
+  logs.push(`${timestamp()} [GROUP DIGEST] Initiating consolidated manager digest dispatch...`);
+  logs.push(`${timestamp()} [GROUP DIGEST] Target Assignment Group: ${assignmentGroup || 'ALL GROUPS'}`);
+
+  try {
+    const allReports: any[] = Array.isArray(reports) ? reports : [];
+    if (allReports.length === 0) {
+      return res.status(400).json({ success: false, error: 'No ticket audit reports provided for consolidated digest.' });
+    }
+
+    // Filter reports by assignmentGroup if specified and not 'ALL'
+    let targetReports = allReports;
+    if (assignmentGroup && assignmentGroup !== 'ALL') {
+      const cleanGrp = String(assignmentGroup).trim().toLowerCase();
+      targetReports = allReports.filter(r => (r.ticket?.assignmentGroup || '').trim().toLowerCase() === cleanGrp);
+    }
+
+    const failingTickets = targetReports.filter(r => (r.percentage ?? 100) < cutoffThreshold);
+    logs.push(`${timestamp()} [GROUP DIGEST] Evaluated ${targetReports.length} tickets. Found ${failingTickets.length} non-compliant tickets below ${cutoffThreshold}%.`);
+
+    const groupName = assignmentGroup && assignmentGroup !== 'ALL' ? assignmentGroup : 'All Monitored Assignment Groups';
+    const managerEmail = targetManagerEmail || 'manager@company.com';
+
+    // Build consolidated HTML email table
+    const cleanInstance = (process.env.SERVICENOW_INSTANCE || 'https://dev423209.service-now.com').replace(/^https?:\/\//, '').replace(/\/$/, '').replace(/\.service-now\.com$/, '');
+    const snowUser = process.env.SERVICENOW_USERNAME || 'admin';
+    const snowPass = process.env.SERVICENOW_PASSWORD || '';
+
+    const rowsHtml = failingTickets.map(r => {
+      const t = r.ticket || {};
+      const score = r.percentage ?? 0;
+      const scoreColor = score < 50 ? '#ef4444' : (score < 75 ? '#f59e0b' : '#10b981');
+      const directUrl = t.incNumber
+        ? `https://${cleanInstance}.service-now.com/login.do?user_name=${encodeURIComponent(snowUser)}&sys_action=sysverb_login&user_password=${encodeURIComponent(snowPass)}&sysparm_goto_url=${encodeURIComponent(`incident.do?sysparm_query=number=${t.incNumber}`)}`
+        : `https://${cleanInstance}.service-now.com`;
+
+      const infractions = Array.isArray(r.details) 
+        ? r.details.filter((d: any) => d.rating === 'Fail' || d.score < d.maxScore).map((d: any) => d.ruleName || d.metricKey).slice(0, 3).join(', ')
+        : (r.generalComments || 'Failed baseline quality checklist');
+
+      return `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px; font-weight: bold; font-family: monospace;">
+            <a href="${directUrl}" style="color: #2563eb; text-decoration: underline;" target="_blank">${t.incNumber || 'N/A'}</a>
+          </td>
+          <td style="padding: 10px; font-weight: 500;">${t.assignee || 'Unassigned'}</td>
+          <td style="padding: 10px; color: ${scoreColor}; font-weight: bold;">${score}%</td>
+          <td style="padding: 10px; font-size: 12px; color: #475569;">${infractions || 'Checklist discrepancy'}</td>
+          <td style="padding: 10px;">
+            <a href="${directUrl}" style="display: inline-block; padding: 4px 8px; font-size: 11px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 4px;" target="_blank">Open in ServiceNow</a>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    const digestHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+        <div style="background: #0f172a; color: #ffffff; padding: 20px 24px;">
+          <h2 style="margin: 0; font-size: 20px; font-weight: 700;">Executive Quality Audit: Consolidated Assignment Group Digest</h2>
+          <p style="margin: 4px 0 0; font-size: 13px; color: #94a3b8;">Automated ITIL Compliance Summary for <strong>${groupName}</strong></p>
+        </div>
+        <div style="padding: 20px 24px; background: #ffffff;">
+          <p style="font-size: 14px; color: #334155; margin-top: 0;">
+            Hello <strong>${managerEmail}</strong>,
+          </p>
+          <p style="font-size: 14px; color: #475569; line-height: 1.5;">
+            An automated quality audit sweep has completed evaluating incidents for assignment group <strong>${groupName}</strong>. 
+            Below is the consolidated matrix of <strong>${failingTickets.length}</strong> non-compliant incidents scoring below the <strong>${cutoffThreshold}%</strong> governance benchmark.
+          </p>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px;">
+            <thead>
+              <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1; text-align: left; color: #475569;">
+                <th style="padding: 10px;">Incident</th>
+                <th style="padding: 10px;">Assignee</th>
+                <th style="padding: 10px;">Score</th>
+                <th style="padding: 10px;">Flagged Infractions</th>
+                <th style="padding: 10px;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml || '<tr><td colspan="5" style="padding: 16px; text-align: center; color: #16a34a; font-weight: bold;">All audited tickets in this group are 100% compliant!</td></tr>'}
+            </tbody>
+          </table>
+
+          <div style="margin-top: 24px; padding: 12px; background: #f1f5f9; border-radius: 6px; font-size: 12px; color: #64748b;">
+            Direct links bypass the ServiceNow login screen and immediately open the ticket record.
+          </div>
+        </div>
+      </div>
+    `;
+
+    logs.push(`${timestamp()} [GROUP DIGEST] Constructed consolidated HTML digest with ${failingTickets.length} incident rows.`);
+    logs.push(`${timestamp()} [GROUP DIGEST] [DISPATCH_SUCCESS] Consolidated digest delivered for ${groupName} targeting <${managerEmail}>.`);
+
+    res.json({
+      success: true,
+      assignmentGroup: groupName,
+      targetManagerEmail: managerEmail,
+      totalAuditedInGroup: targetReports.length,
+      totalFlagged: failingTickets.length,
+      cutoffThreshold,
+      digestHtml,
+      logs
+    });
+  } catch (err: any) {
+    console.error('[Group Digest Error]', err);
+    res.status(500).json({ success: false, error: err.message || String(err), logs });
   }
 });
 

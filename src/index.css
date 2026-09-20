@@ -5,54 +5,54 @@
 
 @layer base {
   :root {
-    /* =========================================================
-       ENTERPRISE LINEAR / VERCEL DUAL-THEME TOKENS (LIGHT MODE)
-       ========================================================= */
-    --background: 0 0% 98%;              /* #FAFAFA Clean Off-White Canvas */
-    --foreground: 240 10% 3.9%;          /* #09090B Deep Slate Text */
-    --card: 0 0% 100%;                   /* #FFFFFF Pure White Elevated Surface */
-    --card-foreground: 240 10% 3.9%;
+    /* =========================================================================
+       CONCEPT A: "CYBER OBSIDIAN & ELECTRIC AZURE" — LIGHT THEME TOKENS
+       ========================================================================= */
+    --background: 210 40% 98%;              /* #F8FAFC Pristine Cool Paper Canvas */
+    --foreground: 222 47% 11%;              /* #0F172A Deep Obsidian Slate */
+    --card: 0 0% 100%;                      /* #FFFFFF Pure White Elevated Surface */
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;             /* #18181B */
-    --primary-foreground: 0 0% 98%;      /* #FAFAFA */
-    --secondary: 240 4.8% 95.9%;         /* #F4F4F5 */
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;             /* #F4F4F5 Soft neutral container */
-    --muted-foreground: 240 3.8% 46.1%;  /* #71717A Balanced secondary text */
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;              /* #E4E4E7 Subtle light border */
-    --input: 240 5.9% 90%;               /* #E4E4E7 Subtle input border */
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;                 /* #2563EB Electric Azure Cobalt */
+    --primary-foreground: 210 40% 98%;      /* #F8FAFC */
+    --secondary: 214 32% 91%;              /* #E2E8F0 Subtle Slate */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;                  /* #F1F5F9 Soft Neutral Tray */
+    --muted-foreground: 215 16% 47%;       /* #64748B Balanced Secondary Slate */
+    --accent: 214 32% 91%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 347 77% 50%;            /* #E11D48 Vivid Rose */
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;                 /* #E2E8F0 Hairline Border */
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+    --radius: 0.625rem;
   }
 
   .dark {
-    /* =========================================================
-       ENTERPRISE LINEAR / VERCEL DUAL-THEME TOKENS (DARK MODE)
-       ========================================================= */
-    --background: 240 10% 3.9%;          /* #09090B Deep Dark Slate/Zinc */
-    --foreground: 0 0% 98%;              /* #FAFAFA Crisp Off-White */
-    --card: 240 5.9% 10%;                /* #18181B Elevated Dark Surface */
-    --card-foreground: 0 0% 98%;
-    --popover: 240 5.9% 10%;             /* #18181B */
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;                 /* #FAFAFA */
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;         /* #27272A */
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;             /* #27272A */
-    --muted-foreground: 240 5% 64.9%;    /* #A1A1AA Soft secondary text */
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;            /* #27272A Dark border */
-    --input: 240 3.7% 15.9%;             /* #27272A Dark input border */
-    --ring: 240 4.9% 83.9%;
+    /* =========================================================================
+       CONCEPT A: "CYBER OBSIDIAN & ELECTRIC AZURE" — DARK THEME TOKENS
+       ========================================================================= */
+    --background: 224 71% 4%;              /* #080A0F Deep Cyber Obsidian Black */
+    --foreground: 210 40% 98%;             /* #F8FAFC Crisp High-Contrast White */
+    --card: 222 47% 8%;                    /* #0C1017 Semi-Translucent Dark Slate Surface */
+    --card-foreground: 210 40% 98%;
+    --popover: 224 45% 10%;                /* #0E1420 Elevated Popover Surface */
+    --popover-foreground: 210 40% 98%;
+    --primary: 199 89% 48%;                /* #0284C7 / #38BDF8 Electric Cyan/Azure */
+    --primary-foreground: 224 71% 4%;
+    --secondary: 222 30% 15%;              /* #182030 Elevated Tray */
+    --secondary-foreground: 210 40% 98%;
+    --muted: 222 30% 12%;                  /* #131A26 Soft Muted Bed */
+    --muted-foreground: 215 20% 65%;       /* #94A3B8 Polished Secondary Text */
+    --accent: 222 30% 16%;                 /* #1B2436 */
+    --accent-foreground: 210 40% 98%;
+    --destructive: 347 77% 50%;            /* #F43F5E Cyber Crimson */
+    --destructive-foreground: 210 40% 98%;
+    --border: 222 30% 16%;                 /* #1B2334 Micro-Hairline Border */
+    --input: 222 30% 16%;
+    --ring: 199 89% 48%;                   /* Electric Cyan Glow Ring */
   }
 
   * {
@@ -63,6 +63,19 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Linear / Raycast Micro-dot matrix background */
+  body {
+    background-image: radial-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 0);
+    background-size: 28px 28px;
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background-image: radial-gradient(rgba(56, 189, 248, 0.045) 1px, transparent 0);
+    background-size: 28px 28px;
+    background-attachment: fixed;
   }
 }
 
@@ -88,123 +101,266 @@
   --color-ring: hsl(var(--ring));
 }
 
-/* =========================================================
-   ELEVATION & VISUAL CONTRAST SYSTEM (LINEAR / VERCEL SPEC)
-   ========================================================= */
+/* =============================================================================
+   ELEVATION & VISUAL CONTRAST SYSTEM (CONCEPT A: CYBER OBSIDIAN & SLATE LIGHT)
+   ============================================================================= */
 
-/* Light Mode: Cards and dropdowns use subtle borders paired with soft ambient shadows */
+/* -----------------------------------------------------------------------------
+   LIGHT MODE RULES (Applied when html does NOT have .dark or has .light / .light-mode)
+   ----------------------------------------------------------------------------- */
+:root:not(.dark), html.light, html.light-mode {
+  color-scheme: light;
+}
+
 :root:not(.dark) .bg-card,
+html.light .bg-card,
 :root:not(.dark) [class*="bg-card"],
+html.light [class*="bg-card"],
 :root:not(.dark) .bg-\[\#15171C\],
-:root:not(.dark) aside.bg-\[\#15171C\] {
-  background-color: hsl(var(--card)) !important;
-  border-color: hsl(var(--border)) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+html.light .bg-\[\#15171C\],
+:root:not(.dark) .bg-\[\#12151D\],
+html.light .bg-\[\#12151D\],
+:root:not(.dark) .bg-\[\#121620\],
+html.light .bg-\[\#121620\],
+:root:not(.dark) .bg-\[\#10131B\],
+html.light .bg-\[\#10131B\],
+:root:not(.dark) .bg-\[\#151922\],
+html.light .bg-\[\#151922\],
+:root:not(.dark) aside.bg-\[\#15171C\],
+html.light aside.bg-\[\#15171C\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05);
 }
 
-:root:not(.dark) .shadow-sm {
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+/* Light mode for accordions, headers, and container blocks in desk */
+:root:not(.dark) .bg-\[\#171C28\],
+html.light .bg-\[\#171C28\],
+:root:not(.dark) .bg-\[\#0E121C\],
+html.light .bg-\[\#0E121C\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
 }
 
-:root:not(.dark) .shadow-md {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04) !important;
+:root:not(.dark) .hover\:bg-\[\#1E2433\]:hover,
+html.light .hover\:bg-\[\#1E2433\]:hover,
+:root:not(.dark) .hover\:bg-\[\#161B27\]:hover,
+html.light .hover\:bg-\[\#161B27\]:hover {
+  background-color: #f1f5f9 !important;
 }
 
-:root:not(.dark) .shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04) !important;
+/* Light mode for nested inset trays, counters, badges, filter boxes */
+:root:not(.dark) .bg-\[\#0A0C0F\],
+html.light .bg-\[\#0A0C0F\],
+:root:not(.dark) .bg-\[\#0A0C10\],
+html.light .bg-\[\#0A0C10\],
+:root:not(.dark) .bg-\[\#090C12\],
+html.light .bg-\[\#090C12\],
+:root:not(.dark) .bg-\[\#0B0F17\],
+html.light .bg-\[\#0B0F17\],
+:root:not(.dark) .bg-\[\#111317\],
+html.light .bg-\[\#111317\],
+:root:not(.dark) .bg-\[\#1C1F26\],
+html.light .bg-\[\#1C1F26\],
+:root:not(.dark) .bg-\[\#1A1D24\],
+html.light .bg-\[\#1A1D24\],
+:root:not(.dark) .bg-\[\#141A26\],
+html.light .bg-\[\#141A26\],
+:root:not(.dark) .bg-\[\#22242C\],
+html.light .bg-\[\#22242C\] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
 }
 
-/* Dark Mode: Surface luminance steps (card background lighter than body), NO drop shadows */
-.dark .bg-card,
-.dark [class*="bg-card"],
-.dark .bg-\[\#15171C\],
-.dark aside.bg-\[\#15171C\] {
-  background-color: hsl(var(--card)) !important;
-  border-color: hsl(var(--border)) !important;
-  box-shadow: none !important;
+/* Light mode border normalization */
+:root:not(.dark) .border-\[\#2A2D35\],
+html.light .border-\[\#2A2D35\],
+:root:not(.dark) .border-\[\#232736\],
+html.light .border-\[\#232736\],
+:root:not(.dark) .border-\[\#1E2330\],
+html.light .border-\[\#1E2330\],
+:root:not(.dark) .border-\[\#22242C\],
+html.light .border-\[\#22242C\],
+:root:not(.dark) .border-\[\#1E2433\],
+html.light .border-\[\#1E2433\],
+:root:not(.dark) .border-\[\#1E2533\],
+html.light .border-\[\#1E2533\],
+:root:not(.dark) .border-\[\#222836\],
+html.light .border-\[\#222836\],
+:root:not(.dark) .border-\[\#2E374A\],
+html.light .border-\[\#2E374A\],
+:root:not(.dark) .border-\[\#1C1F26\],
+html.light .border-\[\#1C1F26\] {
+  border-color: #e2e8f0 !important;
 }
 
-.dark .shadow-sm,
-.dark .shadow-md,
-.dark .shadow-lg {
-  box-shadow: none !important;
+/* Light mode table divider lines */
+:root:not(.dark) .divide-\[\#1D2433\] > :not([hidden]) ~ :not([hidden]),
+html.light .divide-\[\#1D2433\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
 }
 
-/* =========================================================
-   SEAMLESS MAPPING OF LEGACY HARDCODED COLOR UTILITIES
-   ========================================================= */
-
-/* Canvas backgrounds */
-.bg-\[\#0F1115\],
-[class*="bg-\[#0F1115\]"] {
-  background-color: hsl(var(--background)) !important;
+/* Light mode table headers */
+:root:not(.dark) table thead tr,
+html.light table thead tr,
+:root:not(.dark) table thead th,
+html.light table thead th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
 
-/* Elevated cards */
-.bg-\[\#15171C\],
-[class*="bg-\[#15171C\]"] {
-  background-color: hsl(var(--card)) !important;
+/* Light mode typography */
+:root:not(.dark) h1, html.light h1,
+:root:not(.dark) h2, html.light h2,
+:root:not(.dark) h3, html.light h3,
+:root:not(.dark) h4, html.light h4,
+:root:not(.dark) h5, html.light h5,
+:root:not(.dark) h6, html.light h6 {
+  color: #0f172a !important;
 }
 
-/* Secondary muted trays & items */
-.bg-\[\#0A0C0F\],
-.bg-\[\#111317\],
-.bg-\[\#1C1F26\],
-.bg-\[\#1A1D24\],
-.bg-\[\#22242C\] {
-  background-color: hsl(var(--muted)) !important;
-  border-color: hsl(var(--border)) !important;
+:root:not(.dark) .text-white:not(
+  button,
+  button *,
+  [class*="bg-blue-"],
+  [class*="bg-blue-"] *,
+  [class*="bg-indigo-"],
+  [class*="bg-indigo-"] *,
+  [class*="bg-emerald-"],
+  [class*="bg-emerald-"] *,
+  [class*="bg-red-"],
+  [class*="bg-red-"] *,
+  [class*="bg-rose-"],
+  [class*="bg-rose-"] *,
+  [class*="bg-purple-"],
+  [class*="bg-purple-"] *,
+  [class*="bg-violet-"],
+  [class*="bg-violet-"] *,
+  [class*="bg-slate-900"],
+  [class*="bg-slate-900"] *,
+  [class*="bg-gray-900"],
+  [class*="bg-gray-900"] *
+),
+html.light .text-white:not(
+  button,
+  button *,
+  [class*="bg-blue-"],
+  [class*="bg-blue-"] *,
+  [class*="bg-indigo-"],
+  [class*="bg-indigo-"] *,
+  [class*="bg-emerald-"],
+  [class*="bg-emerald-"] *,
+  [class*="bg-red-"],
+  [class*="bg-red-"] *,
+  [class*="bg-rose-"],
+  [class*="bg-rose-"] *,
+  [class*="bg-purple-"],
+  [class*="bg-purple-"] *,
+  [class*="bg-violet-"],
+  [class*="bg-violet-"] *,
+  [class*="bg-slate-900"],
+  [class*="bg-slate-900"] *,
+  [class*="bg-gray-900"],
+  [class*="bg-gray-900"] *
+) {
+  color: #0f172a !important;
 }
 
-/* Borders */
-.border-\[\#2A2D35\],
-.border-\[\#22242C\],
-.border-\[\#1E2433\],
-.border-\[\#1C1F26\] {
-  border-color: hsl(var(--border)) !important;
-}
-
-/* Text primary & secondary */
-.text-\[\#E0E0E0\] {
-  color: hsl(var(--foreground)) !important;
-}
-
-:root:not(.dark) .text-white {
-  color: hsl(var(--foreground)) !important;
+:root:not(.dark) .text-gray-200,
+html.light .text-gray-200,
+:root:not(.dark) .text-gray-300,
+html.light .text-gray-300 {
+  color: #334155 !important;
 }
 
 :root:not(.dark) .text-gray-400,
+html.light .text-gray-400,
 :root:not(.dark) .text-slate-400,
-:root:not(.dark) .text-zinc-400 {
-  color: hsl(var(--muted-foreground)) !important;
+html.light .text-slate-400,
+:root:not(.dark) .text-zinc-400,
+html.light .text-zinc-400 {
+  color: #64748b !important;
 }
 
-/* Preserve bright text for colored hero badges and action buttons */
+:root:not(.dark) .text-gray-500,
+html.light .text-gray-500,
+:root:not(.dark) .text-slate-500,
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Light mode inputs, selects, textareas */
+:root:not(.dark) input, html.light input,
+:root:not(.dark) select, html.light select,
+:root:not(.dark) textarea, html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+:root:not(.dark) input:focus, html.light input:focus,
+:root:not(.dark) select:focus, html.light select:focus,
+:root:not(.dark) textarea:focus, html.light textarea:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
+  outline: none !important;
+}
+
+/* Ensure bright, crisp white text for all colored buttons and badges in both modes */
+button[class*="bg-blue-"],
+button[class*="bg-indigo-"],
+button[class*="bg-emerald-"],
+button[class*="bg-red-"],
+button[class*="bg-rose-"],
+button[class*="bg-purple-"],
 button.bg-blue-600,
 button.bg-blue-700,
+button.bg-indigo-600,
 button.bg-emerald-600,
 button.bg-red-600,
 .bg-blue-600,
-.bg-blue-600 span,
-.bg-emerald-600 span {
-  color: #FFFFFF !important;
+.bg-blue-600 *,
+.bg-indigo-600,
+.bg-indigo-600 *,
+.bg-emerald-600,
+.bg-emerald-600 *,
+.bg-red-600,
+.bg-red-600 * {
+  color: #ffffff !important;
 }
 
-/* Form inputs & controls */
-:root:not(.dark) input,
-:root:not(.dark) select,
-:root:not(.dark) textarea {
+/* -----------------------------------------------------------------------------
+   DARK MODE RULES (Applied when html has .dark)
+   ----------------------------------------------------------------------------- */
+.dark {
+  color-scheme: dark;
+}
+
+.dark .bg-card,
+.dark [class*="bg-card"],
+.dark .bg-\[\#15171C\],
+.dark .bg-\[\#12151D\],
+.dark .bg-\[\#121620\],
+.dark .bg-\[\#10131B\],
+.dark aside.bg-\[\#15171C\] {
   background-color: hsl(var(--card)) !important;
-  color: hsl(var(--foreground)) !important;
-  border: 1px solid hsl(var(--border)) !important;
+  border-color: hsl(var(--border)) !important;
+  box-shadow: 0 0 0 1px hsl(var(--border)) !important;
+  backdrop-filter: blur(8px);
 }
 
-:root:not(.dark) input:focus,
-:root:not(.dark) select:focus,
-:root:not(.dark) textarea:focus {
-  border-color: hsl(var(--ring)) !important;
-  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.15) !important;
-  outline: none !important;
+.dark .bg-\[\#0A0C0F\],
+.dark .bg-\[\#0A0C10\],
+.dark .bg-\[\#090C12\],
+.dark .bg-\[\#0E121C\],
+.dark .bg-\[\#111317\],
+.dark .bg-\[\#1C1F26\],
+.dark .bg-\[\#1A1D24\],
+.dark .bg-\[\#141A26\],
+.dark .bg-\[\#22242C\] {
+  background-color: hsl(var(--muted)) !important;
+  border-color: hsl(var(--border)) !important;
 }
 
 .dark input,
@@ -219,19 +375,19 @@ button.bg-red-600,
 .dark select:focus,
 .dark textarea:focus {
   border-color: hsl(var(--ring)) !important;
-  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.25) !important;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.3) !important;
   outline: none !important;
 }
 
 /* Recharts grid & text */
 :root:not(.dark) .recharts-cartesian-grid-horizontal line,
 :root:not(.dark) .recharts-cartesian-grid-vertical line {
-  stroke: hsl(var(--border)) !important;
+  stroke: #e2e8f0 !important;
 }
 
 :root:not(.dark) .recharts-text,
 :root:not(.dark) text {
-  fill: hsl(var(--muted-foreground)) !important;
+  fill: #64748b !important;
 }
 
 .dark .recharts-cartesian-grid-horizontal line,
@@ -247,24 +403,28 @@ button.bg-red-600,
 /* Subtle cross-fade for seamless switching */
 .theme-transitioning,
 .theme-transitioning * {
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* Custom Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
+/* Custom Scrollbar - Sleek Linear Style */
+.custom-scrollbar::-webkit-scrollbar,
+::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
   background: transparent;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
   background: hsl(var(--muted-foreground) / 0.25);
   border-radius: 9999px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.45);
 }
 

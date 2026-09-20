@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TicketAuditReport, AuditHistoricalRun } from '../types';
-import { sampleHistoricalRuns } from '../data/sampleHistoricalAuditData';
 import { 
   Users, 
   Search, 
@@ -135,8 +134,7 @@ export default function AssigneePerformanceHeatmap({
       };
       return { effectiveRuns: [currentRun], isUsingSampleBenchmark: false };
     }
-    // Otherwise provide benchmark sample historical runs for instant out-of-the-box exploration
-    return { effectiveRuns: sampleHistoricalRuns, isUsingSampleBenchmark: true };
+    return { effectiveRuns: [], isUsingSampleBenchmark: false };
   }, [historyRuns, reports]);
 
   // Aggregate assignee data across historical runs
@@ -436,16 +434,6 @@ export default function AssigneePerformanceHeatmap({
     }
   };
 
-  // Seed sample benchmark history into main storage
-  const handleSeedBenchmark = () => {
-    if (onSeedSampleHistory) {
-      onSeedSampleHistory(sampleHistoricalRuns);
-      if (triggerPopup) {
-        triggerPopup('Loaded 4 multi-week historical audit runs with 48 benchmark tickets!', 'success');
-      }
-    }
-  };
-
   return (
     <div className="bg-card border border-border rounded-xl p-5 md:p-6 shadow-xs space-y-5 transition-colors">
       
@@ -459,11 +447,6 @@ export default function AssigneePerformanceHeatmap({
             <div>
               <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                 Assignee Performance Heatmap
-                {isUsingSampleBenchmark && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                    Benchmark Historical Demo
-                  </span>
-                )}
               </h2>
               <p className="text-xs text-muted-foreground">
                 Color-coded historical compliance grid across audit runs and quality dimensions (Green ≥90% • Amber 70-89% • Red &lt;70%).
@@ -495,18 +478,6 @@ export default function AssigneePerformanceHeatmap({
             <Download className="w-3.5 h-3.5 text-muted-foreground" />
             <span>Export CSV</span>
           </button>
-
-          {isUsingSampleBenchmark && onSeedSampleHistory && (
-            <button
-              type="button"
-              onClick={handleSeedBenchmark}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors cursor-pointer"
-              title="Save Benchmark Demo Data into Historical Runs"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Persist Demo History</span>
-            </button>
-          )}
         </div>
       </div>
 

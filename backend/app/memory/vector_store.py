@@ -25,7 +25,8 @@ class IncidentVectorMemory:
         self.documents: List[Dict[str, Any]] = []
         self.vectors: List[List[float]] = []
         self.client: Optional[genai.Client] = None
-        self.model_name = "gemini-embedding-2-preview"
+        self.model_name = settings.GEMINI_EMBEDDING_MODEL
+        self.fallback_models = settings.GEMINI_FALLBACK_EMBEDDING_MODELS
 
     def _get_client(self) -> Optional[genai.Client]:
         if self.client is None and settings.GEMINI_API_KEY:
@@ -39,37 +40,40 @@ class IncidentVectorMemory:
         """
         Calls Gemini EmbedContent API and extracts the embedding vector from the
         EmbedContentResponse object by accessing the 'values' property on response.embedding.
+        Attempts primary embedding model followed by fallback candidates.
         """
         client = self._get_client()
         if not client:
             return []
 
-        try:
-            response = client.models.embed_content(
-                model=self.model_name,
-                contents=text,
-            )
-            # Correctly access 'embedding' vector from EmbedContentResponse object via 'values' property
-            if hasattr(response, "embedding") and response.embedding is not None:
-                embedding_obj = response.embedding
-                if hasattr(embedding_obj, "values") and embedding_obj.values is not None:
-                    return list(embedding_obj.values)
-                elif isinstance(embedding_obj, dict) and "values" in embedding_obj:
-                    return list(embedding_obj["values"])
-                elif isinstance(embedding_obj, (list, tuple)):
-                    return list(embedding_obj)
+        models_to_try = [self.model_name] + [m for m in self.fallback_models if m != self.model_name]
 
-            if isinstance(response, dict) and "embedding" in response:
-                emb = response["embedding"]
-                if isinstance(emb, dict) and "values" in emb:
-                    return list(emb["values"])
-                elif isinstance(emb, (list, tuple)):
-                    return list(emb)
+        for m in models_to_try:
+            try:
+                response = client.models.embed_content(
+                    model=m,
+                    contents=text,
+                )
+                # Correctly access 'embedding' vector from EmbedContentResponse object via 'values' property
+                if hasattr(response, "embedding") and response.embedding is not None:
+                    embedding_obj = response.embedding
+                    if hasattr(embedding_obj, "values") and embedding_obj.values is not None:
+                        return list(embedding_obj.values)
+                    elif isinstance(embedding_obj, dict) and "values" in embedding_obj:
+                        return list(embedding_obj["values"])
+                    elif isinstance(embedding_obj, (list, tuple)):
+                        return list(embedding_obj)
 
-            return []
-        except Exception as e:
-            logger.error(f"Gemini EmbedContent API failed: {e}")
-            return []
+                if isinstance(response, dict) and "embedding" in response:
+                    emb = response["embedding"]
+                    if isinstance(emb, dict) and "values" in emb:
+                        return list(emb["values"])
+                    elif isinstance(emb, (list, tuple)):
+                        return list(emb)
+            except Exception as e:
+                logger.warning(f"VectorDB EmbedContent API failed on {m}: {e}")
+
+        return []
 
     def initialize_rag_vectordb(self, documents: List[Dict[str, Any]]) -> int:
         """

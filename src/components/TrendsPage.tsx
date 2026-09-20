@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { TicketAuditReport, AuditHistoricalRun } from '../types';
 import AuditTrendChart from './AuditTrendChart';
 import AssignmentGroupBarChart from './AssignmentGroupBarChart';
-import { sampleHistoricalRuns } from '../data/sampleHistoricalAuditData';
 import { 
   TrendingUp, 
   TrendingDown,
@@ -75,7 +74,7 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
     if (historyRuns && historyRuns.length > 0) {
       return { effectiveReports: historyRuns.flatMap(r => r.tickets), isUsingSampleBenchmark: false };
     }
-    return { effectiveReports: sampleHistoricalRuns.flatMap(r => r.tickets), isUsingSampleBenchmark: true };
+    return { effectiveReports: [], isUsingSampleBenchmark: false };
   }, [reports, historyRuns]);
 
   // Aggregate overall peak stats across effective dataset
@@ -161,7 +160,7 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
     let prevTickets: TicketAuditReport[] = [];
     let trendLabel = 'from last week';
 
-    const runsList = (historyRuns && historyRuns.length > 0) ? historyRuns : sampleHistoricalRuns;
+    const runsList = (historyRuns && historyRuns.length > 0) ? historyRuns : [];
 
     if (timeframe === 'run' && runsList.length >= 2) {
       trendLabel = 'from last run';
@@ -213,7 +212,7 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
           prevTickets = effectiveReports.slice(half);
         } else {
           currentTickets = effectiveReports;
-          prevTickets = sampleHistoricalRuns[1].tickets;
+          prevTickets = [];
         }
       }
     }

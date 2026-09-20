@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TicketAuditReport } from '../types';
-import { ShieldCheck, AlertTriangle, XCircle, Users, Activity, CheckCircle, TrendingUp, BarChart3, BookOpen } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, XCircle, Users, Activity, CheckCircle, TrendingUp, BarChart3, BookOpen, ArrowRight, Cpu, Sparkles } from 'lucide-react';
 
 interface MetricCardsProps {
   reports: TicketAuditReport[];
@@ -142,8 +142,54 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
     return `${reports.length}-${scoreSum}`;
   }, [reports]);
 
+  // Priority actionable tickets: lowest scoring incidents requiring immediate review
+  const priorityActionTickets = useMemo(() => {
+    return [...reports]
+      .sort((a, b) => a.percentage - b.percentage)
+      .slice(0, 5);
+  }, [reports]);
+
   return (
     <div className="space-y-6 animate-fadeIn" id="metrics-panel">
+      {/* 🚀 AI Governance Engine & Pipeline Telemetry Bar */}
+      <div className="bg-[#12151D] border border-[#232736] rounded-xl p-4 shadow-md flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0A0C10] border border-[#1E2330] rounded-lg">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <span className="text-[11px] font-mono font-bold text-gray-400">LLM Core:</span>
+            <span className="text-[11px] font-mono font-extrabold text-cyan-300">Gemini 3.8 Flash</span>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0A0C10] border border-[#1E2330] rounded-lg">
+            <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+            <span className="text-[11px] font-mono font-bold text-gray-400">Embedding:</span>
+            <span className="text-[11px] font-mono font-extrabold text-purple-300">exp-03-07</span>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0A0C10] border border-[#1E2330] rounded-lg">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[11px] font-mono font-bold text-gray-400">ServiceNow Sync:</span>
+            <span className="text-[11px] font-mono font-extrabold text-emerald-300">Active (Continuous)</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-[10px] uppercase font-mono tracking-wider text-gray-400">Governance Index</div>
+            <div className="text-xs font-mono font-bold">
+              Mean Score: <span className={avgScore >= 80 ? 'text-green-400' : avgScore >= 65 ? 'text-yellow-400' : 'text-red-400'}>{avgScore}%</span>
+            </div>
+          </div>
+          <div className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase ${
+            avgScore >= 80 ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+            avgScore >= 65 ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+            'bg-red-500/10 text-red-400 border border-red-500/20'
+          }`}>
+            {avgScore >= 80 ? 'Compliant' : avgScore >= 65 ? 'Needs Review' : 'Critical Drift'}
+          </div>
+        </div>
+      </div>
+
       {/* Visual Tickers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Total Ingested */}
@@ -641,6 +687,86 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
             ))}
           </div>
         </div>
+
+        {/* Module 4: Priority Action Queue (Full 12/12) */}
+        {priorityActionTickets.length > 0 && (
+          <div className="lg:col-span-12 bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-lg space-y-3.5" id="priority-action-queue">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#2A2D35] pb-2.5 gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg">
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs uppercase font-black font-mono tracking-widest text-red-400">
+                    PRIORITY ACTION QUEUE &bull; CRITICAL AUDIT FINDINGS
+                  </h4>
+                  <p className="text-[10px] text-gray-500 font-mono">Lowest compliance scores requiring supervisory coaching or work note remediation</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono text-gray-400">Showing Top {priorityActionTickets.length} Incidents</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#2A2D35] text-[10px] uppercase font-mono text-gray-500">
+                    <th className="pb-2 font-semibold">Incident</th>
+                    <th className="pb-2 font-semibold">Assignee / Manager</th>
+                    <th className="pb-2 font-semibold">Assignment Group</th>
+                    <th className="pb-2 font-semibold text-center">Score</th>
+                    <th className="pb-2 font-semibold text-center">Status</th>
+                    <th className="pb-2 font-semibold text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#2A2D35]/50">
+                  {priorityActionTickets.map((rep) => {
+                    const isRed = rep.statusColor === 'Red';
+                    const isAmber = rep.statusColor === 'Amber';
+                    return (
+                      <tr key={rep.ticket.id || rep.ticket.incNumber} className="hover:bg-[#1C202B]/40 transition-colors group">
+                        <td className="py-2.5 font-mono font-bold text-white flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full ${isRed ? 'bg-red-400' : isAmber ? 'bg-yellow-400' : 'bg-green-400'}`} />
+                          <span>{rep.ticket.incNumber}</span>
+                        </td>
+                        <td className="py-2.5">
+                          <div className="text-gray-200 font-medium">{rep.ticket.assignee || 'Unassigned'}</div>
+                          <div className="text-[10px] text-gray-500 font-mono">Mgr: {rep.ticket.assigneeManager || 'N/A'}</div>
+                        </td>
+                        <td className="py-2.5 text-gray-400 font-mono text-[11px] max-w-[200px] truncate">
+                          {rep.ticket.assignmentGroup || 'General Support'}
+                        </td>
+                        <td className="py-2.5 text-center font-mono font-bold">
+                          <span className={isRed ? 'text-red-400' : isAmber ? 'text-yellow-400' : 'text-green-400'}>
+                            {rep.percentage}%
+                          </span>
+                        </td>
+                        <td className="py-2.5 text-center">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                            isRed ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                            isAmber ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+                            'bg-green-500/10 text-green-400 border border-green-500/20'
+                          }`}>
+                            {rep.statusColor}
+                          </span>
+                        </td>
+                        <td className="py-2.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => onSelectTicket?.(rep.ticket.incNumber)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 border border-blue-500/20 hover:border-blue-500/40 rounded-lg font-mono text-[11px] font-bold cursor-pointer transition-all"
+                          >
+                            <span>Inspect</span>
+                            <ArrowRight className="h-3 w-3" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

@@ -20,6 +20,6 @@ class BaseLLMProvider(ABC):
         pass
 
     @abstractmethod
-    async def get_embedding(self, text: str, model_name: str = "gemini-embedding-2-preview") -> List[float]:
+    async def get_embedding(self, text: str, model_name: str = None) -> List[float]:
         """Generate text embedding vector."""
         pass

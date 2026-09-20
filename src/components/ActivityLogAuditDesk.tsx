@@ -948,7 +948,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
               <div className="text-[10px] uppercase font-bold tracking-wider text-blue-400">RAG Execution Pipeline Active</div>
               <div className="text-xs text-gray-400">{auditStep}</div>
             </div>
-            <div className="text-[10px] font-mono text-gray-500">Gemini-Embedding model 1x384</div>
+            <div className="text-[10px] font-mono text-gray-500">Gemini-Embedding (exp-03-07)</div>
           </div>
         )}
       </div>
@@ -1577,21 +1577,23 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
                                   </button>
 
                                   {/* Floating Tooltip on Hover */}
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/explain:flex flex-col w-72 p-3 bg-[#0B0F19]/95 border border-red-500/40 rounded-xl shadow-2xl text-left pointer-events-none z-50 backdrop-blur-md">
-                                    <div className="flex items-center justify-between gap-1 mb-1.5 pb-1 border-b border-gray-800">
-                                      <span className="flex items-center gap-1 text-[9.5px] font-mono font-bold text-red-400 uppercase tracking-wider">
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/explain:flex flex-col w-80 sm:w-96 max-w-[90vw] p-3.5 bg-[#0B0F19]/98 border border-red-500/50 rounded-xl shadow-2xl text-left pointer-events-none z-50 backdrop-blur-md whitespace-normal break-words">
+                                    <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-gray-800/90 whitespace-nowrap shrink-0">
+                                      <span className="flex items-center gap-1.5 text-[9.5px] font-mono font-bold text-red-400 uppercase tracking-wider">
                                         <AlertTriangle className="w-3 h-3 text-red-400 shrink-0" />
-                                        LLM Flagged Reason
+                                        LLM FLAGGED REASON
                                       </span>
                                       <span className="text-[8.5px] text-gray-400 font-mono">Click for modal</span>
                                     </div>
-                                    <p className="text-[11px] text-gray-200 font-sans font-medium leading-relaxed">
+                                    <p className="text-[11px] text-gray-200 font-sans font-medium leading-relaxed whitespace-normal break-words">
                                       {getExplanationSummary(item)}
                                     </p>
-                                    <div className="mt-2 pt-1.5 border-t border-gray-800/80 flex items-center justify-between text-[9px] font-mono text-indigo-400">
+                                    <div className="mt-2.5 pt-1.5 border-t border-gray-800/80 flex items-center justify-between text-[9.5px] font-mono text-indigo-400 whitespace-nowrap shrink-0">
                                       <span>Click to inspect root cause</span>
                                       <span className="text-gray-400">→</span>
                                     </div>
+                                    {/* Subtle down-arrow pointer */}
+                                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#0B0F19] border-r border-b border-red-500/50 rotate-45 pointer-events-none" />
                                   </div>
                                 </div>
                               )}
@@ -2377,7 +2379,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
                 <div className="flex items-center justify-between text-[11px] font-mono text-indigo-400 font-bold uppercase tracking-wider">
                   <span className="flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                    AI Auditor Reasoning (Gemini Heuristic Engine)
+                    AI Auditor Reasoning (Gemini 3.8 Flash)
                   </span>
                   {explainingIncident.similarityScore !== undefined && (
                     <span className="text-[10px] text-gray-400 font-normal">

@@ -65,6 +65,7 @@ export interface TicketAuditReport {
     resolutionDescription: AuditResultDetail;
     comments?: AuditResultDetail;
   };
+  rawScores?: Record<string, AuditResultDetail>;
   totalScore: number; // Sum of points (max 26)
   percentage: number; // (totalScore / 26) * 100
   statusColor: 'Green' | 'Amber' | 'Red';
@@ -103,6 +104,13 @@ export interface ChatMessage {
   isError?: boolean;
   rawQuery?: string;
   suggestions?: string[];
+  contract?: {
+    answered: boolean;
+    sources_used: string[];
+    tools_called: string[];
+    needs_followup: boolean;
+    followup_reason: string | null;
+  };
 }
 
 export interface AuditHistoricalRun {
@@ -309,6 +317,51 @@ export interface UsageStats {
   };
 }
 
+export function isSolveProposeTicket(t: any): boolean {
+  if (!t) return false;
+  const stateVal = String(t.incidentState || t.state || t.incident_state || '').trim().toLowerCase();
+  const prevState = String(t.previousState || t.u_previous_state || '').trim().toLowerCase();
+  const logs = String(t.activityLogs || t.comments_and_work_notes || '').toLowerCase();
+  const desc = String(t.resolutionDescription || t.close_notes || t.technicalDescription || t.description || '').toLowerCase();
 
+  // State matches
+  if (
+    stateVal.includes('propose') ||
+    stateVal.includes('proposed') ||
+    stateVal === 'solve propose' ||
+    stateVal === 'solve_propose' ||
+    stateVal === 'solvepropose' ||
+    prevState.includes('propose') ||
+    prevState.includes('proposed')
+  ) {
+    return true;
+  }
 
+  // Work note transitions e.g. "InProgress -> SolvePropose -> SolveConfirm" or "solve propose"
+  if (
+    logs.includes('solve propose') ||
+    logs.includes('solve proposed') ||
+    logs.includes('solvepropose') ||
+    logs.includes('solve_propose') ||
+    logs.includes('solved propose') ||
+    logs.includes('solved_propose') ||
+    logs.includes('propose solve') ||
+    logs.includes('proposed solve') ||
+    logs.includes('proposed solved') ||
+    logs.includes('proposal')
+  ) {
+    return true;
+  }
+
+  // Resolution description matches
+  if (
+    desc.includes('solve propose') ||
+    desc.includes('proposed solve') ||
+    desc.includes('proposed solved')
+  ) {
+    return true;
+  }
+
+  return false;
+}
 

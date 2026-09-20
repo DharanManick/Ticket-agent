@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { TicketAuditReport, AuditHistoricalRun } from '../types';
-import { sampleHistoricalRuns } from '../data/sampleHistoricalAuditData';
 import { 
   User, 
   Users,
@@ -27,13 +26,13 @@ export default function AssigneeInsights({ reports, historyRuns, triggerPopup }:
   // Assignee performance modal popup state
   const [activeModalAssignee, setActiveModalAssignee] = useState<any | null>(null);
 
-  // Compute effective ticket list (from current audit session, past historical runs, or demo benchmark)
+  // Compute effective ticket list (from current audit session or past historical runs)
   const effectiveReports = useMemo(() => {
     if (reports && reports.length > 0) return reports;
     if (historyRuns && historyRuns.length > 0) {
       return historyRuns.flatMap(r => r.tickets);
     }
-    return sampleHistoricalRuns.flatMap(r => r.tickets);
+    return [];
   }, [reports, historyRuns]);
 
   // Aggregate assignee or manager compliance data

@@ -85,7 +85,7 @@ export const UsageTracking: React.FC<UsageTrackingProps> = ({ triggerPopup }) =>
     estimatedCostUsd: 0,
     averageLatencyMs: 0,
     successRate: 100,
-    modelBreakdown: { 'gemini-2.5-flash': 0 },
+    modelBreakdown: { 'gemini-3.8-flash': 0 },
     recentCalls: []
   };
 

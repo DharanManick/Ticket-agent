@@ -17,6 +17,7 @@ import AboutPortal from './components/AboutPortal';
 import AlertDispatchCenter from './components/AlertDispatchCenter';
 import ConfirmationDialog from './components/ConfirmationDialog';
 import { exportToColorfulExcel } from './utils/excelExporter';
+import { useRealtimeEvents } from './utils/useRealtimeEvents';
 import * as XLSX from 'xlsx';
 
 
@@ -59,17 +60,20 @@ import {
   Search,
   Radio,
   BarChart3,
+  Gauge,
   X
 } from 'lucide-react';
 import { ActivityLogAuditDesk } from './components/ActivityLogAuditDesk';
 import ConnectionSetup from './components/ConnectionSetup';
 import UsageTracking from './components/UsageTracking';
+import { EvaluationHarnessModal } from './components/EvaluationHarnessModal';
 import { useTheme } from './components/ThemeProvider';
 import { ThemeToggle } from './components/ThemeToggle';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'trends' | 'workspace' | 'assignees' | 'history' | 'rules' | 'ciMatrix' | 'chatbot' | 'resolutionConfig' | 'overallRules' | 'about' | 'alertsConfig' | 'uploadHub' | 'activityLog' | 'servicenowTest' | 'connectionSetup' | 'usage'>('dashboard');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [showHarnessModal, setShowHarnessModal] = useState(false);
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
   const [lastSyncInfo, setLastSyncInfo] = useState<{
     timestamp: string;
@@ -80,6 +84,9 @@ export default function App() {
   
   const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
   const [isTransitioningTheme, setIsTransitioningTheme] = useState(false);
+
+  // Connect to zero-lag Server-Sent Events (SSE) push stream
+  useRealtimeEvents();
 
   // Sync user profile & device theme preference from backend database
   useEffect(() => {
@@ -187,6 +194,7 @@ export default function App() {
   });
 
   const [reports, setReports] = useState<TicketAuditReport[]>([]);
+  const [onlySolvePropose, setOnlySolvePropose] = useState<boolean>(false);
   const [selectedTicketNumber, setSelectedTicketNumber] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
@@ -708,6 +716,9 @@ export default function App() {
         // 1. Fetch live audit reports & incidents
         const auditData = await safeFetchJson('/api/audit');
         if (auditData) {
+          if (auditData.onlySolvePropose !== undefined) {
+            setOnlySolvePropose(!!auditData.onlySolvePropose);
+          }
           if (auditData.success && Array.isArray(auditData.reports)) {
             setReports(dedupeReports(auditData.reports));
             
@@ -754,12 +765,16 @@ export default function App() {
     window.addEventListener('governance_tracked_groups_updated', handleGroupsUpdate);
     window.addEventListener('governance_force_sync_trigger', handleGroupsUpdate);
     window.addEventListener('governance_mandatory_metrics_updated', handleGroupsUpdate);
+    window.addEventListener('servicenow_realtime_sync', handleGroupsUpdate);
+    window.addEventListener('governance_audit_refetch_requested', handleGroupsUpdate);
 
     return () => {
       if (intervalId) clearInterval(intervalId);
       window.removeEventListener('governance_tracked_groups_updated', handleGroupsUpdate);
       window.removeEventListener('governance_force_sync_trigger', handleGroupsUpdate);
       window.removeEventListener('governance_mandatory_metrics_updated', handleGroupsUpdate);
+      window.removeEventListener('servicenow_realtime_sync', handleGroupsUpdate);
+      window.removeEventListener('governance_audit_refetch_requested', handleGroupsUpdate);
     };
   }, []);
 
@@ -1117,6 +1132,33 @@ export default function App() {
       triggerPopup(`[Auto-Trigger] Evaluated non-compliant alerts queue. Integrations active!`, 'success');
     } catch (err: any) {
       console.error('Auto trigger error:', err);
+    }
+  };
+
+  const handleToggleGlobalSolvePropose = async () => {
+    try {
+      const nextVal = !onlySolvePropose;
+      setOnlySolvePropose(nextVal);
+      const res = await fetch('/api/servicenow/toggle-solve-propose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ onlySolvePropose: nextVal })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        triggerPopup(
+          `Workspace Solve Proposed: ${nextVal ? 'ON (15 Solve Proposed)' : 'OFF (All Live Incidents)'}`,
+          'success'
+        );
+        const auditRes = await fetch('/api/audit');
+        const auditData = await auditRes.json();
+        if (auditData?.reports) {
+          setReports(dedupeReports(auditData.reports));
+          setTickets(dedupeTickets(auditData.reports.map((r: any) => r.ticket)));
+        }
+      }
+    } catch (err: any) {
+      triggerPopup(`Failed to toggle: ${err.message || err}`, 'warning');
     }
   };
 
@@ -1542,7 +1584,7 @@ export default function App() {
 
               <button
                 onClick={() => setActiveTab('usage')}
-                title="Usage & Telemetry"
+                title="API Usage"
                 className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
                   activeTab === 'usage'
                     ? 'bg-emerald-600/15 text-emerald-400 border border-emerald-600/30 font-bold'
@@ -1550,7 +1592,20 @@ export default function App() {
                 } ${isSidebarExpanded ? '' : 'justify-center'}`}
               >
                 <BarChart3 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-                {isSidebarExpanded && <span className="ml-2 truncate">Usage & Telemetry</span>}
+                {isSidebarExpanded && <span className="ml-2 truncate">API Usage</span>}
+              </button>
+
+              <button
+                onClick={() => setShowHarnessModal(true)}
+                title="Evaluation Test Harness"
+                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
+                  showHarnessModal
+                    ? 'bg-amber-600/15 text-amber-400 border border-amber-600/30 font-bold'
+                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
+                } ${isSidebarExpanded ? '' : 'justify-center'}`}
+              >
+                <Gauge className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                {isSidebarExpanded && <span className="ml-2 truncate">Evaluation Harness</span>}
               </button>
 
               <button
@@ -1813,6 +1868,32 @@ export default function App() {
                 </span>
               </div>
             )}
+
+            {/* Top Bar Quick Solve Propose Filter Status / Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleGlobalSolvePropose}
+              className={`border font-semibold text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-xs ${
+                onlySolvePropose
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
+                  : 'bg-card hover:bg-muted border-border text-muted-foreground hover:text-foreground'
+              }`}
+              title={onlySolvePropose ? "Workspace filtered to Solve Proposed incidents. Click to view all." : "Click to filter Workspace to Solve Proposed incidents only."}
+            >
+              <span className={`w-2 h-2 rounded-full ${onlySolvePropose ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
+              <span className="hidden sm:inline">Workspace:</span>
+              <span className="font-mono font-bold text-[11px]">{onlySolvePropose ? 'Solve Proposed' : 'All Incidents'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowHarnessModal(true)}
+              className="bg-card hover:bg-muted border border-border text-foreground font-semibold text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-xs"
+              title="Launch ITIL Golden Evaluation Test Harness"
+            >
+              <Gauge className="h-3.5 w-3.5 text-amber-500" />
+              <span className="hidden sm:inline">Eval Harness</span>
+            </button>
 
             <button
               type="button"
@@ -2183,7 +2264,7 @@ export default function App() {
         {/* Corporate bottom credit */}
         <footer className="border-t border-[#2A2D35] py-3.5 px-8 text-center text-[9px] font-mono text-gray-600 flex justify-between bg-[#15171C]">
           <span>ServiceNow Operational Security & Governance Platform &copy; 2026. Audit logs persisted.</span>
-          <span>SaaS Orchestrator: Gemini 3.5 Flash | Real-Time Audit Integrity Status: Online</span>
+          <span>SaaS Orchestrator: Gemini 3.8 Flash | Real-Time Audit Integrity Status: Online</span>
         </footer>
       </section>
 
@@ -2273,6 +2354,13 @@ export default function App() {
         onCancel={() => {
           if (!isClearingCache) setShowClearCacheDialog(false);
         }}
+      />
+
+      {/* 5. Autonomous Evaluation Test Harness Modal */}
+      <EvaluationHarnessModal
+        isOpen={showHarnessModal}
+        onClose={() => setShowHarnessModal(false)}
+        triggerPopup={triggerPopup}
       />
 
     </div>
