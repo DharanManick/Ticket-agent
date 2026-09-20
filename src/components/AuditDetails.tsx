@@ -466,16 +466,16 @@ function ActiveMetricAuditCard({
 
   // Dynamic status glow styling
   const stateBorderColor = isFullScore 
-    ? 'border-emerald-500/35 bg-[#11241C]/35' 
+    ? 'border-emerald-500/30 bg-emerald-50/50 dark:bg-[#11241C]/35' 
     : isWarning 
-      ? 'border-amber-500/35 bg-[#252011]/35' 
-      : 'border-rose-500/35 bg-[#261216]/35';
+      ? 'border-amber-500/30 bg-amber-50/50 dark:bg-[#252011]/35' 
+      : 'border-rose-500/30 bg-rose-50/50 dark:bg-[#261216]/35';
 
   const badgeColor = isFullScore
-    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
+    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20'
     : isWarning
-      ? 'bg-amber-500/15 text-amber-500 border-amber-500/20'
-      : 'bg-rose-500/15 text-[#FF6584] border-rose-500/20';
+      ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-500/15 dark:text-amber-500 dark:border-amber-500/20'
+      : 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-500/15 dark:text-[#FF6584] dark:border-rose-500/20';
 
   // State mapping for Gemini advice
   interface AiAdviceData {
@@ -550,11 +550,11 @@ function ActiveMetricAuditCard({
       
       {/* Header Topic */}
       <div>
-        <span className="text-[10px] uppercase font-mono tracking-widest font-black text-slate-400 block mb-1">
+        <span className="text-[10px] uppercase font-mono tracking-widest font-black text-slate-500 dark:text-slate-400 block mb-1">
           🎯 Active Metric Checklist:
         </span>
         <div className="flex flex-wrap items-center gap-2 mt-1">
-          <span className="text-white text-xs font-mono font-extrabold bg-blue-500/10 px-2.5 py-1 rounded border border-blue-500/20 inline-block">
+          <span className="text-blue-700 dark:text-white text-xs font-mono font-extrabold bg-blue-50 dark:bg-blue-500/10 px-2.5 py-1 rounded border border-blue-200 dark:border-blue-500/20 inline-block">
             {activeMetricKey.replace(/([A-Z])/g, ' $1').toUpperCase()}
           </span>
           <span className={`text-[9px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded border ${badgeColor}`}>
@@ -563,11 +563,11 @@ function ActiveMetricAuditCard({
           {(() => {
             const isExempt = typeof activeMetricComment === 'string' && activeMetricComment.toLowerCase().startsWith('exempt');
             return isExempt ? (
-              <span className="text-[9px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded border bg-indigo-500/20 text-indigo-300 border-indigo-500/40 flex items-center gap-1">
+              <span className="text-[9px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded border bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/40 flex items-center gap-1">
                 <span>OPTIONAL (EXEMPT FOR GROUP)</span>
               </span>
             ) : (
-              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-slate-800/80 text-slate-300 border-slate-700">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700">
                 MANDATORY
               </span>
             );
@@ -628,20 +628,20 @@ function ActiveMetricAuditCard({
           }
 
           return (
-            <div className="bg-[#0A0D14] border border-blue-500/25 rounded-xl p-4.5 space-y-2.5 shadow-sm">
+            <div className="bg-white dark:bg-[#0A0D14] border border-slate-200 dark:border-blue-500/25 rounded-xl p-4.5 space-y-2.5 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono gap-2">
-                <span className="text-blue-400 font-extrabold flex items-center gap-1.5 uppercase">
-                  <Sparkles className="h-4 w-4 text-blue-400 animate-pulse" />
+                <span className="text-blue-700 dark:text-blue-400 font-extrabold flex items-center gap-1.5 uppercase">
+                  <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-pulse" />
                   {metricTitle}
                 </span>
-                <span className="text-gray-300 font-bold bg-[#111827] border border-gray-800 px-2.5 py-1 rounded text-[10.5px]">
-                  {methodText}: <span className="text-blue-400">{ragPercent}% Match</span>
+                <span className="text-slate-700 dark:text-gray-300 font-bold bg-slate-100 dark:bg-[#111827] border border-slate-200 dark:border-gray-800 px-2.5 py-1 rounded text-[10.5px]">
+                  {methodText}: <span className="text-blue-600 dark:text-blue-400">{ragPercent}% Match</span>
                 </span>
               </div>
 
               {/* Similarity progress bar */}
               <div className="space-y-1.5">
-                <div className="h-2.5 w-full bg-[#1F2937] rounded-full overflow-hidden border border-gray-800 flex">
+                <div className="h-2.5 w-full bg-slate-200 dark:bg-[#1F2937] rounded-full overflow-hidden border border-slate-300 dark:border-gray-800 flex">
                   <div 
                     className={`h-full transition-all duration-1000 ${
                       ragPercent < 45 
@@ -653,7 +653,7 @@ function ActiveMetricAuditCard({
                     style={{ width: `${ragPercent}%` }}
                   ></div>
                 </div>
-                <div className="flex justify-between text-[9px] text-gray-500 font-mono">
+                <div className="flex justify-between text-[9px] text-slate-500 dark:text-gray-500 font-mono">
                   <span>0% (No overlap)</span>
                   <span>45% (Partial Anchor)</span>
                   <span>65% (Min Compliant Pass)</span>
@@ -689,15 +689,15 @@ function ActiveMetricAuditCard({
                 }
 
                 return (
-                  <div className="bg-[#11131A] rounded-lg p-3 border border-gray-800/80 space-y-2 text-xs">
+                  <div className="bg-slate-50 dark:bg-[#11131A] rounded-lg p-3 border border-slate-200 dark:border-gray-800/80 space-y-2 text-xs">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <span className="text-blue-400 font-extrabold text-[10px] block uppercase font-mono tracking-wider">🛠️ What checks it's doing:</span>
-                        <p className="text-gray-300 text-[11px] leading-relaxed mt-0.5">{checkDescription}</p>
+                        <span className="text-blue-700 dark:text-blue-400 font-extrabold text-[10px] block uppercase font-mono tracking-wider">🛠️ What checks it's doing:</span>
+                        <p className="text-slate-700 dark:text-gray-300 text-[11px] leading-relaxed mt-0.5">{checkDescription}</p>
                       </div>
                       <div>
-                        <span className="text-emerald-400 font-extrabold text-[10px] block uppercase font-mono tracking-wider">🎯 What was expected:</span>
-                        <p className="text-gray-300 text-[11px] leading-relaxed mt-0.5">{expectedOutcome}</p>
+                        <span className="text-emerald-700 dark:text-emerald-400 font-extrabold text-[10px] block uppercase font-mono tracking-wider">🎯 What was expected:</span>
+                        <p className="text-slate-700 dark:text-gray-300 text-[11px] leading-relaxed mt-0.5">{expectedOutcome}</p>
                       </div>
                     </div>
                   </div>
@@ -705,13 +705,13 @@ function ActiveMetricAuditCard({
               })()}
 
               {embRefText && (
-                <div className="text-[10.5px] font-mono text-gray-300 bg-slate-900/80 p-2.5 rounded border border-gray-800/80 select-all whitespace-normal break-after-auto">
-                  <span className="text-blue-400 font-extrabold block mb-1">COMPARED REFERENCE MODEL STANDARD:</span>
+                <div className="text-[10.5px] font-mono text-slate-700 dark:text-gray-300 bg-slate-100 dark:bg-slate-900/80 p-2.5 rounded border border-slate-200 dark:border-gray-800/80 select-all whitespace-normal break-after-auto">
+                  <span className="text-blue-700 dark:text-blue-400 font-extrabold block mb-1">COMPARED REFERENCE MODEL STANDARD:</span>
                   {embRefText}
                 </div>
               )}
 
-              <p className="text-[10px] text-gray-400 font-sans leading-relaxed select-text border-t border-gray-850/35 pt-2">
+              <p className="text-[10px] text-slate-600 dark:text-gray-400 font-sans leading-relaxed select-text border-t border-slate-200 dark:border-gray-850/35 pt-2">
                 * ServiceNow governance is audited using <strong>LMM vector embeddings and semantic checklists</strong>. Real-time RAG embeddings validate exact procedural matching relative to internal standard templates, operational priority lists, or linked knowledge articles.
               </p>
             </div>
@@ -723,42 +723,42 @@ function ActiveMetricAuditCard({
       {/* Grid containing details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Current State in ServiceNow */}
-        <div className="bg-[#07090C]/90 border border-[#1C1F26] p-3 rounded-lg flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#07090C]/90 border border-slate-200 dark:border-[#1C1F26] p-3 rounded-lg flex flex-col justify-between shadow-xs">
           <div>
             <span className="text-[8.5px] font-mono text-slate-500 uppercase font-black tracking-wider block mb-1.5">
               Current ServiceNow Value:
             </span>
-            <p className="text-[11px] font-mono font-semibold text-slate-300 leading-normal whitespace-pre-wrap break-words max-h-[140px] overflow-y-auto">
+            <p className="text-[11px] font-mono font-semibold text-slate-800 dark:text-slate-300 leading-normal whitespace-pre-wrap break-words max-h-[140px] overflow-y-auto">
               {currentValue}
             </p>
           </div>
-          <div className="mt-2 border-t border-[#1C1F26] pt-1.5 flex items-center justify-between text-[8px] text-slate-500 font-mono">
+          <div className="mt-2 border-t border-slate-200 dark:border-[#1C1F26] pt-1.5 flex items-center justify-between text-[8px] text-slate-500 font-mono">
             <span>AUDITED FIELD</span>
-            <span className="text-[#60A5FA] font-bold">STATE: COMPLETED</span>
+            <span className="text-blue-700 dark:text-[#60A5FA] font-bold">STATE: COMPLETED</span>
           </div>
         </div>
 
         {/* Audit Verdict */}
-        <div className="bg-[#07090C]/90 border border-[#1C1F26] p-3 rounded-lg flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#07090C]/90 border border-slate-200 dark:border-[#1C1F26] p-3 rounded-lg flex flex-col justify-between shadow-xs">
           <div>
             <span className="text-[8.5px] font-mono text-slate-500 uppercase font-black tracking-wider block mb-1.5">
               Evaluation Verdict:
             </span>
-            <p className="text-[11px] font-medium font-sans text-slate-200 leading-relaxed whitespace-pre-wrap select-text">
+            <p className="text-[11px] font-medium font-sans text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap select-text">
               {activeMetricComment || "This metric aligns perfectly with ServiceNow best practices and active guidelines! No violations or warnings found."}
             </p>
           </div>
-          <div className="mt-2 border-t border-[#1C1F26] pt-1.5 flex items-center gap-1.5 text-[8.5px] font-mono">
+          <div className="mt-2 border-t border-slate-200 dark:border-[#1C1F26] pt-1.5 flex items-center gap-1.5 text-[8.5px] font-mono">
             {isFullScore ? (
-              <span className="text-emerald-400 font-bold flex items-center gap-1">
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
                 <span className="text-[10px]">✓</span> VALIDATED PASS
               </span>
             ) : isWarning ? (
-              <span className="text-amber-400 font-bold flex items-center gap-1">
+              <span className="text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1">
                 <span className="text-[10px]">⚠️</span> COMPLIANCE COUPLING GAP
               </span>
             ) : (
-              <span className="text-[#FF6584] font-bold flex items-center gap-1">
+              <span className="text-rose-700 dark:text-[#FF6584] font-bold flex items-center gap-1">
                 <span className="text-[10px]">✗</span> FAIL VERIFICATION
               </span>
             )}
@@ -768,37 +768,37 @@ function ActiveMetricAuditCard({
 
       {/* Suggested Solution to Make Full Score (Target Alignment) */}
       {matchedSolution && (
-        <div className="bg-[#0A0D14] border border-[#2563EB]/25 rounded-lg p-4 space-y-3 relative overflow-hidden">
-          <div className="absolute top-0 right-0 bg-[#2563EB]/10 border-l border-b border-[#2563EB]/20 text-[8px] text-blue-400 font-mono tracking-widest font-black px-2 py-1 uppercase rounded-bl">
+        <div className="bg-white dark:bg-[#0A0D14] border border-blue-200 dark:border-[#2563EB]/25 rounded-lg p-4 space-y-3 relative overflow-hidden shadow-xs">
+          <div className="absolute top-0 right-0 bg-blue-50 text-blue-700 dark:bg-[#2563EB]/10 border-l border-b border-blue-200 dark:border-[#2563EB]/20 text-[8px] dark:text-blue-400 font-mono tracking-widest font-black px-2 py-1 uppercase rounded-bl">
             RESOLUTION PATH
           </div>
 
           <div className="space-y-2 text-xs">
             {/* Target Value Item */}
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 text-blue-400 shrink-0">
+              <span className="mt-0.5 text-blue-600 dark:text-blue-400 shrink-0">
                 <Target className="h-3.5 w-3.5" />
               </span>
               <div>
-                <span className="text-[8.5px] font-mono text-slate-400 uppercase font-black tracking-wider block mb-0.5">
+                <span className="text-[8.5px] font-mono text-slate-500 dark:text-slate-400 uppercase font-black tracking-wider block mb-0.5">
                   Target Alignment Value for Full Score (2/2):
                 </span>
-                <span className="text-[10px] font-mono font-bold text-sky-400 bg-sky-500/5 border border-sky-500/20 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-mono font-bold text-blue-700 dark:text-sky-400 bg-blue-50 dark:bg-sky-500/5 border border-blue-200 dark:border-sky-500/20 px-1.5 py-0.5 rounded">
                   {matchedSolution.expected}
                 </span>
               </div>
             </div>
 
             {/* Actionable Suggestions */}
-            <div className="flex items-start gap-2 pt-1 border-t border-slate-900">
-              <span className="mt-0.5 text-amber-400 shrink-0">
+            <div className="flex items-start gap-2 pt-1 border-t border-slate-200 dark:border-slate-900">
+              <span className="mt-0.5 text-amber-600 dark:text-amber-400 shrink-0">
                 <Lightbulb className="h-3.5 w-3.5" />
               </span>
               <div>
-                <span className="text-[8.5px] font-mono text-slate-400 uppercase font-black tracking-wider block mb-0.5">
+                <span className="text-[8.5px] font-mono text-slate-500 dark:text-slate-400 uppercase font-black tracking-wider block mb-0.5">
                   How to Fix and Secure 100% Score:
                 </span>
-                <p className="text-[11px] font-sans text-slate-300 leading-relaxed font-medium">
+                <p className="text-[11px] font-sans text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                   {matchedSolution.recommendation}
                 </p>
               </div>
@@ -1302,25 +1302,25 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
     <div className="space-y-4" id="compliance-mistakes-and-comments-container">
       
       {/* 1. TOP CATEGORY SWITCHER: METRIC-BASED vs SEPARATE OVERALL AUDIT REFERENCE */}
-      <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-2 shadow-md">
+      <div className="bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] rounded-xl p-2 shadow-xs">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 flex-1 bg-[#0A0C0F] p-1 rounded-lg border border-[#23262D]">
+          <div className="flex items-center gap-1.5 flex-1 bg-slate-100 dark:bg-[#0A0C0F] p-1 rounded-lg border border-slate-200 dark:border-[#23262D]">
             <button
               type="button"
               id="view-category-metrics-btn"
               onClick={() => setCategoryView('metrics')}
               className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-mono font-bold transition-all cursor-pointer ${
                 categoryView === 'metrics'
-                  ? 'bg-blue-600/25 text-blue-300 border border-blue-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#15171C]'
+                  ? 'bg-white dark:bg-blue-600/25 text-blue-700 dark:text-blue-300 border border-slate-200 dark:border-blue-500/40 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-[#15171C]'
               }`}
             >
-              <ListChecks className="h-3.5 w-3.5 text-blue-400" />
+              <ListChecks className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               <span>Metric-by-Metric Comments</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
                 infractionsCount > 0 
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' 
-                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                  ? 'bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30' 
+                  : 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
               }`}>
                 {infractionsCount > 0 ? `${infractionsCount} Gaps` : 'All Passed'}
               </span>
@@ -1332,13 +1332,13 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
               onClick={() => setCategoryView('overall')}
               className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-mono font-bold transition-all cursor-pointer ${
                 categoryView === 'overall'
-                  ? 'bg-purple-600/25 text-purple-300 border border-purple-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#15171C]'
+                  ? 'bg-white dark:bg-purple-600/25 text-purple-700 dark:text-purple-300 border border-slate-200 dark:border-purple-500/40 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-[#15171C]'
               }`}
             >
-              <MessageSquare className="h-3.5 w-3.5 text-purple-400" />
+              <MessageSquare className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
               <span>Overall Comments (Audit Reference)</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">
                 Executive
               </span>
             </button>
@@ -1347,10 +1347,10 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
           <button
             type="button"
             onClick={() => setShowGuideModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1C202B] hover:bg-[#252A38] text-slate-300 hover:text-white border border-[#2E3342] rounded-lg text-xs font-mono transition-all cursor-pointer shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-[#1C202B] dark:hover:bg-[#252A38] text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-[#2E3342] rounded-lg text-xs font-mono transition-all cursor-pointer shrink-0 font-medium"
             title="View steps to add comments to incident activity logs"
           >
-            <HelpCircle className="h-3.5 w-3.5 text-blue-400" />
+            <HelpCircle className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
             <span className="hidden md:inline">Activity Log Steps</span>
           </button>
         </div>
@@ -1358,29 +1358,29 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
 
       {/* 2. CATEGORY A: METRIC-BY-METRIC COMMENTS & MISTAKES BREAKDOWN */}
       {categoryView === 'metrics' && (
-        <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-4 md:p-5 shadow-lg space-y-4">
+        <div className="bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] rounded-xl p-4 md:p-5 shadow-xs space-y-4">
           
           {/* Audit Metrics Two-Way Sync Bar */}
-          <div className="bg-[#0A0C0F] border border-[#23262D] p-3 rounded-xl space-y-2.5 shadow-inner">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E222B] pb-2">
+          <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-3 rounded-xl space-y-2.5 shadow-inner">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-[#1E222B] pb-2">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-400">
+                <span className="p-1.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-600 dark:text-blue-400">
                   <Target className="h-4 w-4" />
                 </span>
                 <div>
-                  <span className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider block">
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block">
                     Audit Metric Sync:
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-white font-mono tracking-tight">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white font-mono tracking-tight">
                       {currentActiveMetric?.label || 'Activity Logs'}
                     </span>
                     <span className={`text-[9.5px] font-mono font-bold px-2 py-0.5 rounded border ${
                       currentActiveMetric?.rating === 'Pass'
-                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
                         : currentActiveMetric?.rating === 'Fail'
-                          ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                          : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                          ? 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30'
+                          : 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30'
                     }`}>
                       {currentActiveMetric?.scoreDisplay} {currentActiveMetric?.rating.toUpperCase()}
                     </span>
@@ -1389,14 +1389,14 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
               </div>
 
               {/* View Scope Toggle: Focused (Selected Metric Only) vs View All 13 */}
-              <div className="flex items-center gap-1 bg-[#15171C] p-1 rounded-lg border border-[#23262D] text-[10.5px] font-mono">
+              <div className="flex items-center gap-1 bg-white dark:bg-[#15171C] p-1 rounded-lg border border-slate-200 dark:border-[#23262D] text-[10.5px] font-mono">
                 <button
                   type="button"
                   onClick={() => setScopeMode('selected')}
                   className={`px-2.5 py-1 rounded transition-all cursor-pointer font-bold flex items-center gap-1.5 ${
                     scopeMode === 'selected'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#1E222B]'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1E222B]'
                   }`}
                   title="Show only the selected metric's comment (1:1 synchronized with Left Audit Metrics column)"
                 >
@@ -1408,8 +1408,8 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                   onClick={() => setScopeMode('all')}
                   className={`px-2.5 py-1 rounded transition-all cursor-pointer font-bold flex items-center gap-1.5 ${
                     scopeMode === 'all'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#1E222B]'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1E222B]'
                   }`}
                   title="View all 13 metric comments simultaneously"
                 >
@@ -1421,13 +1421,13 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
 
             {/* All 13 Metrics Selector Grid on the Same Page */}
             <div>
-              <div className="flex items-center justify-between text-[9.5px] font-mono text-slate-400 mb-2 px-0.5">
-                <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3 w-3 text-blue-400" />
+              <div className="flex items-center justify-between text-[9.5px] font-mono text-slate-500 dark:text-slate-400 mb-2 px-0.5">
+                <span className="font-bold text-slate-800 dark:text-slate-300 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                   <span>ALL 13 AUDIT METRICS (CLICK ANY METRIC TO VIEW DETAILS ON THIS PAGE):</span>
                 </span>
-                <span className="text-slate-400 font-medium hidden sm:inline">
-                  Active: <span className="text-blue-400 font-bold">{currentActiveMetric?.label}</span> ({allMetricsData.findIndex(m => m.key === activeKey) + 1} of 13)
+                <span className="text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
+                  Active: <span className="text-blue-600 dark:text-blue-400 font-bold">{currentActiveMetric?.label}</span> ({allMetricsData.findIndex(m => m.key === activeKey) + 1} of 13)
                 </span>
               </div>
               
@@ -1446,8 +1446,8 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                       }}
                       className={`p-2 rounded-lg text-left transition-all cursor-pointer flex flex-col justify-between border relative ${
                         isSelected
-                          ? 'bg-blue-600/20 text-white border-blue-400 shadow-md shadow-blue-500/15 ring-2 ring-blue-400/60'
-                          : 'bg-[#12141A] text-slate-300 hover:text-white border-[#23262D] hover:border-[#3E4557] hover:bg-[#181B24]'
+                          ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-900 dark:text-white border-blue-400 shadow-xs ring-2 ring-blue-300/60 dark:ring-blue-400/60'
+                          : 'bg-white dark:bg-[#12141A] text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-[#23262D] hover:border-slate-300 dark:hover:border-[#3E4557] hover:bg-slate-50 dark:hover:bg-[#181B24]'
                       }`}
                       title={`Select ${m.label} to view comments & audit details`}
                     >
@@ -1457,23 +1457,23 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                         </span>
                         <span className={`text-[8.5px] font-mono px-1.5 py-0.2 rounded font-black tracking-tight ${
                           isPass 
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30' 
                             : isCrit 
-                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' 
-                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              ? 'bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30' 
+                              : 'bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30'
                         }`}>
                           {m.scoreDisplay}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <Icon className={`h-3 w-3 shrink-0 ${isSelected ? 'text-blue-400' : 'text-slate-500'}`} />
+                        <Icon className={`h-3 w-3 shrink-0 ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
                         <span className="text-[10.5px] font-mono font-bold truncate leading-tight">
                           {m.label}
                         </span>
                       </div>
                       {isSelected && (
-                        <div className="mt-1 flex items-center gap-1 text-[8px] font-mono text-blue-300 font-bold">
-                          <span className="h-1 w-1 rounded-full bg-blue-400 animate-ping" />
+                        <div className="mt-1 flex items-center gap-1 text-[8px] font-mono text-blue-700 dark:text-blue-300 font-bold">
+                          <span className="h-1 w-1 rounded-full bg-blue-600 dark:bg-blue-400 animate-ping" />
                           <span>ACTIVE SELECTION</span>
                         </div>
                       )}
@@ -1485,23 +1485,23 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
           </div>
 
           {/* Header with Sub-filters and Search */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#2A2D35] pb-3.5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 dark:border-[#2A2D35] pb-3.5">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold text-blue-400 uppercase tracking-widest block">
+                <span className="text-[10px] font-mono font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest block">
                   Quality Checkpoint Breakdown
                 </span>
-                <span className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-[#0A0C0F] text-slate-400 border border-[#23262D]">
+                <span className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#0A0C0F] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#23262D]">
                   {scopeMode === 'selected' ? 'Focused Mode (1 Metric)' : 'All Metrics Mode'}
                 </span>
               </div>
-              <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2 mt-0.5">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 mt-0.5">
                 <span>
                   {scopeMode === 'selected' 
                     ? `Comments for: ${currentActiveMetric?.category}`
                     : 'Comments & Evaluation for Each Metric'}
                 </span>
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30">
                   {displayedMetrics.length} of {allMetricsData.length}
                 </span>
               </h3>
@@ -1511,24 +1511,24 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
             <div className="flex items-center gap-2 flex-wrap">
               {scopeMode === 'all' && (
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
+                  <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
                   <input
                     type="text"
                     value={metricSearchQuery}
                     onChange={(e) => setMetricSearchQuery(e.target.value)}
                     placeholder="Filter metric..."
-                    className="bg-[#0A0C0F] border border-[#2A2D35] focus:border-blue-500 rounded-lg pl-8 pr-3 py-1 text-xs text-white placeholder-slate-500 outline-none w-32 sm:w-40 font-mono transition-all"
+                    className="bg-white dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#2A2D35] focus:border-blue-500 rounded-lg pl-8 pr-3 py-1 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none w-32 sm:w-40 font-mono transition-all"
                   />
                 </div>
               )}
 
               {scopeMode === 'all' && (
-                <div className="flex items-center gap-1 bg-[#0A0C0F] p-1 rounded-lg border border-[#23262D] text-[10.5px] font-mono">
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#0A0C0F] p-1 rounded-lg border border-slate-200 dark:border-[#23262D] text-[10.5px] font-mono">
                   <button
                     type="button"
                     onClick={() => setFilterSeverity('all')}
                     className={`px-2 py-1 rounded transition-all cursor-pointer font-bold ${
-                      filterSeverity === 'all' ? 'bg-[#1C202B] text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                      filterSeverity === 'all' ? 'bg-white dark:bg-[#1C202B] text-slate-900 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                   >
                     All ({allMetricsData.length})
@@ -1537,7 +1537,7 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                     type="button"
                     onClick={() => setFilterSeverity('mistakes')}
                     className={`px-2 py-1 rounded transition-all cursor-pointer font-bold ${
-                      filterSeverity === 'mistakes' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'text-rose-400/80 hover:text-rose-300'
+                      filterSeverity === 'mistakes' ? 'bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30' : 'text-rose-700/80 hover:text-rose-800 dark:text-rose-400/80 dark:hover:text-rose-300'
                     }`}
                   >
                     Gaps ({infractionsCount})
@@ -1546,7 +1546,7 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                     type="button"
                     onClick={() => setFilterSeverity('pass')}
                     className={`px-2 py-1 rounded transition-all cursor-pointer font-bold ${
-                      filterSeverity === 'pass' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-emerald-400/80 hover:text-emerald-300'
+                      filterSeverity === 'pass' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30' : 'text-emerald-700/80 hover:text-emerald-800 dark:text-emerald-400/80 dark:hover:text-emerald-300'
                     }`}
                   >
                     Pass ({passedCount})
@@ -1555,8 +1555,8 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
               )}
 
               {scopeMode === 'selected' && (
-                <div className="text-[10px] font-mono text-slate-400 bg-[#0A0C0F] px-2.5 py-1 rounded-lg border border-[#23262D] flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-[#0A0C0F] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#23262D] flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                   <span>Synced with Left Panel: {currentActiveMetric?.label}</span>
                 </div>
               )}
@@ -1565,13 +1565,13 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
 
           {/* Metric Cards List */}
           {displayedMetrics.length === 0 ? (
-            <div className="p-8 bg-[#0A0C0F] border border-[#23262D] rounded-xl text-center space-y-2">
-              <Search className="h-6 w-6 text-slate-500 mx-auto" />
-              <p className="text-xs text-slate-300 font-medium">No metrics match the current filter or search criteria.</p>
+            <div className="p-8 bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] rounded-xl text-center space-y-2">
+              <Search className="h-6 w-6 text-slate-400 dark:text-slate-500 mx-auto" />
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">No metrics match the current filter or search criteria.</p>
               <button
                 type="button"
                 onClick={() => { setFilterSeverity('all'); setMetricSearchQuery(''); }}
-                className="text-xs text-blue-400 hover:underline font-mono cursor-pointer"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-mono cursor-pointer font-bold"
               >
                 Reset filters
               </button>
@@ -1588,41 +1588,41 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                     key={metric.key}
                     className={`rounded-xl p-3.5 border transition-all space-y-3 ${
                       isPass
-                        ? 'bg-[#0E1318] border-emerald-500/20 hover:border-emerald-500/40 shadow-xs'
+                        ? 'bg-emerald-50/20 dark:bg-[#0E1318] border-emerald-200 dark:border-emerald-500/20 hover:border-emerald-300 dark:hover:border-emerald-500/40 shadow-xs'
                         : isCrit
-                          ? 'bg-[#181116] border-rose-500/30 hover:border-rose-500/50 shadow-sm'
-                          : 'bg-[#181510] border-amber-500/30 hover:border-amber-500/50 shadow-sm'
+                          ? 'bg-rose-50/30 dark:bg-[#181116] border-rose-200 dark:border-rose-500/30 hover:border-rose-300 dark:hover:border-rose-500/50 shadow-xs'
+                          : 'bg-amber-50/30 dark:bg-[#181510] border-amber-200 dark:border-amber-500/30 hover:border-amber-300 dark:hover:border-amber-500/50 shadow-xs'
                     }`}
                   >
                     {/* Metric Card Top Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 dark:border-white/5 pb-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`p-1.5 rounded-lg border ${
                           isPass 
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' 
                             : isCrit 
-                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
-                              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              ? 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20' 
+                              : 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
                         }`}>
                           <IconComponent className="h-3.5 w-3.5" />
                         </span>
 
-                        <span className="text-xs font-bold text-white tracking-tight">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
                           {metric.category}
                         </span>
 
                         <span className={`text-[9.5px] font-mono font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${
                           isPass
-                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
                             : isCrit
-                              ? 'bg-rose-950/70 text-rose-300 border border-rose-500/40'
-                              : 'bg-amber-950/70 text-amber-300 border border-amber-500/40'
+                              ? 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-500/40'
+                              : 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-500/40'
                         }`}>
                           {metric.scoreDisplay} {metric.rating.toUpperCase()}
                         </span>
 
                         {metric.isExempt && (
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 uppercase">
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 uppercase">
                             OPTIONAL
                           </span>
                         )}
@@ -1637,7 +1637,7 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                               onInspectMetricInRAG(metric.key);
                               triggerPopup(`Opened RAG Inspector for ${metric.category}`, 'info');
                             }}
-                            className="text-[10px] font-mono font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors cursor-pointer bg-[#0A0C0F] px-2 py-1 rounded border border-blue-500/20 hover:border-blue-500/40"
+                            className="text-[10px] font-mono font-bold text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 flex items-center gap-1 transition-colors cursor-pointer bg-white dark:bg-[#0A0C0F] px-2 py-1 rounded border border-blue-200 dark:border-blue-500/20 hover:border-blue-400 dark:hover:border-blue-500/40 shadow-2xs"
                             title="Inspect in RAG visualizer"
                           >
                             <span>Inspect in RAG</span>
@@ -1653,8 +1653,8 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                             }}
                             className={`text-[10px] font-mono font-bold flex items-center gap-1 transition-colors cursor-pointer px-2 py-1 rounded border ${
                               activeKey === metric.key
-                                ? 'bg-blue-600 text-white border-blue-400 shadow-xs'
-                                : 'bg-[#0A0C0F] text-slate-400 hover:text-white border-[#23262D]'
+                                ? 'bg-blue-600 text-white border-blue-500 shadow-xs'
+                                : 'bg-white dark:bg-[#0A0C0F] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-[#23262D]'
                             }`}
                             title="Set as active audit metric in left column"
                           >
@@ -1669,11 +1669,11 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                       
                       {/* Current Recorded ServiceNow Value */}
-                      <div className="bg-[#0A0C0F] border border-[#23262D] p-2.5 rounded-lg flex flex-col justify-between">
-                        <span className="text-[8.5px] font-mono text-slate-400 uppercase font-black tracking-wider block mb-1">
+                      <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-2.5 rounded-lg flex flex-col justify-between">
+                        <span className="text-[8.5px] font-mono text-slate-500 dark:text-slate-400 uppercase font-black tracking-wider block mb-1">
                           Current Recorded ServiceNow Value:
                         </span>
-                        <p className="font-mono text-[11px] text-yellow-300/90 font-medium whitespace-pre-wrap break-words leading-normal max-h-[85px] overflow-y-auto custom-scrollbar">
+                        <p className="font-mono text-[11px] text-amber-800 dark:text-yellow-300/90 font-medium whitespace-pre-wrap break-words leading-normal max-h-[85px] overflow-y-auto custom-scrollbar">
                           {metric.currentValue}
                         </p>
                       </div>
@@ -1681,16 +1681,16 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                       {/* Auditor Metric Specific Comment */}
                       <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
                         isPass 
-                          ? 'bg-[#091410] border-emerald-500/20 text-emerald-200' 
-                          : 'bg-[#140E10] border-rose-500/25 text-rose-200'
+                          ? 'bg-emerald-50/50 dark:bg-[#091410] border-emerald-200 dark:border-emerald-500/20 text-emerald-950 dark:text-emerald-200' 
+                          : 'bg-rose-50/50 dark:bg-[#140E10] border-rose-200 dark:border-rose-500/25 text-rose-950 dark:text-rose-200'
                       }`}>
                         <span className={`text-[8.5px] font-mono uppercase font-black tracking-wider block mb-1 flex items-center gap-1 ${
-                          isPass ? 'text-emerald-400' : 'text-rose-400'
+                          isPass ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
                         }`}>
                           <MessageSquare className="h-2.5 w-2.5" />
                           Auditor Metric Evaluation Comment:
                         </span>
-                        <p className="font-sans text-[11px] leading-normal font-medium select-text">
+                        <p className="font-sans text-[11px] leading-normal font-medium select-text text-slate-800 dark:text-slate-200">
                           "{metric.comment}"
                         </p>
                       </div>
@@ -1700,13 +1700,13 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                     {metric.isInfraction && (
                       <div className="space-y-1.5 pt-0.5">
                         {metric.failureReason && (
-                          <div className="bg-[#120B0F] border border-rose-500/20 p-2.5 rounded-lg text-xs flex items-start gap-2">
-                            <AlertCircle className="h-3.5 w-3.5 text-rose-400 mt-0.5 shrink-0" />
+                          <div className="bg-rose-50 dark:bg-[#120B0F] border border-rose-200 dark:border-rose-500/20 p-2.5 rounded-lg text-xs flex items-start gap-2">
+                            <AlertCircle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400 mt-0.5 shrink-0" />
                             <div>
-                              <span className="text-[8.5px] font-mono text-rose-400 uppercase font-bold tracking-wider block">
+                              <span className="text-[8.5px] font-mono text-rose-700 dark:text-rose-400 uppercase font-bold tracking-wider block">
                                 Compliance Infraction Reason:
                               </span>
-                              <p className="text-[11px] font-sans text-slate-200 leading-normal">
+                              <p className="text-[11px] font-sans text-slate-800 dark:text-slate-200 leading-normal">
                                 {metric.failureReason}
                               </p>
                             </div>
@@ -1714,13 +1714,13 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                         )}
 
                         {metric.remediationAction && (
-                          <div className="bg-[#07090C] border border-blue-500/20 p-2.5 rounded-lg flex items-start gap-2 text-xs">
-                            <Target className="h-3.5 w-3.5 text-blue-400 mt-0.5 shrink-0" />
+                          <div className="bg-blue-50 dark:bg-[#07090C] border border-blue-200 dark:border-blue-500/20 p-2.5 rounded-lg flex items-start gap-2 text-xs">
+                            <Target className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                             <div>
-                              <span className="text-[8.5px] font-mono text-blue-400 uppercase font-black tracking-wider block mb-0.5">
+                              <span className="text-[8.5px] font-mono text-blue-700 dark:text-blue-400 uppercase font-black tracking-wider block mb-0.5">
                                 Remediation Action for Full Score (2/2):
                               </span>
-                              <p className="text-[11px] font-sans text-slate-300 leading-normal font-medium">
+                              <p className="text-[11px] font-sans text-slate-800 dark:text-slate-300 leading-normal font-medium">
                                 {metric.remediationAction}
                               </p>
                             </div>
@@ -1730,14 +1730,14 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                     )}
 
                     {/* Action Toolbar for this specific metric */}
-                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-white/5">
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-200/80 dark:border-white/5">
                       <button
                         type="button"
                         onClick={() => handleCopyMetricComment(metric)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#10131A] hover:bg-[#181D26] text-slate-300 hover:text-white border border-[#2A2E3B] hover:border-blue-500/40 rounded-lg text-[10.5px] font-mono font-medium transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-[#10131A] dark:hover:bg-[#181D26] text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-[#2A2E3B] hover:border-slate-300 dark:hover:border-blue-500/40 rounded-lg text-[10.5px] font-mono font-medium transition-all cursor-pointer shadow-2xs"
                         title="Copy this metric comment to clipboard"
                       >
-                        {copiedMetricKey === metric.key ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                        {copiedMetricKey === metric.key ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3 w-3" />}
                         <span>{copiedMetricKey === metric.key ? 'Copied' : 'Copy Metric Comment'}</span>
                       </button>
                     </div>
@@ -1753,18 +1753,18 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
 
       {/* 3. CATEGORY B: OVERALL COMMENTS & AUDIT REFERENCE (KEPT IN SEPARATE CATEGORY) */}
       {categoryView === 'overall' && (
-        <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-4 md:p-5 shadow-lg space-y-4" id="overall-audit-reference-category">
+        <div className="bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] rounded-xl p-4 md:p-5 shadow-xs space-y-4" id="overall-audit-reference-category">
           
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#2A2D35] pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-[#2A2D35] pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20">
                 <MessageSquare className="h-4 w-4" />
               </div>
               <div>
-                <span className="text-[10px] font-mono font-bold text-purple-400 uppercase tracking-widest block">
+                <span className="text-[10px] font-mono font-bold text-purple-700 dark:text-purple-400 uppercase tracking-widest block">
                   Executive Audit Reference Category
                 </span>
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
                   Overall Auditor Comments &amp; Verdict
                 </h3>
               </div>
@@ -1773,10 +1773,10 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
             <div className="flex items-center gap-2">
               <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border ${
                 isFullScore 
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25' 
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/25' 
                   : isWarning 
-                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/25' 
-                    : 'bg-rose-500/10 text-rose-400 border-rose-500/25'
+                    ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/25' 
+                    : 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/25'
               }`}>
                 {report.percentage}% ({report.totalScore}/26) &bull; {report.statusColor.toUpperCase()}
               </span>
@@ -1784,10 +1784,10 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
               <button
                 type="button"
                 onClick={handleCopyOverallComments}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1C202B] hover:bg-[#252A38] text-purple-300 hover:text-white border border-purple-500/30 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-[#1C202B] dark:hover:bg-[#252A38] text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-white border border-purple-200 dark:border-purple-500/30 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer shadow-2xs"
                 title="Copy overall verdict to clipboard"
               >
-                {copiedMetricKey === 'overall' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedMetricKey === 'overall' ? <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                 <span>{copiedMetricKey === 'overall' ? 'Copied!' : 'Copy Verdict'}</span>
               </button>
             </div>
@@ -1795,32 +1795,32 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
 
           {/* Executive Overview Badge Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono">
-            <div className="bg-[#0A0C0F] border border-[#23262D] p-2 rounded-lg">
+            <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-2 rounded-lg">
               <span className="text-[9px] text-slate-500 block uppercase">Incident</span>
-              <span className="font-bold text-blue-400">{report.ticket.incNumber}</span>
+              <span className="font-bold text-blue-700 dark:text-blue-400">{report.ticket.incNumber}</span>
             </div>
-            <div className="bg-[#0A0C0F] border border-[#23262D] p-2 rounded-lg">
+            <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-2 rounded-lg">
               <span className="text-[9px] text-slate-500 block uppercase">Assignee</span>
-              <span className="font-bold text-slate-200 truncate block">{report.ticket.assignee || 'Unassigned'}</span>
+              <span className="font-bold text-slate-900 dark:text-slate-200 truncate block">{report.ticket.assignee || 'Unassigned'}</span>
             </div>
-            <div className="bg-[#0A0C0F] border border-[#23262D] p-2 rounded-lg">
+            <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-2 rounded-lg">
               <span className="text-[9px] text-slate-500 block uppercase">KSL Loop</span>
-              <span className={`font-bold ${report.ksl === 'Yes' ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <span className={`font-bold ${report.ksl === 'Yes' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                 {report.ksl === 'Yes' ? 'Verified (Yes)' : 'Missing (No)'}
               </span>
             </div>
-            <div className="bg-[#0A0C0F] border border-[#23262D] p-2 rounded-lg">
+            <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-2 rounded-lg">
               <span className="text-[9px] text-slate-500 block uppercase">Checkpoints</span>
-              <span className="font-bold text-slate-200">{passedCount}/13 Met</span>
+              <span className="font-bold text-slate-900 dark:text-slate-200">{passedCount}/13 Met</span>
             </div>
           </div>
 
           {/* General Comments Body */}
-          <div className="bg-[#0A0C0F] border border-[#23262D] rounded-xl p-4 relative space-y-2">
-            <span className="text-[9px] font-mono uppercase font-bold text-purple-400 tracking-wider block">
+          <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] rounded-xl p-4 relative space-y-2">
+            <span className="text-[9px] font-mono uppercase font-bold text-purple-700 dark:text-purple-400 tracking-wider block">
               Overall Appraisal Note for Audit Records:
             </span>
-            <p className="text-slate-200 font-sans text-xs md:text-[13px] leading-relaxed select-text whitespace-pre-wrap font-medium">
+            <p className="text-slate-800 dark:text-slate-200 font-sans text-xs md:text-[13px] leading-relaxed select-text whitespace-pre-wrap font-medium">
               "{generalComments}"
             </p>
           </div>
@@ -1828,16 +1828,16 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
           {/* Actionable Directives Breakdown if available */}
           {parsedActions.length > 1 && (
             <div className="space-y-2 pt-1">
-              <span className="text-[9px] font-mono uppercase font-bold text-slate-400 tracking-wider block">
+              <span className="text-[9px] font-mono uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block">
                 Sequential Remediation Directives ({parsedActions.length}):
               </span>
               <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
                 {parsedActions.map((action, idx) => (
-                  <div key={idx} className="flex items-start gap-2 bg-[#0E1117] p-2.5 rounded-lg border border-[#23262D] text-xs">
-                    <span className="text-emerald-400 mt-0.5 shrink-0 font-mono font-black text-[10px] bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                  <div key={idx} className="flex items-start gap-2 bg-white dark:bg-[#0E1117] p-2.5 rounded-lg border border-slate-200 dark:border-[#23262D] text-xs">
+                    <span className="text-emerald-700 dark:text-emerald-400 mt-0.5 shrink-0 font-mono font-black text-[10px] bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20">
                       ACT-0{idx + 1}
                     </span>
-                    <p className="text-slate-300 font-medium leading-normal text-[11px]">
+                    <p className="text-slate-700 dark:text-slate-300 font-medium leading-normal text-[11px]">
                       {action}
                     </p>
                   </div>
@@ -1847,8 +1847,8 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
           )}
 
           {/* Overall Category Action Bar */}
-          <div className="flex items-center justify-between gap-3 pt-2 border-t border-[#2A2D35] flex-wrap">
-            <span className="text-[10.5px] text-slate-400 font-sans">
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-[#2A2D35] flex-wrap">
+            <span className="text-[10.5px] text-slate-500 dark:text-slate-400 font-sans">
               Recorded under audit reference log for ServiceNow ITIL compliance verification.
             </span>
 
@@ -1857,20 +1857,20 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
                 href={getServiceNowIncidentUrl(report.ticket.incNumber, report.ticket.id)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#1C202B] hover:bg-[#252A38] text-slate-300 hover:text-emerald-400 border border-[#2E3342] hover:border-emerald-500/40 rounded-lg text-xs font-mono font-bold transition-all shadow-sm group"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-[#1C202B] dark:hover:bg-[#252A38] text-slate-700 hover:text-emerald-700 dark:text-slate-300 dark:hover:text-emerald-400 border border-slate-200 dark:border-[#2E3342] hover:border-emerald-300 dark:hover:border-emerald-500/40 rounded-lg text-xs font-mono font-bold transition-all shadow-2xs group"
                 title={`Open ${report.ticket.incNumber} directly in ServiceNow in a new tab`}
               >
-                <ExternalLink className="h-3.5 w-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <ExternalLink className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
                 <span>View in ServiceNow</span>
               </a>
 
               <button
                 type="button"
                 onClick={handleAddOverallToActivityLog}
-                className="inline-flex items-center gap-2 px-3.5 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white border border-purple-500/40 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white border border-purple-500 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer shadow-sm"
                 title="Add overall audit verdict to the ticket activity log"
               >
-                <PlusCircle className="h-3.5 w-3.5 text-purple-400" />
+                <PlusCircle className="h-3.5 w-3.5 text-white" />
                 <span>Add Overall Verdict to Incident Activity Log</span>
               </button>
             </div>
@@ -1881,19 +1881,19 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
 
       {/* 4. ACTIVITY LOG INTEGRATION STEPS MODAL */}
       {showGuideModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs">
-          <div className="bg-[#15171C] border border-[#2A2D35] rounded-2xl max-w-xl w-full p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 p-4 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] rounded-2xl max-w-xl w-full p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             
-            <div className="flex items-center justify-between border-b border-[#2A2D35] pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#2A2D35] pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
                   <Clock className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
                     Adding Comments to Incident Activity Logs
                   </h3>
-                  <span className="text-[10px] font-mono text-slate-400">
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
                     Step-by-step workflow for Quality Auditors
                   </span>
                 </div>
@@ -1902,57 +1902,57 @@ ${allMetricsData.filter(m => m.isInfraction).map((m, i) => `${i + 1}. [${m.categ
               <button
                 type="button"
                 onClick={() => setShowGuideModal(false)}
-                className="p-1 text-slate-400 hover:text-white rounded hover:bg-[#1E222D] transition-colors cursor-pointer"
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-[#1E222D] transition-colors cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-3.5 text-xs text-slate-300">
-              <div className="bg-[#0A0C0F] border border-[#23262D] p-3 rounded-xl space-y-1.5">
-                <span className="text-[10px] font-mono font-bold text-blue-400 uppercase tracking-wider block">
+            <div className="space-y-3.5 text-xs text-slate-700 dark:text-slate-300">
+              <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-3 rounded-xl space-y-1.5">
+                <span className="text-[10px] font-mono font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider block">
                   Method 1: Direct 1-Click Addition in this Workspace
                 </span>
-                <p className="leading-relaxed text-[11.5px]">
-                  Under <strong className="text-white">Metric-by-Metric Comments</strong> or <strong className="text-white">Overall Comments (Audit Reference)</strong>, click the <span className="text-blue-400 font-mono font-bold">"Add to Incident Activity Log"</span> button.
+                <p className="leading-relaxed text-[11.5px] text-slate-700 dark:text-slate-300">
+                  Under <strong className="text-slate-900 dark:text-white">Metric-by-Metric Comments</strong> or <strong className="text-slate-900 dark:text-white">Overall Comments (Audit Reference)</strong>, click the <span className="text-blue-700 dark:text-blue-400 font-mono font-bold">"Add to Incident Activity Log"</span> button.
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-slate-400 text-[11px] pl-1 font-mono">
-                  <li>Appends a timestamped entry with auditor signature to <code className="text-blue-300">activityLogs</code>.</li>
+                <ul className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-400 text-[11px] pl-1 font-mono">
+                  <li>Appends a timestamped entry with auditor signature to <code className="text-blue-700 dark:text-blue-300">activityLogs</code>.</li>
                   <li>Immediately saves the ticket and re-calculates compliance scores in real time.</li>
                 </ul>
               </div>
 
-              <div className="bg-[#0A0C0F] border border-[#23262D] p-3 rounded-xl space-y-1.5">
-                <span className="text-[10px] font-mono font-bold text-purple-400 uppercase tracking-wider block">
+              <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-3 rounded-xl space-y-1.5">
+                <span className="text-[10px] font-mono font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider block">
                   Method 2: Automatic ServiceNow Live Sync (REST Table API)
                 </span>
-                <p className="leading-relaxed text-[11.5px]">
-                  In ServiceNow, Activity Logs are stored in <code className="text-purple-300 font-mono">comments_and_work_notes</code> or <code className="text-purple-300 font-mono">work_notes</code>.
+                <p className="leading-relaxed text-[11.5px] text-slate-700 dark:text-slate-300">
+                  In ServiceNow, Activity Logs are stored in <code className="text-purple-700 dark:text-purple-300 font-mono">comments_and_work_notes</code> or <code className="text-purple-700 dark:text-purple-300 font-mono">work_notes</code>.
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-slate-400 text-[11px] pl-1 font-mono">
-                  <li>When you run <em>Sync with ServiceNow</em> or the <em>ServiceNow API Tester</em>, these activity log entries map directly to ServiceNow's incident REST Table API: <code className="text-slate-300">PATCH /api/now/table/incident/&#123;sys_id&#125;</code>.</li>
+                <ul className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-400 text-[11px] pl-1 font-mono">
+                  <li>When you run <em>Sync with ServiceNow</em> or the <em>ServiceNow API Tester</em>, these activity log entries map directly to ServiceNow's incident REST Table API: <code className="text-slate-700 dark:text-slate-300 font-bold">PATCH /api/now/table/incident/&#123;sys_id&#125;</code>.</li>
                   <li>Entries appear on the native ServiceNow incident timeline for assignees.</li>
                 </ul>
               </div>
 
-              <div className="bg-[#0A0C0F] border border-[#23262D] p-3 rounded-xl space-y-1.5">
-                <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider block">
+              <div className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#23262D] p-3 rounded-xl space-y-1.5">
+                <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
                   Method 3: Manual ServiceNow Incident Portal Entry
                 </span>
-                <ol className="list-decimal list-inside space-y-1 text-slate-400 text-[11px] pl-1">
-                  <li>Click <span className="text-emerald-400 font-mono">"Copy Comment"</span> or <span className="text-emerald-400 font-mono">"Copy Verdict"</span> on any card.</li>
-                  <li>Open the incident in ServiceNow (<code className="text-slate-300 font-mono">incident.do?sys_id=...</code>).</li>
-                  <li>Scroll to the <strong className="text-slate-200">Notes</strong> section &rarr; <strong className="text-slate-200">Work notes</strong> (Internal) or <strong className="text-slate-200">Additional comments</strong>.</li>
-                  <li>Paste the auditor comment and click <strong className="text-slate-200">Post</strong> or <strong className="text-slate-200">Save</strong>.</li>
+                <ol className="list-decimal list-inside space-y-1 text-slate-600 dark:text-slate-400 text-[11px] pl-1">
+                  <li>Click <span className="text-emerald-700 dark:text-emerald-400 font-mono font-bold">"Copy Comment"</span> or <span className="text-emerald-700 dark:text-emerald-400 font-mono font-bold">"Copy Verdict"</span> on any card.</li>
+                  <li>Open the incident in ServiceNow (<code className="text-slate-700 dark:text-slate-300 font-mono">incident.do?sys_id=...</code>).</li>
+                  <li>Scroll to the <strong className="text-slate-900 dark:text-slate-200">Notes</strong> section &rarr; <strong className="text-slate-900 dark:text-slate-200">Work notes</strong> (Internal) or <strong className="text-slate-900 dark:text-slate-200">Additional comments</strong>.</li>
+                  <li>Paste the auditor comment and click <strong className="text-slate-900 dark:text-slate-200">Post</strong> or <strong className="text-slate-900 dark:text-slate-200">Save</strong>.</li>
                 </ol>
               </div>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-[#2A2D35]">
+            <div className="flex justify-end pt-2 border-t border-slate-200 dark:border-[#2A2D35]">
               <button
                 type="button"
                 onClick={() => setShowGuideModal(false)}
-                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-mono font-bold transition-colors cursor-pointer"
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-mono font-bold transition-colors cursor-pointer shadow-xs"
               >
                 Close Guide
               </button>
@@ -2710,30 +2710,30 @@ export default function AuditDetails({
       
       {/* Search and Filters Header Banner (Only visible when no active report is selected to allow clear focus mode) */}
       {!activeReport && (
-        <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-4 space-y-3 shadow-md" id="workspace-checklist-search-panel">
+        <div className="bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] rounded-xl p-4 space-y-3 shadow-xs" id="workspace-checklist-search-panel">
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 dark:text-gray-500" />
               <input
                 id="workspace-checklist-search-input"
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by incident number, assignee, or short description..."
-                className="w-full bg-[#0A0C0F] border border-[#2A2D35] focus:border-blue-500 rounded-lg pl-9 pr-24 py-2 text-xs text-white outline-none transition-all placeholder-gray-500 font-sans"
+                className="w-full bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#2A2D35] focus:border-blue-500 rounded-lg pl-9 pr-24 py-2 text-xs text-slate-900 dark:text-white outline-none transition-all placeholder-slate-400 dark:placeholder-gray-500 font-sans"
               />
               <div className="absolute right-2.5 top-2 flex items-center gap-1.5">
                 {searchTerm && (
                   <button
                     type="button"
                     onClick={() => setSearchTerm('')}
-                    className="p-1 text-gray-400 hover:text-white rounded hover:bg-gray-800 transition-all cursor-pointer"
+                    className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded hover:bg-slate-200 dark:hover:bg-gray-800 transition-all cursor-pointer"
                     title="Clear search"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 )}
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#1E222D] text-gray-400 border border-[#2A2D35]">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-[#1E222D] text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-[#2A2D35]">
                   {filteredReports.length} {filteredReports.length === 1 ? 'ticket' : 'tickets'}
                 </span>
               </div>
@@ -2748,15 +2748,15 @@ export default function AuditDetails({
                 disabled={isTogglingSolvePropose}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
                   onlySolvePropose 
-                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25 shadow-sm shadow-emerald-900/20' 
-                    : 'bg-[#0A0C0F] text-slate-400 border-[#2A2D35] hover:text-slate-200 hover:border-gray-600'
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25 shadow-xs' 
+                    : 'bg-slate-50 dark:bg-[#0A0C0F] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-[#2A2D35] hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-gray-600'
                 }`}
                 title={onlySolvePropose ? "Click to view all live tickets" : "Click to filter strictly to Solve Proposed tickets"}
               >
-                <span className={`w-2 h-2 rounded-full ${onlySolvePropose ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
+                <span className={`w-2 h-2 rounded-full ${onlySolvePropose ? 'bg-emerald-500 dark:bg-emerald-400 animate-pulse' : 'bg-slate-400 dark:bg-gray-500'}`} />
                 <span>Solve Proposed:</span>
                 <span className={`font-mono font-bold px-1.5 py-0.5 rounded text-[10px] ${
-                  onlySolvePropose ? 'bg-emerald-500/25 text-emerald-300' : 'bg-gray-800 text-gray-400'
+                  onlySolvePropose ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/25 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-gray-800 dark:text-gray-400'
                 }`}>
                   {onlySolvePropose ? 'ON' : 'OFF'}
                 </span>
@@ -2766,14 +2766,14 @@ export default function AuditDetails({
               </button>
 
               <div className="flex items-center space-x-1">
-                <Filter className="h-3.5 w-3.5 text-gray-500" />
+                <Filter className="h-3.5 w-3.5 text-slate-400 dark:text-gray-500" />
                 <select
                   value={assignmentGroupFilter}
                   onChange={(e) => {
                     setAssignmentGroupFilter(e.target.value);
                     triggerPopup(`Filtered list by assignment group: ${e.target.value}`, 'info');
                   }}
-                  className="bg-[#0A0C0F] border border-[#2A2D35] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 outline-none hover:border-gray-600 transition-all cursor-pointer font-mono"
+                  className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#2A2D35] rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-300 outline-none hover:border-slate-300 dark:hover:border-gray-600 transition-all cursor-pointer font-mono"
                 >
                   <option value="All">All Assignment Groups</option>
                   {assignmentGroups.filter(g => g !== 'All').map(g => (
@@ -2788,7 +2788,7 @@ export default function AuditDetails({
                   setComplianceFilter(e.target.value);
                   triggerPopup(`Filtered list by SLA: ${e.target.value}`, 'info');
                 }}
-                className="bg-[#0A0C0F] border border-[#2A2D35] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 outline-none hover:border-gray-600 transition-all cursor-pointer"
+                className="bg-slate-50 dark:bg-[#0A0C0F] border border-slate-200 dark:border-[#2A2D35] rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-300 outline-none hover:border-slate-300 dark:hover:border-gray-600 transition-all cursor-pointer font-mono"
               >
                 <option value="All">All Scores</option>
                 <option value="Green">Green Target (&ge;90%)</option>
@@ -2826,9 +2826,9 @@ export default function AuditDetails({
           })()}
 
           {/* Top Grid headers exactly replication of ServiceNow list metrics under active focus */}
-          <div className="bg-[#0B0D13] border border-[#2A2D35] rounded-xl overflow-hidden shadow-2xl">
+          <div className="bg-white dark:bg-[#0B0D13] border border-slate-200 dark:border-[#2A2D35] rounded-xl overflow-hidden shadow-xs">
             {/* Table Header Labels */}
-            <div className="hidden lg:grid grid-cols-8 gap-4 p-4 border-b border-[#2A2D35]/65 bg-[#0C0E14] text-slate-400 font-mono text-[10px] uppercase tracking-wider items-center">
+            <div className="hidden lg:grid grid-cols-8 gap-4 p-4 border-b border-slate-200 dark:border-[#2A2D35]/65 bg-slate-50 dark:bg-[#0C0E14] text-slate-700 dark:text-slate-400 font-mono text-[10px] uppercase tracking-wider items-center font-bold">
               <div>TICKET ID &uarr;</div>
               <div>STATUS &uarr;&darr;</div>
               <div>CREATED &uarr;&darr;</div>
@@ -2840,32 +2840,32 @@ export default function AuditDetails({
             </div>
 
             {/* Table Row Content matching INC0000601 precisely */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-4 p-5 bg-[#12141A] text-slate-200 items-center font-sans">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-4 p-5 bg-white dark:bg-[#12141A] text-slate-800 dark:text-slate-200 items-center font-sans">
               
               {/* Ticket ID & Direct ServiceNow Link */}
               <div className="flex flex-col justify-center">
-                <span className="lg:hidden text-[9px] uppercase font-mono text-gray-500 font-black">Ticket ID</span>
+                <span className="lg:hidden text-[9px] uppercase font-mono text-slate-500 font-black">Ticket ID</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-black font-mono text-white tracking-tight">{activeReport.ticket.incNumber}</span>
+                  <span className="text-xl font-black font-mono text-slate-900 dark:text-white tracking-tight">{activeReport.ticket.incNumber}</span>
                 </div>
                 <a
                   href={getServiceNowIncidentUrl(activeReport.ticket.incNumber, activeReport.ticket.id)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 hover:text-emerald-200 border border-emerald-500/30 hover:border-emerald-500/50 rounded-md text-[10.5px] font-mono font-bold transition-all shadow-sm group w-fit cursor-pointer"
+                  className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25 text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-200 border border-emerald-300 dark:border-emerald-500/30 hover:border-emerald-400 dark:hover:border-emerald-500/50 rounded-md text-[10.5px] font-mono font-bold transition-all shadow-2xs group w-fit cursor-pointer"
                   title={`Open ${activeReport.ticket.incNumber} directly in ServiceNow in a new browser tab`}
                 >
-                  <ExternalLink className="h-3 w-3 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <ExternalLink className="h-3 w-3 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
                   <span>Open in ServiceNow ↗</span>
                 </a>
               </div>
 
               {/* Status */}
               <div>
-                <span className="lg:hidden text-[9px] uppercase font-mono text-gray-500 font-black block">Status</span>
+                <span className="lg:hidden text-[9px] uppercase font-mono text-slate-500 font-black block">Status</span>
                 <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-blue-400 animate-pulse inline-block"></span>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-100 font-sans">
+                  <span className="h-2.5 w-2.5 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse inline-block"></span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100 font-sans">
                     {activeReport.ticket.incidentState?.toUpperCase() || (activeReport.ticket.activityLogs?.toLowerCase().includes('confirm') ? 'CLOSED' : 'RESOLVED')}
                   </span>
                 </div>
@@ -2873,32 +2873,32 @@ export default function AuditDetails({
 
               {/* Created */}
               <div>
-                <span className="lg:hidden text-[9px] uppercase font-mono text-gray-500 font-black block">Created</span>
-                <span className="text-xs font-mono font-medium text-slate-300">
+                <span className="lg:hidden text-[9px] uppercase font-mono text-slate-500 font-black block">Created</span>
+                <span className="text-xs font-mono font-medium text-slate-700 dark:text-slate-300">
                   {new Date(activeReport.ticket.createdDate || '').toLocaleDateString('en-US', { hour12: false }) || 'N/A'}
                 </span>
               </div>
 
               {/* Closed Date */}
               <div>
-                <span className="lg:hidden text-[9px] uppercase font-mono text-gray-500 font-black block">Closed Date</span>
-                <span className="text-xs font-mono font-medium text-slate-300">
+                <span className="lg:hidden text-[9px] uppercase font-mono text-slate-500 font-black block">Closed Date</span>
+                <span className="text-xs font-mono font-medium text-slate-700 dark:text-slate-300">
                   {activeReport.ticket.closedDate ? new Date(activeReport.ticket.closedDate).toLocaleDateString('en-US') : 'Pending'}
                 </span>
               </div>
 
               {/* Assignment Group */}
               <div>
-                <span className="lg:hidden text-[9px] uppercase font-mono text-gray-500 font-black block">Assignment Group</span>
-                <span className="text-xs font-semibold text-slate-200">
+                <span className="lg:hidden text-[9px] uppercase font-mono text-slate-500 font-black block">Assignment Group</span>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                   {activeReport.ticket.assignmentGroup || 'General Support'}
                 </span>
               </div>
 
               {/* Assignee & Manager */}
               <div className="flex flex-col">
-                <span className="lg:hidden text-[9px] uppercase font-mono text-gray-500 font-black">Assignee & Manager</span>
-                <span className="text-xs font-bold text-white leading-tight">
+                <span className="lg:hidden text-[9px] uppercase font-mono text-slate-500 font-black">Assignee & Manager</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
                   {activeReport.ticket.assignee || 'Unassigned Analyst'}
                 </span>
                 <span className="text-[10px] text-slate-500 font-mono tracking-tighter">
@@ -2908,25 +2908,25 @@ export default function AuditDetails({
 
               {/* Score slider dot track */}
               <div className="flex flex-col items-center">
-                <span className="lg:hidden text-[9px] uppercase font-mono text-gray-500 font-black">Audit Score</span>
+                <span className="lg:hidden text-[9px] uppercase font-mono text-slate-500 font-black">Audit Score</span>
                 <div className="flex items-center gap-1.5 font-mono w-full justify-center">
-                  <div className="w-16 h-2 bg-gray-800 rounded-full overflow-hidden relative inline-block border border-gray-700/25">
+                  <div className="w-16 h-2 bg-slate-200 dark:bg-gray-800 rounded-full overflow-hidden relative inline-block border border-slate-300 dark:border-gray-700/25">
                     <div 
-                      className="bg-blue-550 bg-blue-500 h-full rounded-full transition-all duration-1000 ease-out" 
+                      className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all duration-1000 ease-out" 
                       style={{ width: `${animatedScoreWidth}%` }} 
                     />
                   </div>
-                  <span className="text-[11px] text-gray-400 font-bold">{activeReport.percentage}%</span>
+                  <span className="text-[11px] text-slate-700 dark:text-gray-400 font-bold">{activeReport.percentage}%</span>
                 </div>
               </div>
 
               {/* Tier badge matching SLA */}
               <div className="text-center">
-                <span className="lg:hidden text-[9px] uppercase font-mono text-gray-500 font-black block">Audit Tier</span>
+                <span className="lg:hidden text-[9px] uppercase font-mono text-slate-500 font-black block">Audit Tier</span>
                 <span className={`inline-block px-3 py-0.5 font-black text-[10px] tracking-wider border rounded text-center ${
-                  activeReport.statusColor === 'Green' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-                  activeReport.statusColor === 'Amber' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500' :
-                  'bg-red-500/10 border-red-500/40 text-red-400'
+                  activeReport.statusColor === 'Green' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-400' :
+                  activeReport.statusColor === 'Amber' ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-yellow-500/10 dark:border-yellow-500/30 dark:text-yellow-500' :
+                  'bg-rose-100 text-rose-800 border-rose-200 dark:bg-red-500/10 dark:border-red-500/40 dark:text-red-400'
                 }`}>
                   {activeReport.statusColor?.toUpperCase() || 'RED'}
                 </span>
@@ -2939,12 +2939,12 @@ export default function AuditDetails({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
             {/* Column 1: AUDIT METRICS (Left) */}
-            <div className="lg:col-span-3 bg-[#15171C] border border-[#2A2D35] rounded-xl p-4 flex flex-col shadow-lg">
-              <div className="pb-2 border-b border-[#2A2D35] mb-3 flex items-center justify-between">
-                <span className="text-[10px] font-black font-mono text-slate-300 uppercase tracking-widest">
+            <div className="lg:col-span-3 bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] rounded-xl p-4 flex flex-col shadow-xs">
+              <div className="pb-2 border-b border-slate-200 dark:border-[#2A2D35] mb-3 flex items-center justify-between">
+                <span className="text-[10px] font-black font-mono text-slate-800 dark:text-slate-300 uppercase tracking-widest">
                   AUDIT METRICS
                 </span>
-                <span className="text-[10px] text-slate-500 font-mono tracking-wider">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono tracking-wider">
                   DETAILS
                 </span>
               </div>
@@ -2971,8 +2971,8 @@ export default function AuditDetails({
                       }}
                       className={`p-2.5 rounded-lg transition-all cursor-pointer relative mb-1.5 ${
                         isMetricActive 
-                          ? 'bg-[#1C202B] text-white shadow shadow-blue-500/5' 
-                          : 'hover:bg-[#1A1D25] text-slate-400'
+                          ? 'bg-blue-50 dark:bg-[#1C202B] text-blue-900 dark:text-white border border-blue-300 dark:border-transparent font-bold shadow-xs' 
+                          : 'hover:bg-slate-100 dark:hover:bg-[#1A1D25] text-slate-700 dark:text-slate-400 border border-transparent'
                       }`}
                     >
                       {(() => {
@@ -2982,13 +2982,13 @@ export default function AuditDetails({
                             <span className="font-mono tracking-tight flex items-center gap-1.5 flex-wrap">
                               <span>{m.label}</span>
                               {isExempt && (
-                                <span className="text-[7.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 uppercase">
+                                <span className="text-[7.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 uppercase">
                                   OPTIONAL
                                 </span>
                               )}
                             </span>
                             <span className={`font-mono text-[9.5px] font-bold ${
-                              isPass ? 'text-emerald-400' : isFail ? 'text-rose-400' : 'text-amber-400'
+                              isPass ? 'text-emerald-700 dark:text-emerald-400' : isFail ? 'text-rose-700 dark:text-rose-400' : 'text-amber-700 dark:text-amber-400'
                             }`}>
                               {displayScore}
                             </span>
@@ -2997,7 +2997,7 @@ export default function AuditDetails({
                       })()}
                       
                       {/* Compact compliance score bar with built-in smooth CSS transitions */}
-                      <div className="mt-1.5 w-full bg-[#0A0C10] rounded-full h-1 overflow-hidden relative border border-[#2D313E]/35">
+                      <div className="mt-1.5 w-full bg-slate-200 dark:bg-[#0A0C10] rounded-full h-1 overflow-hidden relative border border-slate-300 dark:border-[#2D313E]/35">
                         <div 
                           className={`h-full rounded-full transition-all duration-700 ease-out ${
                             isPass ? 'bg-emerald-500' : isFail ? 'bg-rose-500' : 'bg-amber-500'
@@ -3006,9 +3006,9 @@ export default function AuditDetails({
                         />
                       </div>
                       
-                      {/* Interactive Emerald highlight underline if active metric is selected */}
+                      {/* Interactive highlight underline if active metric is selected */}
                       {isMetricActive && (
-                        <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-emerald-500 rounded-b animate-pulse" />
+                        <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-blue-600 dark:bg-emerald-500 rounded-b animate-pulse" />
                       )}
                     </div>
                   );
@@ -3020,15 +3020,15 @@ export default function AuditDetails({
             <div className="lg:col-span-6 space-y-4">
 
               {/* View Selector Tabs for Column 2 */}
-              <div className="bg-[#15171C] border border-[#2A2D35] p-1.5 rounded-xl flex items-center justify-between gap-1 shadow-md">
+              <div className="bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] p-1.5 rounded-xl flex items-center justify-between gap-1 shadow-xs">
                 <div className="flex items-center gap-1 w-full">
                   <button
                     type="button"
                     onClick={() => setMiddleColumnView('metric_inspector')}
                     className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                       middleColumnView === 'metric_inspector'
-                        ? 'bg-blue-600/20 text-blue-300 border border-blue-500/40 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-[#1C202B]'
+                        ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/40 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1C202B]'
                     }`}
                   >
                     <Target className="h-4 w-4" />
@@ -3040,14 +3040,14 @@ export default function AuditDetails({
                     onClick={() => setMiddleColumnView('mistakes_and_comments')}
                     className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                       middleColumnView === 'mistakes_and_comments'
-                        ? 'bg-blue-600/20 text-blue-300 border border-blue-500/40 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-[#1C202B]'
+                        ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/40 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1C202B]'
                     }`}
                   >
                     <ListChecks className="h-4 w-4" />
                     <span>Compliance Mistakes &amp; Comments</span>
                     {activeReport && (
-                      <span className="bg-rose-500/20 text-rose-400 text-[10px] px-1.5 py-0.2 rounded border border-rose-500/30">
+                      <span className="bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 text-[10px] px-1.5 py-0.2 rounded dark:border-rose-500/30">
                         {extractTicketMistakes(activeReport).length}
                       </span>
                     )}
@@ -3058,8 +3058,8 @@ export default function AuditDetails({
                     onClick={() => setMiddleColumnView('both')}
                     className={`py-2 px-3 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                       middleColumnView === 'both'
-                        ? 'bg-blue-600/20 text-blue-300 border border-blue-500/40 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-[#1C202B]'
+                        ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/40 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1C202B]'
                     }`}
                     title="Display both metric inspector and compliance checklist simultaneously"
                   >
@@ -3100,16 +3100,16 @@ export default function AuditDetails({
             <div className="lg:col-span-3 space-y-4">
               
               {/* Auditor Quality Summary Widget */}
-              <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl shadow space-y-3">
-                <div className="flex items-center justify-between border-b border-[#2A2D35] pb-2">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase font-black tracking-widest flex items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
+              <div className="bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] p-4 rounded-xl shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#2A2D35] pb-2">
+                  <span className="text-[10px] font-mono text-slate-700 dark:text-slate-400 uppercase font-black tracking-widest flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                     Quality Checklist
                   </span>
                   <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                    activeReport.statusColor === 'Green' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-                    activeReport.statusColor === 'Amber' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
-                    'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                    activeReport.statusColor === 'Green' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30' :
+                    activeReport.statusColor === 'Amber' ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30' :
+                    'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/30'
                   }`}>
                     {activeReport.percentage}% Compliance
                   </span>
@@ -3122,22 +3122,22 @@ export default function AuditDetails({
                   return (
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-2 text-center">
-                        <div className="bg-[#0A0C0F] border border-rose-500/20 p-2 rounded-lg">
-                          <span className="text-[8.5px] font-mono text-rose-400 uppercase font-bold block">Critical Gaps</span>
-                          <span className="text-lg font-black text-rose-400 font-mono">{critCount}</span>
+                        <div className="bg-rose-50 dark:bg-[#0A0C0F] border border-rose-200 dark:border-rose-500/20 p-2 rounded-lg">
+                          <span className="text-[8.5px] font-mono text-rose-700 dark:text-rose-400 uppercase font-bold block">Critical Gaps</span>
+                          <span className="text-lg font-black text-rose-700 dark:text-rose-400 font-mono">{critCount}</span>
                         </div>
-                        <div className="bg-[#0A0C0F] border border-amber-500/20 p-2 rounded-lg">
-                          <span className="text-[8.5px] font-mono text-amber-400 uppercase font-bold block">Warnings</span>
-                          <span className="text-lg font-black text-amber-400 font-mono">{warnCount}</span>
+                        <div className="bg-amber-50 dark:bg-[#0A0C0F] border border-amber-200 dark:border-amber-500/20 p-2 rounded-lg">
+                          <span className="text-[8.5px] font-mono text-amber-700 dark:text-amber-400 uppercase font-bold block">Warnings</span>
+                          <span className="text-lg font-black text-amber-700 dark:text-amber-400 font-mono">{warnCount}</span>
                         </div>
                       </div>
 
                       <button
                         type="button"
                         onClick={() => setMiddleColumnView('mistakes_and_comments')}
-                        className="w-full bg-[#1C202B] hover:bg-[#252A38] text-slate-300 hover:text-white border border-[#2D313E] font-mono font-bold text-[10.5px] py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-[#1C202B] dark:hover:bg-[#252A38] text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-[#2D313E] font-mono font-bold text-[10.5px] py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                       >
-                        <FileText className="h-3.5 w-3.5 text-blue-400" />
+                        <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                         <span>View Comments &amp; Mistakes</span>
                       </button>
                     </div>
@@ -3152,7 +3152,7 @@ export default function AuditDetails({
                 <button
                   type="button"
                   onClick={() => handleNotifyAssignee(activeReport)}
-                  className="w-full bg-[#1C2E4A]/90 hover:bg-[#253B5E] text-blue-400 hover:text-white border border-blue-500/30 font-black py-2.5 rounded-xl flex items-center justify-center gap-2 uppercase text-[11px] tracking-wider transition-all cursor-pointer shadow-lg hover:shadow-blue-900/10"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-2.5 rounded-xl flex items-center justify-center gap-2 uppercase text-[11px] tracking-wider transition-all cursor-pointer shadow-md hover:shadow-blue-500/25"
                 >
                   <Bell className="h-4 w-4" />
                   <span>Notify Assignee</span>
@@ -3162,19 +3162,19 @@ export default function AuditDetails({
                 <div className="grid grid-cols-2 gap-3">
                   
                   {/* KSL Card */}
-                  <div className="bg-[#15171C] border border-[#2A2D35] p-3 rounded-xl shadow">
+                  <div className="bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] p-3 rounded-xl shadow-xs">
                     <span className="text-[9px] font-mono text-slate-500 uppercase font-black tracking-widest block">KSL</span>
                     <span className={`text-base font-black font-sans tracking-tight mt-1.5 block ${
-                      activeReport.ksl === 'Yes' ? 'text-emerald-400' : 'text-rose-400'
+                      activeReport.ksl === 'Yes' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
                     }`}>
                       {activeReport.ksl}
                     </span>
                   </div>
 
                   {/* Manager Card */}
-                  <div className="bg-[#15171C] border border-[#2A2D35] p-3 rounded-xl shadow">
+                  <div className="bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] p-3 rounded-xl shadow-xs">
                     <span className="text-[9px] font-mono text-slate-500 uppercase font-black tracking-widest block">Manager</span>
-                    <span className="text-xs font-bold text-white tracking-tight mt-2 block truncate">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white tracking-tight mt-2 block truncate">
                       {activeReport.ticket.assigneeManager || 'N/A'}
                     </span>
                   </div>
@@ -3185,7 +3185,7 @@ export default function AuditDetails({
                 <button
                   type="button"
                   onClick={() => onSelectTicketNumber(null)}
-                  className="w-full border border-gray-600/30 bg-[#252830]/40 text-slate-300 hover:bg-[#2F323D]/65 hover:text-white py-2.5 rounded-xl text-[10px] tracking-widest uppercase font-black transition-all cursor-pointer shadow-md"
+                  className="w-full border border-slate-200 dark:border-gray-600/30 bg-slate-100 hover:bg-slate-200 dark:bg-[#252830]/40 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white py-2.5 rounded-xl text-[10px] tracking-widest uppercase font-black transition-all cursor-pointer shadow-2xs"
                 >
                   Collapse
                 </button>
@@ -3200,38 +3200,38 @@ export default function AuditDetails({
       ) : (
         /* Normal Table lists of all ServiceNow records when no ticket is active */
         <div className="space-y-4 animate-fadeIn">
-          <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl overflow-hidden shadow-lg">
-            <div className="p-4 bg-[#0A0C0F] border-b border-[#2A2D35] flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider flex items-center gap-2">
-                <Sliders className="h-4 w-4 text-blue-400" />
+          <div className="bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] rounded-xl overflow-hidden shadow-xs">
+            <div className="p-4 bg-slate-50 dark:bg-[#0A0C0F] border-b border-slate-200 dark:border-[#2A2D35] flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-300 font-mono uppercase tracking-wider flex items-center gap-2">
+                <Sliders className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 ServiceNow Incident Records ({sortedReports.length} Loaded)
               </span>
-              <span className="text-[10px] font-mono text-gray-500">Click a record below to open full active workspace</span>
+              <span className="text-[10px] font-mono text-slate-500">Click a record below to open full active workspace</span>
             </div>
             
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse font-sans">
                 <thead>
-                  <tr className="border-b border-[#2A2D35] bg-[#0C0E14] text-slate-400 font-mono text-[10px] uppercase tracking-wider">
-                    <th className="p-3.5 cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('incNumber')}>
+                  <tr className="border-b border-slate-200 dark:border-[#2A2D35] bg-slate-100 dark:bg-[#0C0E14] text-slate-700 dark:text-slate-400 font-mono text-[10px] uppercase tracking-wider font-bold">
+                    <th className="p-3.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('incNumber')}>
                       INCIDENT NUMBER {renderSortIndicator('incNumber')}
                     </th>
-                    <th className="p-3.5 cursor-pointer hover:bg-slate-800 transition-colors text-center" onClick={() => handleSort('state')}>
+                    <th className="p-3.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-center" onClick={() => handleSort('state')}>
                       STATE {renderSortIndicator('state')}
                     </th>
-                    <th className="p-3.5 cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('assignee')}>
+                    <th className="p-3.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('assignee')}>
                       ASSIGNEE & MANAGER {renderSortIndicator('assignee')}
                     </th>
-                    <th className="p-3.5 cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('assignmentGroup')}>
+                    <th className="p-3.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('assignmentGroup')}>
                       ASSIGNMENT GROUP {renderSortIndicator('assignmentGroup')}
                     </th>
-                    <th className="p-3.5 cursor-pointer hover:bg-slate-800 transition-colors text-center">
+                    <th className="p-3.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-center">
                       Accepted App Counter (KSL)
                     </th>
                     <th className="p-3.5 text-left font-mono text-[10px] uppercase tracking-wider min-w-[260px]">
                       COMPLIANCE MISTAKES &amp; AUDITOR COMMENTS
                     </th>
-                    <th className="p-3.5 cursor-pointer hover:bg-slate-800 transition-colors text-right" onClick={() => handleSort('score')}>
+                    <th className="p-3.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-right" onClick={() => handleSort('score')}>
                       OVERALL SCORE {renderSortIndicator('score')}
                     </th>
                     <th className="p-3.5 text-right font-mono text-[10px] uppercase tracking-wider">
@@ -3239,14 +3239,14 @@ export default function AuditDetails({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#2A2D35]/50 bg-transparent">
+                <tbody className="divide-y divide-slate-200 dark:divide-[#2A2D35]/50 bg-transparent">
                   {sortedReports.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="p-12 text-center text-xs font-sans">
                         <div className="flex flex-col items-center justify-center space-y-2">
-                          <Search className="h-8 w-8 text-gray-600 mb-1" />
-                          <p className="font-semibold text-slate-300">No matching tickets found</p>
-                          <p className="text-[11px] text-gray-500 font-mono max-w-sm">
+                          <Search className="h-8 w-8 text-slate-400 dark:text-gray-600 mb-1" />
+                          <p className="font-semibold text-slate-800 dark:text-slate-300">No matching tickets found</p>
+                          <p className="text-[11px] text-slate-500 font-mono max-w-sm">
                             {searchTerm 
                               ? `No tickets matched "${searchTerm}" across incident number, assignee, or short description.` 
                               : "No parsed incidents found. Ensure a valid spreadsheet is uploaded first."}
@@ -3259,7 +3259,7 @@ export default function AuditDetails({
                                 setAssignmentGroupFilter('All');
                                 setComplianceFilter('All');
                               }}
-                              className="mt-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs font-mono font-medium rounded-lg border border-blue-500/30 transition-all cursor-pointer"
+                              className="mt-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 text-blue-700 dark:text-blue-400 text-xs font-mono font-medium rounded-lg border border-blue-200 dark:border-blue-500/30 transition-all cursor-pointer shadow-2xs"
                             >
                               Clear Search &amp; Filters
                             </button>
@@ -3281,11 +3281,11 @@ export default function AuditDetails({
                             onSelectTicketNumber(report.ticket.incNumber);
                             triggerPopup(`Workspace synced to ${report.ticket.incNumber}`, 'info');
                           }}
-                          className={`cursor-pointer group hover:bg-[#1E222D]/60 transition-all border-b border-[#2A2D35]/20 ${
-                            isBypassed ? 'border-l-4 border-l-red-500 bg-red-950/[0.03]' : ''
-                          } ${isSelected ? 'bg-blue-950/20' : ''}`}
+                          className={`cursor-pointer group hover:bg-slate-50 dark:hover:bg-[#1E222D]/60 transition-all border-b border-slate-200 dark:border-[#2A2D35]/20 ${
+                            isBypassed ? 'border-l-4 border-l-red-500 bg-red-50/20 dark:bg-red-950/[0.03]' : ''
+                          } ${isSelected ? 'bg-blue-50/50 dark:bg-blue-950/20' : ''}`}
                         >
-                          <td className="p-3.5 font-mono text-xs text-blue-400 font-bold tracking-wider max-w-[240px]">
+                          <td className="p-3.5 font-mono text-xs text-blue-700 dark:text-blue-400 font-bold tracking-wider max-w-[240px]">
                             <div className="flex flex-col items-start gap-1">
                               <div className="flex items-center gap-1.5">
                                 <span>{report.ticket.incNumber}</span>
@@ -3294,19 +3294,19 @@ export default function AuditDetails({
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(e) => e.stopPropagation()}
-                                  className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-[#252A38] rounded transition-colors inline-flex items-center"
+                                  className="p-1 text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-[#252A38] rounded transition-colors inline-flex items-center"
                                   title={`Open ${report.ticket.incNumber} in ServiceNow (new tab)`}
                                 >
                                   <ExternalLink className="h-3 w-3" />
                                 </a>
                               </div>
                               {report.ticket.shortDescription && (
-                                <span className="text-[10.5px] font-sans font-normal text-slate-400 line-clamp-2 leading-tight" title={report.ticket.shortDescription}>
+                                <span className="text-[10.5px] font-sans font-normal text-slate-500 dark:text-slate-400 line-clamp-2 leading-tight" title={report.ticket.shortDescription}>
                                   {report.ticket.shortDescription}
                                 </span>
                               )}
                               {isBypassed && (
-                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8.5px] font-mono font-black uppercase tracking-wider bg-red-550/10 text-red-400 border border-red-500/25 animate-pulse">
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8.5px] font-mono font-black uppercase tracking-wider bg-red-100 text-red-800 border border-red-200 dark:bg-red-550/10 dark:text-red-400 dark:border-red-500/25 animate-pulse">
                                   ⚠️ Bypassed Propose
                                 </span>
                               )}
@@ -3314,28 +3314,28 @@ export default function AuditDetails({
                           </td>
                           <td className="p-3.5 text-center">
                             <div className="flex flex-col items-center gap-1">
-                              <span className="text-[9px] px-2.5 py-0.5 rounded-full font-mono font-bold bg-[#1C1F26] border border-[#2E313A] text-slate-300 uppercase tracking-wide">
+                              <span className="text-[9px] px-2.5 py-0.5 rounded-full font-mono font-bold bg-slate-100 dark:bg-[#1C1F26] border border-slate-200 dark:border-[#2E313A] text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                                 {incidentState.toUpperCase()}
                               </span>
                               {isBypassed && (
-                                <span className="text-[8.5px] text-red-400 font-extrabold tracking-wider uppercase font-mono">
+                                <span className="text-[8.5px] text-red-600 dark:text-red-400 font-extrabold tracking-wider uppercase font-mono">
                                   Gover. Failure
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="p-3.5 text-xs text-slate-200">
+                          <td className="p-3.5 text-xs text-slate-800 dark:text-slate-200">
                             <span className="font-semibold block">{report.ticket.assignee}</span>
-                            <span className="text-[10px] text-gray-500 font-mono">Mgr: {report.ticket.assigneeManager || 'N/A'}</span>
+                            <span className="text-[10px] text-slate-500 font-mono">Mgr: {report.ticket.assigneeManager || 'N/A'}</span>
                           </td>
-                          <td className="p-3.5 text-xs text-slate-400 font-medium">
+                          <td className="p-3.5 text-xs text-slate-600 dark:text-slate-400 font-medium">
                             {report.ticket.assignmentGroup}
                           </td>
                           <td className="p-3.5 text-center font-mono">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded font-bold text-[10px] border ${
                               report.ksl === 'Yes' 
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' 
+                                : 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
                             }`}>
                               {report.ticket.acceptedAppCounter || '0'} ({report.ksl})
                             </span>
@@ -3348,20 +3348,20 @@ export default function AuditDetails({
                                 <div className="space-y-1.5 max-w-sm">
                                   {/* Metric-Specific Compliance Evaluation & Feedback */}
                                   {mistakes.length === 0 ? (
-                                    <div className="flex items-center gap-1.5 text-emerald-400 font-mono text-[10.5px] font-medium bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                    <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-400 font-mono text-[10.5px] font-medium bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20">
                                       <Check className="h-3 w-3" />
                                       <span>All 13 metric criteria passed</span>
                                     </div>
                                   ) : (
                                     <div className="space-y-1">
                                       <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="text-[9px] font-mono font-bold text-rose-400 bg-rose-500/15 px-1.5 py-0.5 rounded border border-rose-500/30">
+                                        <span className="text-[9px] font-mono font-bold text-rose-800 dark:text-rose-400 bg-rose-100 dark:bg-rose-500/15 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-500/30">
                                           {mistakes.length} Metric Gaps
                                         </span>
                                         {mistakes.slice(0, 2).map((m, mIdx) => (
                                           <span 
                                             key={mIdx} 
-                                            className="text-[8.5px] font-mono text-slate-300 bg-[#0A0C0F] px-1.5 py-0.5 rounded border border-[#2A2D35] truncate max-w-[130px]" 
+                                            className="text-[8.5px] font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-[#0A0C0F] px-1.5 py-0.5 rounded border border-slate-200 dark:border-[#2A2D35] truncate max-w-[130px]" 
                                             title={`[${m.category}]: ${m.failureReason}`}
                                           >
                                             {m.category}
@@ -3371,8 +3371,8 @@ export default function AuditDetails({
                                           <span className="text-[8.5px] font-mono text-slate-500">+{mistakes.length - 2} more</span>
                                         )}
                                       </div>
-                                      <p className="text-slate-300 font-sans text-[11px] leading-tight line-clamp-1 italic" title={mistakes[0].failureReason}>
-                                        <span className="font-semibold text-rose-400/90 font-mono text-[10px]">[{mistakes[0].category}]:</span> {mistakes[0].failureReason}
+                                      <p className="text-slate-600 dark:text-slate-300 font-sans text-[11px] leading-tight line-clamp-1 italic" title={mistakes[0].failureReason}>
+                                        <span className="font-semibold text-rose-700 dark:text-rose-400/90 font-mono text-[10px]">[{mistakes[0].category}]:</span> {mistakes[0].failureReason}
                                       </p>
                                     </div>
                                   )}
@@ -3380,10 +3380,10 @@ export default function AuditDetails({
                                   {/* Separate Category: Overall Comments for Audit Reference */}
                                   {comments && (
                                     <div 
-                                      className="flex items-center gap-1 text-[9.5px] text-purple-300 font-mono bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20 w-fit max-w-full" 
+                                      className="flex items-center gap-1 text-[9.5px] text-purple-800 dark:text-purple-300 font-mono bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-500/20 w-fit max-w-full" 
                                       title={`Overall Audit Reference:\n${comments}`}
                                     >
-                                      <MessageSquare className="h-2.5 w-2.5 text-purple-400 shrink-0" />
+                                      <MessageSquare className="h-2.5 w-2.5 text-purple-600 dark:text-purple-400 shrink-0" />
                                       <span className="truncate">Audit Ref: {comments}</span>
                                     </div>
                                   )}
@@ -3391,14 +3391,14 @@ export default function AuditDetails({
                               );
                             })()}
                           </td>
-                          <td className="p-3.5 text-right font-mono text-[11px] font-semibold text-slate-300">
+                          <td className="p-3.5 text-right font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                             {report.totalScore} / 26
                           </td>
                           <td className="p-3.5 text-right font-mono">
                             <span className={`inline-block px-2.5 py-1 text-xs font-bold font-mono rounded ${
-                              report.statusColor === 'Green' ? 'bg-green-500/10 text-green-400 border border-green-500/30' :
-                              report.statusColor === 'Amber' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30' :
-                              'bg-red-500/10 text-red-550 border border-red-500/30'
+                              report.statusColor === 'Green' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30' :
+                              report.statusColor === 'Amber' ? 'bg-amber-100 text-amber-800 border border-amber-200 dark:bg-yellow-500/10 dark:text-yellow-500 dark:border-yellow-500/30' :
+                              'bg-rose-100 text-rose-800 border border-rose-200 dark:bg-red-500/10 dark:text-red-550 dark:border-red-500/30'
                             }`}>
                               {report.percentage}%
                             </span>
@@ -3410,14 +3410,14 @@ export default function AuditDetails({
                 </tbody>
                 {sortedReports.length > 0 && (
                   <tfoot>
-                    <tr className="border-t-2 border-[#2A2D35] bg-[#0E1117]/80 text-slate-300 font-mono text-[11px] font-bold">
-                      <td colSpan={6} className="p-3.5 text-left text-xs uppercase tracking-wider font-semibold text-gray-400">
+                    <tr className="border-t-2 border-slate-200 dark:border-[#2A2D35] bg-slate-50 dark:bg-[#0E1117]/80 text-slate-800 dark:text-slate-300 font-mono text-[11px] font-bold">
+                      <td colSpan={6} className="p-3.5 text-left text-xs uppercase tracking-wider font-semibold text-slate-600 dark:text-gray-400">
                         Total Combined Workspace Checklist Pool:
                       </td>
-                      <td className="p-3.5 text-right font-mono text-indigo-400 font-bold text-xs">
+                      <td className="p-3.5 text-right font-mono text-indigo-700 dark:text-indigo-400 font-bold text-xs">
                         {sortedReports.reduce((acc, curr) => acc + (curr.totalScore || 0), 0)} / {sortedReports.length * 26}
                       </td>
-                      <td className="p-3.5 text-right font-mono text-emerald-400 font-extrabold text-xs">
+                      <td className="p-3.5 text-right font-mono text-emerald-700 dark:text-emerald-400 font-extrabold text-xs">
                         {sortedReports.length > 0 
                           ? Math.round(sortedReports.reduce((acc, curr) => acc + (curr.percentage || 0), 0) / sortedReports.length)
                           : 0}% Avg
@@ -3431,10 +3431,10 @@ export default function AuditDetails({
           </div>
 
           {/* Prompt banner to guide workflow */}
-          <div className="border border-dashed border-[#2A2D35] rounded-xl p-8 text-center text-slate-500 italic shadow-sm bg-[#15171C]/25 flex flex-col items-center justify-center space-y-2">
-            <Cpu className="h-10 w-10 text-blue-500/20 animate-pulse" />
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-mono">Active Verification Desk Ready</p>
-            <p className="text-[11px] text-gray-650 max-w-sm font-sans block leading-relaxed">
+          <div className="border border-dashed border-slate-300 dark:border-[#2A2D35] rounded-xl p-8 text-center text-slate-500 italic shadow-2xs bg-slate-50/50 dark:bg-[#15171C]/25 flex flex-col items-center justify-center space-y-2">
+            <Cpu className="h-10 w-10 text-blue-500/30 dark:text-blue-500/20 animate-pulse" />
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-400 uppercase tracking-widest font-mono">Active Verification Desk Ready</p>
+            <p className="text-[11px] text-slate-500 dark:text-gray-650 max-w-sm font-sans block leading-relaxed">
               Click any incident number in the directory above to display the ServiceNow compliance matrix, metrics details, and manual resolutions side-by-side.
             </p>
           </div>

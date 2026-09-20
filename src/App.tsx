@@ -2270,17 +2270,17 @@ export default function App() {
 
       {/* 3. Sliding / Popping Toast Notification Component */}
       {popup && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slideUp bg-[#15171C] border border-[#2A2D35] rounded-xl p-4 shadow-xl select-text max-w-sm flex items-start space-x-3 transition-all">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slideUp bg-white dark:bg-[#15171C] border border-slate-200 dark:border-[#2A2D35] rounded-xl p-4 shadow-xl select-text max-w-sm flex items-start space-x-3 transition-all">
           <div className={`p-2 rounded shrink-0 ${
-            popup.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-            popup.type === 'warning' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-            'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+            popup.type === 'success' ? 'bg-emerald-50 dark:bg-green-500/10 text-emerald-700 dark:text-green-400 border border-emerald-200 dark:border-green-500/20' :
+            popup.type === 'warning' ? 'bg-rose-50 dark:bg-red-500/10 text-rose-700 dark:text-red-400 border border-rose-200 dark:border-red-500/20' :
+            'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20'
           }`}>
             <Sparkles className="h-4 w-4" />
           </div>
           <div className="space-y-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">Auditor Dispatch Info</span>
-            <p className="text-xs text-gray-200 select-text font-medium">{popup.message}</p>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-gray-400 font-mono">Auditor Dispatch Info</span>
+            <p className="text-xs text-slate-800 dark:text-gray-200 select-text font-medium">{popup.message}</p>
           </div>
         </div>
       )}
