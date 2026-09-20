@@ -1,0 +1,226 @@
+================================================================================
+SERVICE-NOW INCIDENT QUALITY AUDIT AGENT - SETUP & RUN GUIDE
+================================================================================
+Document: STEPS.txt
+Version: 2.0.0
+Updated: September 2026
+
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. System Prerequisites
+2. Project Architecture Overview
+3. Environment Configuration (.env)
+4. Option A: Running Full-Stack Node.js Application (Recommended)
+5. Option B: Running Python FastAPI & LangGraph Microservice
+6. Option C: Running with Docker & Docker Compose
+7. Key Application URLs & Endpoints
+8. Verification & Operational Testing
+9. Troubleshooting & FAQ
+================================================================================
+
+
+1. SYSTEM PREREQUISITES
+--------------------------------------------------------------------------------
+Ensure the following tools are installed on your machine:
+  * Node.js: v18.0.0 or higher (v20.x or v22.x/v24.x recommended)
+  * npm: v9.0.0 or higher
+  * Python: v3.10 or higher (v3.11 - v3.14 supported)
+  * Git: Installed and accessible in PATH
+  * Google Gemini API Key: Obtainable from Google AI Studio
+    (https://aistudio.google.com/app/apikey)
+
+
+2. PROJECT ARCHITECTURE OVERVIEW
+--------------------------------------------------------------------------------
+This enterprise audit platform consists of two interoperable layers:
+
+  [Layer 1] Node.js / TypeScript Full-Stack Core (Root)
+    - server.ts: High-performance Express server hosting live SSE audit feeds,
+      ServiceNow REST integration, dynamic in-memory re-scoring engine,
+      mandatory metrics governance, and automated email/Teams dispatchers.
+    - src/ & index.html: React 19 + Tailwind CSS executive auditing dashboard
+      featuring Executive Navy Split-Tone light theme and high-contrast dark theme.
+
+  [Layer 2] Python FastAPI / LangGraph Microservice (backend/)
+    - backend/app/: Asynchronous FastAPI application using LangGraph stateful
+      orchestration, Google GenAI SDK (gemini-3.8-flash), FAISS vector store
+      RAG memory, APScheduler background evaluation, and SQLite persistence.
+
+
+3. ENVIRONMENT CONFIGURATION (.env)
+--------------------------------------------------------------------------------
+Create a file named ".env" in the root directory (you can copy .env.example).
+
+Required and Optional Configuration Variables:
+--------------------------------------------------------------------------------
+# --- Gemini AI Configuration (Required) ---
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-3.8-flash
+GEMINI_FALLBACK_MODEL=gemini-2.5-flash
+GEMINI_EMBEDDING_MODEL=gemini-embedding-exp-03-07
+
+# --- Application Server Configuration ---
+PORT=3000
+NODE_ENV=development
+APP_URL=http://localhost:3000
+
+# --- ServiceNow Connection (Optional / Live Sync) ---
+SERVICENOW_INSTANCE=https://dev423209.service-now.com
+SERVICENOW_USERNAME=admin
+SERVICENOW_PASSWORD=your_servicenow_password_here
+
+# --- Email Notifications (SMTP / Optional) ---
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password_here
+SMTP_FROM=alerts@company.com
+
+# --- Microsoft Teams Webhook (Optional) ---
+TEAMS_WEBHOOK_URL=https://outlook.office.com/webhook/your_webhook_url_here
+
+
+4. OPTION A: RUNNING FULL-STACK NODE.JS APPLICATION (RECOMMENDED)
+--------------------------------------------------------------------------------
+Follow these steps from the project root directory:
+
+Step 4.1: Install Node Dependencies
+  Run in terminal:
+    npm install
+
+Step 4.2: Run in Development Mode
+  Run in terminal:
+    npm run dev
+
+  - This uses "tsx" to execute server.ts directly with hot module reloading.
+  - The application and web UI will be accessible at:
+    http://localhost:3000
+
+Step 4.3: Build for Production
+  Run in terminal:
+    npm run build
+
+  - Compiles the React/Tailwind frontend into "dist/".
+  - Bundles server.ts into standalone "dist/server.cjs" via esbuild.
+
+Step 4.4: Start Production Server
+  Run in terminal:
+    npm start
+
+  - Runs "node dist/server.cjs" on port 3000.
+
+
+5. OPTION B: RUNNING PYTHON FASTAPI & LANGGRAPH MICROSERVICE
+--------------------------------------------------------------------------------
+Follow these steps to run the specialized Python evaluation backend:
+
+Step 5.1: Create a Python Virtual Environment
+  On Windows (PowerShell / Command Prompt):
+    python -m venv venv
+    .\venv\Scripts\activate
+
+  On macOS / Linux:
+    python3 -m venv venv
+    source venv/bin/activate
+
+Step 5.2: Upgrade pip and Install Dependencies
+  Run in terminal:
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    (or: pip install -r requirement.txt)
+
+Step 5.3: Run the FastAPI Server
+  Run in terminal:
+    python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+
+Step 5.4: Access Python API Documentation
+  Open in browser:
+    - Swagger UI: http://localhost:8000/docs
+    - ReDoc UI:   http://localhost:8000/redoc
+
+Step 5.5: Run the Evaluation Harness
+  Run in terminal:
+    python backend/app/harness/eval_harness.py
+
+
+6. OPTION C: RUNNING WITH DOCKER & DOCKER COMPOSE
+--------------------------------------------------------------------------------
+Step 6.1: Run with Docker Compose
+  Make sure Docker Desktop or docker engine is running, then run:
+    docker-compose up -d --build
+
+  - Builds multi-stage production container.
+  - Mounts persistent incident storage cache.
+  - Maps port 3000:3000.
+
+Step 6.2: View Docker Logs & Status
+  Run:
+    docker-compose logs -f ticket-audit-agent
+    docker-compose ps
+
+Step 6.3: Stop Docker Container
+  Run:
+    docker-compose down
+
+
+7. KEY APPLICATION URLS & ENDPOINTS
+--------------------------------------------------------------------------------
+User Interface:
+  * Workspace & Executive Dashboard:  http://localhost:3000
+  * Quality Checklist & Comments:     http://localhost:3000 (Checklist view)
+  * Assignment Group Policy Rules:    http://localhost:3000 (Connection Setup)
+  * Incident Empathy Dashboard:       http://localhost:3000 (Empathy tab)
+
+Node.js Core API Endpoints:
+  * GET  /api/audit                   - Fetch audited incident reports & scores
+  * POST /api/servicenow/sync         - Trigger live sync from ServiceNow
+  * GET  /api/mandatory-metrics       - Retrieve assignment group metric policies
+  * POST /api/mandatory-metrics       - Update mandatory/optional metrics & rescore
+  * GET  /api/events                  - Live Server-Sent Events (SSE) telemetry
+
+Python Backend API Endpoints (when running on port 8000):
+  * GET  /health                      - System health check
+  * POST /api/audit/evaluate          - LangGraph incident multi-agent evaluation
+  * GET  /docs                        - Interactive Swagger documentation
+
+
+8. VERIFICATION & OPERATIONAL TESTING
+--------------------------------------------------------------------------------
+1. Check Server Response:
+   curl -I http://localhost:3000
+
+2. Verify Audit Pipeline:
+   curl http://localhost:3000/api/audit
+
+3. Verify Mandatory Metrics Synchronization:
+   - Open http://localhost:3000 in your browser.
+   - Navigate to "Connection Setup" -> "Assignment Group Rules & Mandatory Metrics".
+   - Toggle any metric (e.g. "Affected CI") to Optional for a specific group.
+   - Switch to "Workspace Checklist". The metric displays an "OPTIONAL" badge,
+     and Category B overall comments strictly exclude it from infractions.
+
+
+9. TROUBLESHOOTING & FAQ
+--------------------------------------------------------------------------------
+Q1: Error "listen EADDRINUSE: address already in use :::3000"
+    Solution: Another process is using port 3000. Stop the existing process:
+    On Windows (PowerShell):
+      Get-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess | Stop-Process -Force
+    On Linux/macOS:
+      npx kill-port 3000
+
+Q2: Error "GEMINI_API_KEY is not set"
+    Solution: Ensure GEMINI_API_KEY is defined in .env or exported in your environment.
+
+Q3: PowerShell says "running scripts is disabled on this system"
+    Solution: Set execution policy for the current session:
+      Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+Q4: Changes to TypeScript code not showing
+    Solution:
+      - If running in development ("npm run dev"), tsx reloads automatically.
+      - If running in production ("npm start"), rebuild first with "npm run build".
+
+================================================================================
+END OF STEPS DOCUMENT
+================================================================================
