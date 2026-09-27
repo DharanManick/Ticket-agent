@@ -4,22 +4,28 @@
  */
 
 export const AI_CONFIG = {
-  // Primary generative model: latest high-throughput, high-reasoning Gemini model
+  // Primary generative model: high-speed, high-reasoning Gemini flash with fresh quota
   PRIMARY_MODEL: 'gemini-3.8-flash',
 
   // Fallback generative models in order of failover precedence
   FALLBACK_MODELS: [
+    'gemini-3.5-flash',
+    'gemini-3.6-flash',
+    'gemini-3-flash-preview',
+    'gemini-3.1-flash-lite',
+    'gemini-3.5-flash-lite',
+    'gemini-flash-lite-latest',
     'gemini-2.5-flash',
     'gemini-2.5-flash-lite'
   ],
 
-  // Primary text embedding model (latest stable)
-  EMBEDDING_MODEL: 'gemini-embedding-exp-03-07',
+  // Primary text embedding model (active on Gemini API v1beta)
+  EMBEDDING_MODEL: 'gemini-embedding-001',
 
   // Fallback text embedding models
   FALLBACK_EMBEDDING_MODELS: [
-    'gemini-embedding-001',
-    'text-embedding-004'
+    'gemini-embedding-2',
+    'gemini-embedding-2-preview'
   ],
 
   // Inference Hyperparameters

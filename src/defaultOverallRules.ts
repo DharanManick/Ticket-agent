@@ -139,12 +139,12 @@ export const defaultOverallRules: OverallTicketAuditRule[] = [
   {
     id: 'overall_rule_13',
     ruleCode: 'RESOLUTION_DESC_8_POINTS',
-    name: '13. Resolution Description 8 Checkpoints Audit',
-    description: 'resolution description -- 8 points mandatory.',
+    name: '13. Resolution Description Content & Quality Audit',
+    description: 'Resolution description content validity verified by LLM against ServiceNow KB Article, activity logs, short description, and technical description. 8-point checklist is advisory (missing checklist gives 1 mark / Amber Warning, valid resolution passes with 2 marks).',
     category: 'Process Compliance',
     weight: 2,
     isEnabled: true,
-    errorMessage: 'Resolution Description does not meet the 8 checklist quality checkpoints.',
+    errorMessage: 'Resolution description lacks valid technical remediation content or complete diagnostic sequence.',
     resDescMinPointsCount: 8,
     targetAlignmentScore: 60
   }

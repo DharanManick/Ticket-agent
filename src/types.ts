@@ -23,6 +23,8 @@ export interface Ticket {
   incidentState?: string;
   previousState?: string;
   acceptedAppCounter?: string;
+  priority?: string;
+  urgency?: string;
 }
 
 export interface AuditRule {

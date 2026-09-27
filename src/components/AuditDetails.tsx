@@ -411,8 +411,8 @@ function getIdealMetricSolution(
     case 'resolutionDescription': {
       const minPoints = rResDesc?.resDescMinPointsCount ?? 8;
       return {
-        expected: `Composite RAG & Checklist Audit: Requires >=65% semantic vector similarity matching with approved Knowledge Base engineering procedures (70% weight) and coverage of the ${minPoints}-point procedural checklist (30% weight).`,
-        recommendation: `To achieve a passing score, ensure your resolution text matches the specific technical troubleshooting steps in the respective Knowledge Base (KB) article. The AI Assistant evaluates this dynamically using vector embeddings (70% weight) alongside the checklist (30% weight).`
+        expected: `Human-Grade AI Audit: Content validity is thoroughly evaluated by the Gemini LLM by cross-referencing the ServiceNow KB article, incident activity logs, short description, and technical description. The ${minPoints}-point checklist is advisory (valid resolution content without full checklist scores 1 mark / Amber; complete procedural structure scores 2 marks / Green).`,
+        recommendation: `Ensure your resolution notes document genuine, verified technical remediation steps that resolve the root cause and match the work notes in activity logs and the ServiceNow KB article. While the ${minPoints}-point checklist format yields full score (2/2), valid content receives 1 mark (Amber) even without full checklist formatting.`
       };
     }
 
@@ -681,8 +681,8 @@ function ActiveMetricAuditCard({
                   checkDescription = "Audits company business risks, operational downtime profiles, or financial fallout narratives linked to the outage.";
                   expectedOutcome = "Specific outline of downtime footprints and business risks rather than lazy or skeletal descriptions (>= 35% similarity).";
                 } else if (activeMetricKey === 'resolutionDescription') {
-                  checkDescription = "Evaluates resolution text structure for step-by-step sequential checklists (logs, database checks, cached cache, functional signs).";
-                  expectedOutcome = "Highly polished sequential 8-step outline conforming to resolution procedures (>= 50% similarity).";
+                  checkDescription = "Gemini LLM performs a human-grade audit evaluating content validity against the ServiceNow KB article, activity log work notes, and technical symptoms. The 8-point checklist structure is advisory (awarding 1 mark / Amber if incomplete, 2 marks / Green if full).";
+                  expectedOutcome = "Genuine, technically valid resolution content that authentically addresses the diagnosed defect and follows approved KB procedures.";
                 } else if (activeMetricKey === 'comments') {
                   checkDescription = "Evaluates holistic ticket documentation quality, authentic technical investigations, clarity, and overall procedural compliance.";
                   expectedOutcome = "Clear, context-specific audit feedback acknowledging solid troubleshooting or detailing exact corrective guidance.";
@@ -1023,18 +1023,20 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
     });
   }
 
-  // 13. Resolution Description
+  // 13. Resolution Description (LLM Content Validity & Advisory 8-Point Checklist)
   if (!isExempt('resolutionDescription') && scores.resolutionDescription && scores.resolutionDescription.score < 2) {
     const s = scores.resolutionDescription.score;
     mistakes.push({
       key: 'resolutionDescription',
-      category: 'Resolution 8-Point Checklist Description',
+      category: 'Resolution Description Content & Quality',
       severity: s === 0 ? 'critical' : 'warning',
       score: s,
-      scoreDisplay: `${s}/2`,
+      scoreDisplay: `${s}/2 (${scores.resolutionDescription.rating})`,
       currentValue: ticket.resolutionDescription ? `"${ticket.resolutionDescription.slice(0, 120)}..."` : '(Empty resolution description)',
-      failureReason: scores.resolutionDescription.comment || 'Resolution Description does not meet the sequential 8-point checklist quality criteria.',
-      remediationAction: 'Document step-by-step resolution actions (1 to 8) covering diagnosis, KB reference, patch, test, and client confirmation.'
+      failureReason: scores.resolutionDescription.comment || 'Resolution description lacks valid technical remediation content or complete diagnostic sequence.',
+      remediationAction: s === 1
+        ? 'Resolution content is valid (awarded 1 mark / Amber). To achieve full score (2/2), expand the documentation to cover standard sequential checkpoints (diagnosis, KB procedure, patch, validation test, and sign-off).'
+        : 'Provide a valid, substantive resolution description addressing root cause, following KB article procedures, and verified in activity notes.'
     });
   }
 
@@ -1124,7 +1126,7 @@ export function AuditorGeneralCommentsAndMistakesCard({
       {
         key: 'resolutionDescription',
         label: 'Resolution Description',
-        category: 'Resolution 8-Point Checklist Description',
+        category: 'Resolution Description Content & Quality',
         icon: ListChecks,
         currentValue: ticket.resolutionDescription 
           ? `"${ticket.resolutionDescription.slice(0, 100)}${ticket.resolutionDescription.length > 100 ? '...' : ''}"` 

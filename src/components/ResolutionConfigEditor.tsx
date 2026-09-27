@@ -66,15 +66,18 @@ export default function ResolutionConfigEditor({
       <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-lg space-y-4">
         <div className="flex items-center space-x-2.5">
           <ListTodo className="h-4.5 w-4.5 text-blue-400" />
-          <h4 className="text-sm font-semibold text-white tracking-tight">Resolution Description Mandatory Template &amp; Point Checkpoints</h4>
+          <h4 className="text-sm font-semibold text-white tracking-tight">Resolution Description Quality Checklist (Advisory Checkpoints)</h4>
         </div>
         <div className="text-xs text-gray-400 leading-relaxed space-y-2">
           <p>
-            ServiceNow engineering standards mandate that the <strong className="text-blue-400">Resolution Description</strong> field must provide extensive documentation conforming to corporate governance. 
-            By default, a target score of 2/2 is verified by checking for <strong>8 strict procedural questions</strong> (or distinct bullet points resolving them) entered on the ServiceNow form.
+            ServiceNow engineering standards recommend that the <strong className="text-blue-400">Resolution Description</strong> field provides thorough documentation conforming to corporate governance. 
+            Under the ITIL human-auditor guidelines, the 8-point checklist is <strong className="text-amber-400">Advisory / Amber (1 mark)</strong> if not all checkpoints are formatted.
           </p>
           <p>
-            Edit your evaluation checklist points directly in the unified text-area below (one question or checkpoint per line). The Gemini AI model will dynamically evaluate uploaded incidents against these exact checkpoints.
+            The primary audit evaluation uses LLM semantic embeddings to read and cross-examine the substantive technical content against the fetched ServiceNow KB article, updated activity logs, short description, and technical description to grade validity like a human auditor (2/2 marks for comprehensive documentation).
+          </p>
+          <p className="text-[11px] text-gray-500">
+            Customize your checklist questions below. You can add, remove, or modify questions (one per line).
           </p>
         </div>
       </div>
@@ -84,10 +87,10 @@ export default function ResolutionConfigEditor({
         <div className="p-4 bg-[#1A1D24] border-b border-[#2A2D35] flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <h4 className="text-xs uppercase font-bold tracking-wider text-gray-400">
-              RESOLUTION MANDATORY TEXTCHECK FIELD ({detectedCount} Points Identified)
+              RESOLUTION CHECKLIST WORKSPACE ({detectedCount} Checkpoints Configured)
             </h4>
             <p className="text-[11px] text-gray-500 mt-0.5">
-              Type or paste your checklist. Ensure every single requirement is on a separate line.
+              Type or paste your checklist. Ensure every requirement is on a separate line.
             </p>
           </div>
           
@@ -131,8 +134,8 @@ export default function ResolutionConfigEditor({
             {/* Footer Summary Bar */}
             <div className="bg-[#0A0C10] border-t border-[#2A2D35]/50 px-3 py-2 flex justify-between items-center text-[10px] text-gray-500 font-mono">
               <div className="flex items-center space-x-2">
-                <CheckCircle className={`h-3 w-3 ${detectedCount >= 8 ? 'text-emerald-400' : 'text-yellow-500'}`} />
-                <span>Status: {detectedCount} active checkpoints parsed</span>
+                <CheckCircle className={`h-3 w-3 ${detectedCount >= 8 ? 'text-emerald-400' : 'text-amber-400'}`} />
+                <span>Status: {detectedCount} active checkpoints parsed (Advisory Amber if incomplete)</span>
               </div>
               <span className="text-gray-400">Press ENTER for a new question line</span>
             </div>
@@ -142,37 +145,49 @@ export default function ResolutionConfigEditor({
 
       {/* 📘 Visual Audit Guideline Diagram block */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl space-y-2">
-          <p className="text-[10px] text-emerald-400 font-mono uppercase font-bold tracking-wider">MANDATORY FLOW HIERARCHY</p>
-          <div className="text-xs text-gray-450 space-y-3.5 pt-1.5 text-gray-400">
-            <div className="flex items-start space-x-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-              <p>
-                <strong>Resolution Description Controls:</strong> Keywords found here determine target mappings for (Closure Code &rarr; Closure Code 2 &rarr; Solution Code &rarr; Symptom Code).
+        <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl space-y-3">
+          <p className="text-[10px] text-emerald-400 font-mono uppercase font-bold tracking-wider">OFFICIAL AUDIT FLOWS (1 &amp; 2)</p>
+          <div className="text-xs text-gray-400 space-y-3 pt-1">
+            <div className="p-2.5 rounded-lg bg-[#0E1015] border border-[#22252C] space-y-1">
+              <div className="flex items-center space-x-2 text-emerald-400 font-semibold text-[11px]">
+                <span>Flow 1</span>
+                <span className="text-gray-500 font-normal">Classification Correlation</span>
+              </div>
+              <p className="font-mono text-[11px] text-slate-300">
+                Resolution Description &rarr; Closure Code &rarr; Closure Code 2 &rarr; Solution code &rarr; Symptom Code
               </p>
             </div>
-            <div className="flex items-start space-x-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-              <p>
-                <strong>Helper Inputs Integration:</strong> The Resolution Description is cross-checked to verify the factual context of <em>Short Description</em> and <em>Technical Description</em> fields.
+            <div className="p-2.5 rounded-lg bg-[#0E1015] border border-[#22252C] space-y-1">
+              <div className="flex items-center space-x-2 text-blue-400 font-semibold text-[11px]">
+                <span>Flow 2</span>
+                <span className="text-gray-500 font-normal">Context Cross-Examination</span>
+              </div>
+              <p className="font-mono text-[11px] text-slate-300">
+                Resolution Description &rarr; Short Description &rarr; Technical Impact Description
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl space-y-2">
-          <p className="text-[10px] text-blue-450 font-mono uppercase font-bold tracking-wider text-blue-400">CI OVER-REACH AUDITING</p>
-          <div className="text-xs text-gray-450 space-y-3.5 pt-1.5 text-gray-400">
-            <div className="flex items-start space-x-2">
-              <span className="h-2 w-2 rounded-full bg-blue-400 mt-1.5 shrink-0" />
-              <p>
-                <strong>Assignment Group Mappings:</strong> Automatically validated against the authorized CI combination database.
+        <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl space-y-3">
+          <p className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-wider">OFFICIAL AUDIT FLOWS (3 &amp; 4)</p>
+          <div className="text-xs text-gray-400 space-y-3 pt-1">
+            <div className="p-2.5 rounded-lg bg-[#0E1015] border border-[#22252C] space-y-1">
+              <div className="flex items-center space-x-2 text-indigo-400 font-semibold text-[11px]">
+                <span>Flow 3</span>
+                <span className="text-gray-500 font-normal">Diagnostic Depth &amp; Fix</span>
+              </div>
+              <p className="font-mono text-[11px] text-slate-300">
+                Resolution Description &rarr; Technical Impact Description
               </p>
             </div>
-            <div className="flex items-start space-x-2">
-              <span className="h-2 w-2 rounded-full bg-blue-400 mt-1.5 shrink-0" />
-              <p>
-                <strong>Causal Suspected CI Logic:</strong> External dependent delays must yield custom, distinct causal CIs. Infrastructure closures must revert precisely to local affected system CI definitions.
+            <div className="p-2.5 rounded-lg bg-[#0E1015] border border-[#22252C] space-y-1">
+              <div className="flex items-center space-x-2 text-amber-400 font-semibold text-[11px]">
+                <span>Flow 4</span>
+                <span className="text-gray-500 font-normal">CMDB Coupling</span>
+              </div>
+              <p className="font-mono text-[11px] text-slate-300">
+                Assignment Group &rarr; Affected Service/CI
               </p>
             </div>
           </div>
