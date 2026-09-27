@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # Gemini Models Centralization
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-3.1-flash-lite"
+    GEMINI_MODEL: str = "gemini-3.8-flash"
     GEMINI_FALLBACK_MODEL: str = "gemini-3.5-flash-lite"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
     GEMINI_FALLBACK_EMBEDDING_MODELS: List[str] = ["gemini-embedding-2"]
