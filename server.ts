@@ -139,6 +139,24 @@ app.use(traceMiddleware);
 app.use(express.json({ limit: '50mb' }));
 app.use('/api/alerts', alertController);
 
+app.get('/api/health', (req, res) => {
+  const snowCreds = typeof storedServiceNowCredentials !== 'undefined' ? storedServiceNowCredentials : ({} as any);
+  res.json({
+    status: 'ok',
+    uptimeSeconds: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    traceId: (req as any).traceId || 'unknown',
+    version: '1.0.0',
+    services: {
+      geminiConfigured: isApiKeyConfigured,
+      geminiModel: process.env.GEMINI_MODEL || AI_CONFIG.PRIMARY_MODEL,
+      servicenowInstance: snowCreds.instanceName || 'dev12000',
+      servicenowOnlyResolved: snowCreds.onlyResolved ?? true,
+      autoSyncActive: snowCreds.autoFetchEnabled ?? true
+    }
+  });
+});
+
 // Initialize Gemini SDK with telemetry header
 const systemGeminiApiKey = process.env.GEMINI_API_KEY;
 let ai: GoogleGenAI | null = null;
