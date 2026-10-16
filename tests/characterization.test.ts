@@ -66,3 +66,21 @@ test('Characterization: defaultOverallRules schema conformity', () => {
     assert.strictEqual(typeof rule.weight, 'number', `Overall rule ${rule.id} must have a numeric weight`);
   }
 });
+
+test('Incident Classification (CI-01): isResolvedTicket strictly identifies Resolved state incidents', async () => {
+  const { isResolvedTicket } = await import('../lib/classification');
+
+  // True Resolved tickets
+  assert.strictEqual(isResolvedTicket({ state: '6' }), true);
+  assert.strictEqual(isResolvedTicket({ incidentState: 'Resolved' }), true);
+  assert.strictEqual(isResolvedTicket({ state: 'resolved' }), true);
+  assert.strictEqual(isResolvedTicket({ activityLogs: 'State changed: InProgress -> Resolved' }), true);
+
+  // False / Unresolved tickets (must NOT be classified as resolved merely because the description says 'resolution')
+  assert.strictEqual(isResolvedTicket({ state: '2', resolutionDescription: 'Waiting for customer to test the resolution' }), false);
+  assert.strictEqual(isResolvedTicket({ state: 'New', description: 'User requires resolution of VPN connectivity' }), false);
+  assert.strictEqual(isResolvedTicket({ state: 'In Progress', comments_and_work_notes: 'Working on resolution' }), false);
+  assert.strictEqual(isResolvedTicket(null), false);
+  assert.strictEqual(isResolvedTicket({}), false);
+});
+

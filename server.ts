@@ -116,6 +116,7 @@ import { defaultKnowledgeArticles, approvedClosureConfirmations, defaultActivity
 import { ActivityIncident } from './src/types';
 import { sendTeamsMessage, sendOutlookEmail, isIndividualUpn, normalizeTicket, buildIndividualEmailBody, buildManagerEmailBody } from './lib/notify';
 import { isBlockedSsrfUrl, maskServiceNowCredentials, maskSmtpSettings, validateEmailPayload } from './lib/security';
+import { isResolvedTicket, isSolveProposeTicket, isEmpathyEligibleTicket } from './lib/classification';
 
 export function getInitialSampleIncidents(): ActivityIncident[] {
   return [];
@@ -4755,69 +4756,7 @@ const mockServiceNowIncidents: any[] = [];
 
 
 
-// Helper functions for ticket classification
-function isResolvedTicket(t: any): boolean {
-  if (!t) return false;
-  const stateVal = String(t.incidentState || t.state || t.incident_state || '').trim().toLowerCase();
-  const prevState = String(t.previousState || t.u_previous_state || '').trim().toLowerCase();
-  const logs = String(t.activityLogs || t.comments_and_work_notes || '').toLowerCase();
-  const desc = String(t.resolutionDescription || t.close_notes || t.technicalDescription || t.description || '').toLowerCase();
-
-  // State matches: Standard ServiceNow 'Resolved' (state 6)
-  if (
-    stateVal.includes('resolve') ||
-    stateVal.includes('resolved') ||
-    stateVal.includes('resolv') ||
-    stateVal === '6' ||
-    prevState.includes('resolve') ||
-    prevState.includes('resolved') ||
-    prevState === '6'
-  ) {
-    return true;
-  }
-
-  // Work note transitions e.g. "InProgress -> Resolved -> Closed"
-  if (
-    logs.includes('resolved') ||
-    logs.includes('resolve') ||
-    logs.includes('marked resolved') ||
-    logs.includes('state changed to resolved')
-  ) {
-    return true;
-  }
-
-  // Resolution description matches
-  if (
-    desc.includes('resolved') ||
-    desc.includes('resolution')
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-const isSolveProposeTicket = isResolvedTicket;
-
-function isEmpathyEligibleTicket(t: any): boolean {
-  const stateVal = String(t.incidentState || t.state || '').trim().toLowerCase();
-  
-  const isResolved = (
-    stateVal.includes('resolve') || 
-    stateVal.includes('resolved') || 
-    stateVal === '6'
-  );
-  const isSolveConfirmedOrClosed = (
-    stateVal.includes('confirm') || 
-    stateVal.includes('confirmed') || 
-    stateVal.includes('close') || 
-    stateVal.includes('closed') || 
-    stateVal === '7' ||
-    stateVal === '8'
-  );
-  
-  return !isResolved && !isSolveConfirmedOrClosed;
-}
+// Classification functions imported from ./lib/classification
 
 // Shared ServiceNow credentials storage persisted in-memory / local configurations
 export interface FetchLogEntry {
