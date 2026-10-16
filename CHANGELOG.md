@@ -7,3 +7,6 @@ All notable changes to the Ticket Audit Agent will be documented in this file.
 ### Added
 - `test(TEST-01)`: Configured automated test suite (`npm test`) using Node native test runner via `tsx --test tests/**/*.test.ts`.
 - `test(TEST-01)`: Created `tests/characterization.test.ts` covering ticket normalization (`normalizeTicket`, `isIndividualUpn`), color scoring, and ITIL audit rule schema conformity.
+
+### Fixed
+- `fix(SEC-01)`: Eradicated hardcoded Google Gemini API key string from `.env.example` and fallback defaults in `server.ts`. Removed fallback loading of `.env.example` into `process.env`. Added regression assertions in `tests/security.test.ts`.

@@ -143,35 +143,27 @@ const systemGeminiApiKey = process.env.GEMINI_API_KEY;
 let ai: GoogleGenAI | null = null;
 let aiDisabledDueToExpiry = false;
 let lastFailedKey: string | null = null;
-let apiKey = 'AIzaSyBOkaS9x62PF-eMUVJ_gzhQATljGBb5T8Y';
+let apiKey = '';
 let isApiKeyConfigured = false;
 let isUserApiKeyConfigured = false;
 
 function ensureGeminiInitialized() {
   try {
-    delete process.env.GEMINI_API_KEY;
     dotenv.config({ path: path.join(process.cwd(), '.env'), override: true });
     
     let rawEnvKey = process.env.GEMINI_API_KEY;
-    isUserApiKeyConfigured = !!rawEnvKey && rawEnvKey.trim() !== "" && rawEnvKey !== "MY_GEMINI_API_KEY" && rawEnvKey !== "GEMINI_API_KEY";
-    
-    if (!isUserApiKeyConfigured) {
-      delete process.env.GEMINI_API_KEY;
-      dotenv.config({ path: path.join(process.cwd(), '.env.example'), override: true });
-      rawEnvKey = process.env.GEMINI_API_KEY;
-      isUserApiKeyConfigured = !!rawEnvKey && rawEnvKey.trim() !== "" && rawEnvKey !== "MY_GEMINI_API_KEY" && rawEnvKey !== "GEMINI_API_KEY";
-    }
+    isUserApiKeyConfigured = !!rawEnvKey && rawEnvKey.trim() !== "" && rawEnvKey !== "MY_GEMINI_API_KEY" && rawEnvKey !== "GEMINI_API_KEY" && rawEnvKey !== "your-gemini-api-key";
 
     if (!isUserApiKeyConfigured && systemGeminiApiKey) {
       const trimmedSystemKey = systemGeminiApiKey.trim();
-      if (trimmedSystemKey !== "" && trimmedSystemKey !== "MY_GEMINI_API_KEY" && trimmedSystemKey !== "GEMINI_API_KEY") {
+      if (trimmedSystemKey !== "" && trimmedSystemKey !== "MY_GEMINI_API_KEY" && trimmedSystemKey !== "GEMINI_API_KEY" && trimmedSystemKey !== "your-gemini-api-key") {
         rawEnvKey = trimmedSystemKey;
         isUserApiKeyConfigured = true;
       }
     }
 
-    apiKey = isUserApiKeyConfigured && rawEnvKey ? rawEnvKey.trim() : 'AIzaSyBOkaS9x62PF-eMUVJ_gzhQATljGBb5T8Y';
-    isApiKeyConfigured = !!apiKey && apiKey.trim() !== "" && apiKey !== "MY_GEMINI_API_KEY" && apiKey !== "GEMINI_API_KEY";
+    apiKey = isUserApiKeyConfigured && rawEnvKey ? rawEnvKey.trim() : '';
+    isApiKeyConfigured = !!apiKey && apiKey.trim() !== "" && apiKey !== "MY_GEMINI_API_KEY" && apiKey !== "GEMINI_API_KEY" && apiKey !== "your-gemini-api-key";
 
     if (isApiKeyConfigured) {
       process.env.GEMINI_API_KEY = apiKey;
