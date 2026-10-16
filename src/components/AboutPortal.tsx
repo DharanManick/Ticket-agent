@@ -119,7 +119,7 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
       teamName: "ServiceNow Quality Assurance",
       customerName: "",
       customerDesignation: "Director of Service Desk & Infrastructure",
-      problemStatement: "ServiceNow incident audits are performed manually and retrospectively. This leads to substantial data oversight, unchecked state transitions (e.g. bypassing 'Solve Propose' audit validation stages), missing corporate Knowledge Articles (KAs), inaccurate causal CIs, and incomplete description documentation.",
+      problemStatement: "ServiceNow incident audits are performed manually and retrospectively. This leads to substantial data oversight, unchecked state transitions (e.g. bypassing 'Resolved' audit validation stages), missing corporate Knowledge Articles (KAs), inaccurate causal CIs, and incomplete description documentation.",
       solutionProposal: "An automated real-time incident compliance portal utilizing fuzzy string mapping algorithms, deterministic local auditing gates across 13 core metrics, visual trends tracking, direct manager operational portfolios, and generative AI via Gemini 3.8 Flash for peer coaching synthesis.",
       potentialImpact: "Guarantees 100% resolution documentation audits. Eliminates external cloud data leaks by processing files entirely in the local sandbox browser environment. Delivers immediate, customized performance coaching actions for team managers, while reducing service ticket state bypasses by over 45%.",
       techStack: "React 18, Vite, Tailwind CSS, Recharts, Lucide, Gemini 3.8 Flash SDK",
@@ -148,7 +148,7 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
       teamName: "ServiceNow Quality Assurance",
       customerName: "",
       customerDesignation: "Director of Service Desk & Infrastructure",
-      problemStatement: "ServiceNow incident audits are performed manually and retrospectively. This leads to substantial data oversight, unchecked state transitions (e.g. bypassing 'Solve Propose' audit validation stages), missing corporate Knowledge Articles (KAs), inaccurate causal CIs, and incomplete description documentation.",
+      problemStatement: "ServiceNow incident audits are performed manually and retrospectively. This leads to substantial data oversight, unchecked state transitions (e.g. bypassing 'Resolved' audit validation stages), missing corporate Knowledge Articles (KAs), inaccurate causal CIs, and incomplete description documentation.",
       solutionProposal: "An automated real-time incident compliance portal utilizing fuzzy string mapping algorithms, deterministic local auditing gates across 13 core metrics, visual trends tracking, direct manager operational portfolios, and generative AI via Gemini 3.8 Flash for peer coaching synthesis.",
       potentialImpact: "Guarantees 100% resolution documentation audits. Eliminates external cloud data leaks by processing files entirely in the local sandbox browser environment. Delivers immediate, customized performance coaching actions for team managers, while reducing service ticket state bypasses by over 45%.",
       techStack: "React 18, Vite, Tailwind CSS, Recharts, Lucide, Gemini 3.8 Flash SDK",
@@ -227,7 +227,7 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
   const aiFeatures = [
     {
       title: "Context-Aware Performance Coaching",
-      purpose: "Generates tailored workspace coaching scripts based on an individual analyst's metric score, standard operational gaps (e.g. bypassing 'Solve Propose'), and missing KAs. Outputs directly into formatted Slack recognition drafts for supervisors."
+      purpose: "Generates tailored workspace coaching scripts based on an individual analyst's metric score, standard operational gaps (e.g. bypassing 'Resolved'), and missing KAs. Outputs directly into formatted Slack recognition drafts for supervisors."
     },
     {
       title: "Hierarchical Oversight Synthesis",

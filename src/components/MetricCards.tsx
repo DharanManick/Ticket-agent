@@ -22,7 +22,7 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
       { key: 'technicalDescription', name: 'Technical Depth (50+ chars)' },
       { key: 'serviceImpactDescription', name: 'Service Impact Tier' },
       { key: 'businessImpactDescription', name: 'Business Impact Depth' },
-      { key: 'activityLogs', name: 'Solve Propose Transition' },
+      { key: 'activityLogs', name: 'Resolved State Transition' },
       { key: 'closureCode1', name: 'Closure Code 1 Alignment' },
       { key: 'closureCode2', name: 'Closure Code 2 Alignment' },
       { key: 'solutionCode', name: 'Solution Code Integrity' },
@@ -44,10 +44,16 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
     }).sort((a, b) => a.passRate - b.passRate); // Ascending order (lowest pass rate first, representing top failure gaps)
   }, [reports]);
 
-  // Alerts on bypassed step "Solve Propose"
+  // Alerts on bypassed step "Resolved"
   const falseAudits = reports.filter(r => {
     const logs = r.ticket.activityLogs ? r.ticket.activityLogs.toLowerCase() : '';
-    return logs.includes('progress') && logs.includes('confirm') && !logs.includes('propose');
+    const stateVal = r.ticket.incidentState ? r.ticket.incidentState.toLowerCase() : '';
+    const prevState = r.ticket.previousState ? r.ticket.previousState.toLowerCase() : '';
+    const hasProgress = logs.includes('progress') || stateVal.includes('progress') || prevState.includes('progress');
+    const hasClosed = logs.includes('close') || logs.includes('confirm') || stateVal.includes('close') || stateVal.includes('confirm');
+    const hasResolved = logs.includes('resolve') || stateVal.includes('resolve') || prevState.includes('resolve') || logs.includes('propose') || stateVal.includes('propose');
+    const isExplicitFail = r.scores.activityLogs?.comment?.includes('FALSE AUDIT');
+    return isExplicitFail || (hasProgress && hasClosed && !hasResolved);
   });
 
   // Dynamic executive recommendations builder
@@ -360,7 +366,7 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
               />
             </div>
             <div className="flex justify-between text-[10px] text-gray-500 mt-1.5">
-              <span>Bypassed Solve Propose</span>
+              <span>Bypassed Resolved State</span>
               <span className={`font-semibold ${falseAudits.length > 0 ? 'text-red-400' : 'text-green-500'}`}>
                 {falseAudits.length > 0 ? 'Action Protocol' : 'Compliant'}
               </span>
@@ -376,7 +382,7 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
           <div className="space-y-1">
             <span className="font-semibold block text-red-300 font-mono text-xs uppercase tracking-wider">Operational Warning: Bypassed State Transition Detected</span>
             <span className="text-xs text-gray-400 leading-relaxed block">
-              The tickets cataloged below transitioned straight from **In-Progress** to **Solve Confirm**, bypassing the mandatory **"Solve Propose" state** checkpoints. This violates security governance standards. Select a ticket to review compliance errors.
+              The tickets cataloged below transitioned straight from **In-Progress** to **Closed**, bypassing the mandatory **"Resolved" state** checkpoints. This violates security governance standards. Select a ticket to review compliance errors.
             </span>
             <div className="flex flex-wrap gap-2 mt-2">
               {falseAudits.map((fa, faIdx) => (

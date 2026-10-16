@@ -13,7 +13,7 @@ export interface Ticket {
   technicalDescription: string;
   serviceImpactDescription: string; // e.g., "P1H", "P3L", or descriptive
   businessImpactDescription: string;
-  activityLogs: string; // e.g. "InProgress -> SolvePropose -> SolveConfirm"
+  activityLogs: string; // e.g. "InProgress -> Resolved -> Closed"
   closureCode1: string;
   closureCode2: string;
   solutionCode: string;
@@ -319,51 +319,47 @@ export interface UsageStats {
   };
 }
 
-export function isSolveProposeTicket(t: any): boolean {
+export function isResolvedTicket(t: any): boolean {
   if (!t) return false;
   const stateVal = String(t.incidentState || t.state || t.incident_state || '').trim().toLowerCase();
   const prevState = String(t.previousState || t.u_previous_state || '').trim().toLowerCase();
   const logs = String(t.activityLogs || t.comments_and_work_notes || '').toLowerCase();
   const desc = String(t.resolutionDescription || t.close_notes || t.technicalDescription || t.description || '').toLowerCase();
 
-  // State matches
+  // State matches: "resolved", "resolve", "resolv", or state code "6"
   if (
-    stateVal.includes('propose') ||
-    stateVal.includes('proposed') ||
-    stateVal === 'solve propose' ||
-    stateVal === 'solve_propose' ||
-    stateVal === 'solvepropose' ||
-    prevState.includes('propose') ||
-    prevState.includes('proposed')
+    stateVal === 'resolved' ||
+    stateVal === 'resolve' ||
+    stateVal === '6' ||
+    stateVal.includes('resolv') ||
+    prevState.includes('resolv') ||
+    prevState === '6'
   ) {
     return true;
   }
 
-  // Work note transitions e.g. "InProgress -> SolvePropose -> SolveConfirm" or "solve propose"
+  // Work note transitions e.g. "InProgress -> Resolved -> Closed"
   if (
-    logs.includes('solve propose') ||
-    logs.includes('solve proposed') ||
-    logs.includes('solvepropose') ||
-    logs.includes('solve_propose') ||
-    logs.includes('solved propose') ||
-    logs.includes('solved_propose') ||
-    logs.includes('propose solve') ||
-    logs.includes('proposed solve') ||
-    logs.includes('proposed solved') ||
-    logs.includes('proposal')
+    logs.includes('resolved') ||
+    logs.includes('resolve') ||
+    logs.includes('marked resolved') ||
+    logs.includes('state changed to resolved')
   ) {
     return true;
   }
 
   // Resolution description matches
   if (
-    desc.includes('solve propose') ||
-    desc.includes('proposed solve') ||
-    desc.includes('proposed solved')
+    desc.includes('resolved') ||
+    desc.includes('resolution')
   ) {
     return true;
   }
 
   return false;
 }
+
+// Backward-compatible alias
+export const isSolveProposeTicket = isResolvedTicket;
+
 

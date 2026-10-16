@@ -39,14 +39,14 @@ const SCHEMA_COLUMNS = [
     field: "Previous State",
     required: false,
     candidates: ["Previous State", "Prev State", "Prior State"],
-    description: "Used to assess whether ticket skipped mandated 'Solve Propose' verification stages.",
+    description: "Used to assess whether ticket skipped mandated 'Resolved' verification stages.",
     govRole: "Bypassed state transition audit"
   },
   {
     field: "Incident State",
     required: true,
     candidates: ["Incident State", "State", "Status", "Stage"],
-    description: "Supports automatic 'Solve Propose' filter categorization, closed duration, etc.",
+    description: "Supports automatic 'Resolved' filter categorization, closed duration, etc.",
     govRole: "Lifecycle state validation compliance"
   },
   {
@@ -128,47 +128,39 @@ const SCHEMA_COLUMNS = [
   }
 ];
 
-function isSolveProposeClient(t: any): boolean {
+function isResolvedClient(t: any): boolean {
   if (!t) return false;
   const stateVal = String(t.incidentState || t.state || t.incident_state || '').trim().toLowerCase();
   const prevState = String(t.previousState || t.u_previous_state || '').trim().toLowerCase();
   const logs = String(t.activityLogs || t.comments_and_work_notes || '').toLowerCase();
   const desc = String(t.resolutionDescription || t.close_notes || t.technicalDescription || t.description || '').toLowerCase();
 
-  // State matches
+  // State matches: "resolved", "resolve", "resolv", or state code "6"
   if (
-    stateVal.includes('propose') ||
-    stateVal.includes('proposed') ||
-    stateVal === 'solve propose' ||
-    stateVal === 'solve_propose' ||
-    stateVal === 'solvepropose' ||
-    prevState.includes('propose') ||
-    prevState.includes('proposed')
+    stateVal === 'resolved' ||
+    stateVal === 'resolve' ||
+    stateVal === '6' ||
+    stateVal.includes('resolv') ||
+    prevState.includes('resolv') ||
+    prevState === '6'
   ) {
     return true;
   }
 
-  // Work note transitions e.g. "InProgress -> SolvePropose -> SolveConfirm" or "solve propose"
+  // Work note transitions e.g. "InProgress -> Resolved -> Closed"
   if (
-    logs.includes('solve propose') ||
-    logs.includes('solve proposed') ||
-    logs.includes('solvepropose') ||
-    logs.includes('solve_propose') ||
-    logs.includes('solved propose') ||
-    logs.includes('solved_propose') ||
-    logs.includes('propose solve') ||
-    logs.includes('proposed solve') ||
-    logs.includes('proposed solved') ||
-    logs.includes('proposal')
+    logs.includes('resolved') ||
+    logs.includes('resolve') ||
+    logs.includes('marked resolved') ||
+    logs.includes('state changed to resolved')
   ) {
     return true;
   }
 
   // Resolution description matches
   if (
-    desc.includes('solve propose') ||
-    desc.includes('proposed solve') ||
-    desc.includes('proposed solved')
+    desc.includes('resolved') ||
+    desc.includes('resolution')
   ) {
     return true;
   }
@@ -176,14 +168,16 @@ function isSolveProposeClient(t: any): boolean {
   return false;
 }
 
+const isSolveProposeClient = isResolvedClient;
+
 export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup, onTriggerAudit }: UploadSectionProps) {
   const [dragActive, setDragActive] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [parsedCount, setParsedCount] = useState<number | null>(null);
   const [originalCount, setOriginalCount] = useState<number | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
-  const [onlySolvePropose, setOnlySolvePropose] = useState(() => {
-    const cachedValue = localStorage.getItem('gov_only_solve_propose');
+  const [onlyResolved, setOnlyResolved] = useState(() => {
+    const cachedValue = localStorage.getItem('gov_only_resolved') ?? localStorage.getItem('gov_only_solve_propose');
     return cachedValue === 'true';
   });
   const [manualLoadEnabled, setManualLoadEnabled] = useState(() => {
@@ -204,11 +198,9 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
           if (creds) {
             setManualLoadEnabled(creds.manualLoadEnabled === true);
             localStorage.setItem('gov_snow_manual_load_enabled', String(creds.manualLoadEnabled === true));
-            if (creds.onlySolvePropose !== undefined) {
-              const isEnabled = creds.onlySolvePropose === true;
-              setOnlySolvePropose(isEnabled);
-              localStorage.setItem('gov_only_solve_propose', String(isEnabled));
-            }
+            const isResolvedActive = creds.onlyResolved !== undefined ? creds.onlyResolved === true : (creds.onlySolvePropose === true);
+            setOnlyResolved(isResolvedActive);
+            localStorage.setItem('gov_only_resolved', String(isResolvedActive));
           }
         }
       } catch (err) {
@@ -529,16 +521,16 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
         const totalExtracted = parsedTickets.length;
         setOriginalCount(totalExtracted);
 
-        // Apply "Solve Propose" state filtering on demand
+        // Apply "Resolved" state filtering on demand
         let finalTickets = parsedTickets;
-        if (onlySolvePropose) {
-          finalTickets = parsedTickets.filter(isSolveProposeClient);
+        if (onlyResolved) {
+          finalTickets = parsedTickets.filter(isResolvedClient);
           
           setParsedCount(finalTickets.length);
           if (finalTickets.length === 0) {
-            triggerPopup(`Filtered for 'Solve Propose' states: 0 of ${totalExtracted} records matched.`, 'warning');
+            triggerPopup(`Filtered for 'Resolved' states: 0 of ${totalExtracted} records matched.`, 'warning');
           } else {
-            triggerPopup(`Ingested ${finalTickets.length} 'Solve Propose' records successfully (filtered from ${totalExtracted})!`, 'success');
+            triggerPopup(`Ingested ${finalTickets.length} 'Resolved' records successfully (filtered from ${totalExtracted})!`, 'success');
           }
         } else {
           setParsedCount(totalExtracted);
@@ -587,13 +579,14 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
     }
   };
 
-  const toggleOnlySolvePropose = async () => {
-    const newValue = !onlySolvePropose;
-    setOnlySolvePropose(newValue);
+  const toggleOnlyResolved = async () => {
+    const newValue = !onlyResolved;
+    setOnlyResolved(newValue);
+    localStorage.setItem('gov_only_resolved', String(newValue));
     localStorage.setItem('gov_only_solve_propose', String(newValue));
     triggerPopup(
       newValue 
-        ? "Active state restricted: 'Solve Propose' filter is NOW active and saved permanently." 
+        ? "Active state restricted: 'Resolved' filter is NOW active and saved permanently." 
         : "Relaxed state restriction: Auditing entire incident pool, saved permanently.", 
       'info'
     );
@@ -604,25 +597,26 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          onlyResolved: newValue,
           onlySolvePropose: newValue
         })
       });
     } catch (err) {
-      console.error('Failed to sync solve-propose toggle to server:', err);
+      console.error('Failed to sync resolved toggle to server:', err);
     }
 
     // 2. If user uploaded a local file, immediately re-filter and audit
     if (rawUnfilteredTickets && rawUnfilteredTickets.length > 0) {
       let finalTickets = rawUnfilteredTickets;
       if (newValue) {
-        finalTickets = rawUnfilteredTickets.filter(isSolveProposeClient);
+        finalTickets = rawUnfilteredTickets.filter(isResolvedClient);
       }
       setOriginalCount(rawUnfilteredTickets.length);
       setParsedCount(finalTickets.length);
       setPendingTickets(finalTickets);
       onTicketsLoaded(finalTickets);
       if (onTriggerAudit) {
-        triggerPopup(`Audited ${finalTickets.length} records under workspace (${newValue ? "'Solve Propose' Only" : "All Incidents"}).`, 'info');
+        triggerPopup(`Audited ${finalTickets.length} records under workspace (${newValue ? "'Resolved' Only" : "All Incidents"}).`, 'info');
         await onTriggerAudit(finalTickets);
       }
       return;
@@ -691,15 +685,15 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
             )}
           </button>
 
-          {/* Solve Propose Only Filter Toggle */}
+          {/* Resolved Only Filter Toggle */}
           <button
             type="button"
-            onClick={toggleOnlySolvePropose}
+            onClick={toggleOnlyResolved}
             className="flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] hover:border-gray-600 rounded-lg px-3 py-1.5 transition-all text-xs text-slate-300"
           >
-            <Filter className={`h-3 w-3 ${onlySolvePropose ? 'text-blue-400' : 'text-gray-500'}`} />
-            <span>Solve Proposes Only:</span>
-            {onlySolvePropose ? (
+            <Filter className={`h-3 w-3 ${onlyResolved ? 'text-blue-400' : 'text-gray-500'}`} />
+            <span>Resolved Only:</span>
+            {onlyResolved ? (
               <span className="text-blue-400 font-bold flex items-center space-x-1">
                 <span>ON</span>
               </span>
@@ -872,7 +866,7 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
             {/* Quick hint for template download and verification */}
             <div className="bg-[#111317] border border-[#22242C] p-3 rounded-lg flex items-center justify-between flex-wrap gap-3">
               <p className="text-[10.5px] text-gray-500 font-sans">
-                💡 <strong>Audit Pre-Check tip:</strong> Export a standard ServiceNow <em>incident.xlsx</em> dump list containing these columns directly, with active <strong>Closed / Save Proposed</strong> dates, to run an immediately green audit trial.
+                💡 <strong>Audit Pre-Check tip:</strong> Export a standard ServiceNow <em>incident.xlsx</em> dump list containing these columns directly, with active <strong>Closed / Resolved</strong> dates, to run an immediately green audit trial.
               </p>
             </div>
           </div>

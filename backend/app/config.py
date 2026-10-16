@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-3.8-flash"
     GEMINI_FALLBACK_MODEL: str = "gemini-3.5-flash-lite"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
-    GEMINI_FALLBACK_EMBEDDING_MODELS: List[str] = ["gemini-embedding-2"]
+    GEMINI_FALLBACK_EMBEDDING_MODELS: List[str] = []
     GEMINI_TEMPERATURE: float = 0.2
 
     # Server

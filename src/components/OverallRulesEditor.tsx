@@ -771,7 +771,7 @@ export default function OverallRulesEditor({
                                 </label>
                                 <input
                                   type="text"
-                                  value={r.activityRequiredStates ?? 'progress, propose, confirm'}
+                                  value={r.activityRequiredStates ?? 'progress, resolved, closed'}
                                   onChange={(e) => handleUpdateRuleField(r.id, 'activityRequiredStates', e.target.value)}
                                   className="w-full bg-[#0A0C0F] border border-[#2D313E] rounded px-2.5 py-1 text-xs text-white"
                                 />

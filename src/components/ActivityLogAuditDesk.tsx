@@ -948,7 +948,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
               <div className="text-[10px] uppercase font-bold tracking-wider text-blue-400">RAG Execution Pipeline Active</div>
               <div className="text-xs text-gray-400">{auditStep}</div>
             </div>
-            <div className="text-[10px] font-mono text-gray-500">Gemini-Embedding (exp-03-07)</div>
+            <div className="text-[10px] font-mono text-gray-500">Gemini-Embedding-001</div>
           </div>
         )}
       </div>
@@ -2144,7 +2144,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
                     value={editingIncident.status || editingIncident.incidentState || ''}
                     onChange={(e) => setEditingIncident({ ...editingIncident, status: e.target.value, incidentState: e.target.value })}
                     className="w-full bg-[#090C12] border border-[#2F374A] rounded p-2 text-xs font-mono text-gray-200 focus:outline-none"
-                    placeholder="e.g. In Progress, Solve Propose, Resolved"
+                    placeholder="e.g. In Progress, Resolved, Closed"
                   />
                 </div>
                 <div>
@@ -2179,7 +2179,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
                   onChange={(e) => setEditingIncident({ ...editingIncident, rawActivityLogs: e.target.value, latestActivityEntry: e.target.value })}
                   rows={4}
                   className="w-full bg-[#090C12] border border-[#2F374A] rounded p-2.5 text-xs text-gray-200 font-mono focus:outline-none focus:border-blue-500"
-                  placeholder="e.g. InProgress -> SolvePropose -> SolveConfirm OR a list of timeline log comments..."
+                  placeholder="e.g. InProgress -> Resolved -> Closed OR a list of timeline log comments..."
                 />
                 <p className="text-[9px] text-gray-500 mt-1 font-sans">
                   The system automatically parses and fetches the **latest update** from the activity logs for embedding-based checks.

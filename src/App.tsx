@@ -194,7 +194,9 @@ export default function App() {
   });
 
   const [reports, setReports] = useState<TicketAuditReport[]>([]);
-  const [onlySolvePropose, setOnlySolvePropose] = useState<boolean>(false);
+  const [onlyResolved, setOnlyResolved] = useState<boolean>(false);
+  const onlySolvePropose = onlyResolved;
+  const setOnlySolvePropose = setOnlyResolved;
   const [selectedTicketNumber, setSelectedTicketNumber] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
@@ -716,8 +718,10 @@ export default function App() {
         // 1. Fetch live audit reports & incidents
         const auditData = await safeFetchJson('/api/audit');
         if (auditData) {
-          if (auditData.onlySolvePropose !== undefined) {
-            setOnlySolvePropose(!!auditData.onlySolvePropose);
+          if (auditData.onlyResolved !== undefined) {
+            setOnlyResolved(!!auditData.onlyResolved);
+          } else if (auditData.onlySolvePropose !== undefined) {
+            setOnlyResolved(!!auditData.onlySolvePropose);
           }
           if (auditData.success && Array.isArray(auditData.reports)) {
             setReports(dedupeReports(auditData.reports));
@@ -1135,19 +1139,19 @@ export default function App() {
     }
   };
 
-  const handleToggleGlobalSolvePropose = async () => {
+  const handleToggleGlobalResolved = async () => {
     try {
-      const nextVal = !onlySolvePropose;
-      setOnlySolvePropose(nextVal);
-      const res = await fetch('/api/servicenow/toggle-solve-propose', {
+      const nextVal = !onlyResolved;
+      setOnlyResolved(nextVal);
+      const res = await fetch('/api/servicenow/toggle-resolved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ onlySolvePropose: nextVal })
+        body: JSON.stringify({ onlyResolved: nextVal, onlySolvePropose: nextVal })
       });
       const data = await res.json();
       if (data && data.success) {
         triggerPopup(
-          `Workspace Solve Proposed: ${nextVal ? 'ON (15 Solve Proposed)' : 'OFF (All Live Incidents)'}`,
+          `Workspace Resolved: ${nextVal ? 'ON (Resolved Only)' : 'OFF (All Live Incidents)'}`,
           'success'
         );
         const auditRes = await fetch('/api/audit');
@@ -1161,6 +1165,7 @@ export default function App() {
       triggerPopup(`Failed to toggle: ${err.message || err}`, 'warning');
     }
   };
+  const handleToggleGlobalSolvePropose = handleToggleGlobalResolved;
 
   const triggerAuditRun = async (ticketsList: Ticket[]) => {
     if (ticketsList.length === 0) {
@@ -1869,20 +1874,20 @@ export default function App() {
               </div>
             )}
 
-            {/* Top Bar Quick Solve Propose Filter Status / Toggle */}
+            {/* Top Bar Quick Resolved Filter Status / Toggle */}
             <button
               type="button"
-              onClick={handleToggleGlobalSolvePropose}
+              onClick={handleToggleGlobalResolved}
               className={`border font-semibold text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-xs ${
-                onlySolvePropose
+                onlyResolved
                   ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
                   : 'bg-card hover:bg-muted border-border text-muted-foreground hover:text-foreground'
               }`}
-              title={onlySolvePropose ? "Workspace filtered to Solve Proposed incidents. Click to view all." : "Click to filter Workspace to Solve Proposed incidents only."}
+              title={onlyResolved ? "Workspace filtered to Resolved incidents. Click to view all." : "Click to filter Workspace to Resolved incidents only."}
             >
-              <span className={`w-2 h-2 rounded-full ${onlySolvePropose ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
+              <span className={`w-2 h-2 rounded-full ${onlyResolved ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
               <span className="hidden sm:inline">Workspace:</span>
-              <span className="font-mono font-bold text-[11px]">{onlySolvePropose ? 'Solve Proposed' : 'All Incidents'}</span>
+              <span className="font-mono font-bold text-[11px]">{onlyResolved ? 'Resolved' : 'All Incidents'}</span>
             </button>
 
             <button

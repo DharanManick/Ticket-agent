@@ -68,11 +68,13 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
     () => (localStorage.getItem('gov_snow_sync_type') as any) || 'all'
   );
   
-  // Toggles: default onlySolvePropose to FALSE
-  const [onlySolvePropose, setOnlySolvePropose] = useState<boolean>(() => {
-    const cached = localStorage.getItem('gov_only_solve_propose');
+  // Toggles: default onlyResolved to FALSE
+  const [onlyResolved, setOnlyResolved] = useState<boolean>(() => {
+    const cached = localStorage.getItem('gov_only_resolved') ?? localStorage.getItem('gov_only_solve_propose');
     return cached === 'true'; // Strictly default to false
   });
+  const onlySolvePropose = onlyResolved;
+  const setOnlySolvePropose = setOnlyResolved;
   
   const [manualLoadEnabled, setManualLoadEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('gov_snow_manual_load_enabled');
@@ -122,10 +124,11 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
           if (c.autoFetchInterval !== undefined) setAutoFetchInterval(c.autoFetchInterval);
           if (c.manualLoadEnabled !== undefined) setManualLoadEnabled(c.manualLoadEnabled);
           if (Array.isArray(c.trackedGroups)) setTrackedGroups(c.trackedGroups);
-          // Only update onlySolvePropose if explicitly true in server config
-          if (c.onlySolvePropose !== undefined) {
-            setOnlySolvePropose(c.onlySolvePropose === true);
-            localStorage.setItem('gov_only_solve_propose', String(c.onlySolvePropose === true));
+          // Only update onlyResolved if explicitly true in server config
+          const serverResolved = c.onlyResolved !== undefined ? c.onlyResolved === true : (c.onlySolvePropose === true);
+          if (c.onlyResolved !== undefined || c.onlySolvePropose !== undefined) {
+            setOnlyResolved(serverResolved);
+            localStorage.setItem('gov_only_resolved', String(serverResolved));
           }
         }
       })
@@ -144,7 +147,8 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
       autoFetchEnabled: autoSyncEnabled,
       autoFetchInterval,
       assignmentGroupFilter,
-      onlySolvePropose,
+      onlyResolved,
+      onlySolvePropose: onlyResolved,
       manualLoadEnabled,
       trackedGroups,
       ...customOverrides
@@ -157,7 +161,8 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
     localStorage.setItem('gov_snow_sync_type', payload.syncType);
     localStorage.setItem('gov_snow_auto_sync', String(payload.autoSyncEnabled));
     localStorage.setItem('gov_snow_assignment_group_filter', payload.assignmentGroupFilter);
-    localStorage.setItem('gov_only_solve_propose', String(payload.onlySolvePropose));
+    localStorage.setItem('gov_only_resolved', String(payload.onlyResolved));
+    localStorage.setItem('gov_only_solve_propose', String(payload.onlyResolved));
     localStorage.setItem('gov_snow_manual_load_enabled', String(payload.manualLoadEnabled));
 
     try {
@@ -212,16 +217,16 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
     }
   };
 
-  const triggerLiveSync = async (solveProposeOverride?: boolean) => {
-    const activeSolve = solveProposeOverride !== undefined ? solveProposeOverride : onlySolvePropose;
+  const triggerLiveSync = async (resolvedOverride?: boolean) => {
+    const activeResolved = resolvedOverride !== undefined ? resolvedOverride : onlyResolved;
     setIsSyncing(true);
     setSyncLogs(prev => [
       ...prev,
-      `[${new Date().toLocaleTimeString()}] Initiating live REST fetch (Table: incident, Limit: ${syncLimit === 0 ? 'OFF' : syncLimit}, Solve Proposes Only: ${activeSolve ? 'ON' : 'OFF'})...`
+      `[${new Date().toLocaleTimeString()}] Initiating live REST fetch (Table: incident, Limit: ${syncLimit === 0 ? 'OFF' : syncLimit}, Resolved Only: ${activeResolved ? 'ON' : 'OFF'})...`
     ]);
 
     try {
-      await saveCredentialsToServer({ onlySolvePropose: activeSolve });
+      await saveCredentialsToServer({ onlyResolved: activeResolved, onlySolvePropose: activeResolved });
 
       const response = await fetch('/api/servicenow/sync', {
         method: 'POST',
@@ -235,7 +240,8 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
           useSimulator: false,
           assignmentGroupFilter,
           manualLoadEnabled,
-          onlySolvePropose: activeSolve,
+          onlyResolved: activeResolved,
+          onlySolvePropose: activeResolved,
           trackedGroups
         })
       });
@@ -265,18 +271,21 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
     }
   };
 
-  const toggleSolveProposeFilter = async () => {
-    const nextVal = !onlySolvePropose;
-    setOnlySolvePropose(nextVal);
+  const toggleResolvedFilter = async () => {
+    const nextVal = !onlyResolved;
+    setOnlyResolved(nextVal);
+    localStorage.setItem('gov_only_resolved', String(nextVal));
     localStorage.setItem('gov_only_solve_propose', String(nextVal));
     triggerPopup(
       nextVal
-        ? "Solve Propose filter ENABLED: Auditing only 'Solve Propose' tickets."
-        : "Solve Propose filter DISABLED: Auditing ALL tickets across the instance.",
+        ? "Resolved filter ENABLED: Auditing only 'Resolved' tickets."
+        : "Resolved filter DISABLED: Auditing ALL tickets across the instance.",
       'info'
     );
     await triggerLiveSync(nextVal);
   };
+
+  const toggleSolveProposeFilter = toggleResolvedFilter;
 
   const toggleManualLoad = async () => {
     const nextVal = !manualLoadEnabled;
@@ -371,21 +380,21 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Solve Proposes Only Toggle */}
+            {/* Resolved Only Toggle */}
             <button
               type="button"
-              onClick={toggleSolveProposeFilter}
+              onClick={toggleResolvedFilter}
               className={`flex items-center space-x-2 border rounded-lg px-3 py-1.5 text-xs transition-all cursor-pointer ${
-                onlySolvePropose
+                onlyResolved
                   ? 'bg-blue-600/15 border-blue-500/40 text-blue-300 font-bold'
                   : 'bg-[#1A1D24] border-[#2A2D35] text-gray-400 hover:text-white'
               }`}
-              title="When OFF, audits all tickets across the instance. When ON, filters only tickets in Solve Propose state."
+              title="When OFF, audits all tickets across the instance. When ON, filters only tickets in Resolved state."
             >
-              <Filter className={`h-3.5 w-3.5 ${onlySolvePropose ? 'text-blue-400' : 'text-gray-500'}`} />
-              <span>Solve Proposes Only:</span>
-              <span className={`font-mono font-black ${onlySolvePropose ? 'text-blue-400' : 'text-gray-500'}`}>
-                {onlySolvePropose ? 'ON' : 'OFF'}
+              <Filter className={`h-3.5 w-3.5 ${onlyResolved ? 'text-blue-400' : 'text-gray-500'}`} />
+              <span>Resolved Only:</span>
+              <span className={`font-mono font-black ${onlyResolved ? 'text-blue-400' : 'text-gray-500'}`}>
+                {onlyResolved ? 'ON' : 'OFF'}
               </span>
             </button>
 

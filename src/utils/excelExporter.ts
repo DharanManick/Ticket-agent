@@ -34,10 +34,13 @@ export const exportToColorfulExcel = (fileNamePrefix: string, isMonthlyConsolida
   const bypassedTickets = rawTickets.filter(r => {
     const logs = r.ticket.activityLogs ? r.ticket.activityLogs.toLowerCase() : '';
     const stateVal = r.ticket.incidentState ? r.ticket.incidentState.toLowerCase() : '';
-    const hasProgress = logs.includes('progress') || logs.includes('open') || logs.includes('active') || stateVal.includes('progress') || stateVal.includes('open') || stateVal.includes('active');
-    const hasPropose = logs.includes('propose') || logs.includes('draft') || logs.includes('review') || stateVal.includes('propose') || stateVal.includes('proposed') || stateVal.includes('solve');
-    const hasConfirm = logs.includes('confirm') || logs.includes('solve') || logs.includes('close') || logs.includes('solv') || stateVal.includes('closed') || stateVal.includes('resolved') || stateVal.includes('confirm');
-    return hasProgress && hasConfirm && !hasPropose;
+    const prevStateVal = r.ticket.previousState ? r.ticket.previousState.toLowerCase() : '';
+    const hasProgress = logs.includes('progress') || logs.includes('open') || logs.includes('active') || stateVal.includes('progress') || stateVal.includes('open') || stateVal.includes('active') || prevStateVal.includes('progress') || prevStateVal.includes('open') || prevStateVal.includes('active');
+    const hasResolved = logs.includes('resolve') || logs.includes('resolved') || logs.includes('propose') || logs.includes('draft') || logs.includes('review') || stateVal.includes('resolve') || stateVal.includes('resolved') || stateVal.includes('propose') || prevStateVal.includes('resolve') || prevStateVal.includes('resolved') || prevStateVal.includes('propose') || stateVal === '6' || prevStateVal === '6';
+    const hasClosed = logs.includes('confirm') || logs.includes('close') || logs.includes('closed') || stateVal.includes('closed') || stateVal.includes('confirm') || stateVal === '7' || prevStateVal === '7';
+    const prevIsProgress = prevStateVal.includes('progress') || prevStateVal.includes('active') || prevStateVal.includes('work') || prevStateVal.includes('open');
+    const currIsClosed = stateVal.includes('closed') || stateVal === '7';
+    return (prevIsProgress && currIsClosed && !hasResolved) || (hasProgress && hasClosed && !hasResolved);
   });
 
   // Calculate stats by manager
@@ -346,7 +349,7 @@ export const exportToColorfulExcel = (fileNamePrefix: string, isMonthlyConsolida
     <Cell ss:StyleID="AlertRow"><Data ss:Type="String">${esc(bt.ticket.incNumber)}</Data></Cell>
     <Cell ss:StyleID="AlertRow"><Data ss:Type="String">${esc(bt.ticket.assignee)}</Data></Cell>
     <Cell ss:StyleID="AlertRow"><Data ss:Type="String">${esc(bt.ticket.assigneeManager || 'Unassigned')}</Data></Cell>
-    <Cell ss:StyleID="AlertRow"><Data ss:Type="String">⚠️ CRITICAL TRANSITION: Solve Propose State Bypassed (Instant Close)</Data></Cell>
+    <Cell ss:StyleID="AlertRow"><Data ss:Type="String">⚠️ CRITICAL TRANSITION: Resolved State Bypassed (Instant Close)</Data></Cell>
    </Row>`;
     });
   }

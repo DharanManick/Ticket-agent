@@ -35,7 +35,7 @@ GOLDEN_TEST_CASES = [
             "resolutionDescription": "What was the Issue ? Outlook crashed immediately on boot.\nWhat caused the issue ? Corrupted mso20win32client DLL cache in user profile.\nWhat workaround / Fix done ? Online Office repair executed and credential cache wiped.\nService Impact: Single user Outlook client failure.\nBusiness Impact: Executive email communication blocked for 30 minutes.\nIssue Type: Application / Desktop Client.\nEffort Calculation: 45 minutes investigation and repair.\nRemediation: Ensured latest monthly Office 365 cumulative update applied.",
             "activityLogs": "2026-09-20 10:15:00 - Rob Phillips: Executed Office 365 online repair, cleared credentials token cache, verified Outlook opens cleanly. User confirmed fix.",
             "hoursIdle": 1,
-            "incidentState": "Solve Proposed",
+            "incidentState": "Resolved",
             "updatedDate": "2026-09-20"
         },
         "expected": {
@@ -68,7 +68,7 @@ GOLDEN_TEST_CASES = [
             "resolutionDescription": "fixed it for user",
             "activityLogs": "working",
             "hoursIdle": 8,
-            "incidentState": "Solve Proposed",
+            "incidentState": "Resolved",
             "updatedDate": "2026-09-20"
         },
         "expected": {
@@ -101,7 +101,7 @@ GOLDEN_TEST_CASES = [
             "resolutionDescription": "Adjusted MTU size to 1350 to prevent packet fragmentation over ISP tunnel.",
             "activityLogs": "From: jsmith@example.com\nSent: Monday, September 20, 2026 9:14 AM\nTo: helpdesk@example.com\nSubject: VPN disconnects constantly\nHi team, my VPN keeps cutting off every 10 minutes please fix this immediately as I have an audit presentation today.",
             "hoursIdle": 4,
-            "incidentState": "Solve Proposed",
+            "incidentState": "Resolved",
             "updatedDate": "2026-09-20"
         },
         "expected": {
@@ -134,7 +134,7 @@ GOLDEN_TEST_CASES = [
             "resolutionDescription": "What was the Issue ? DB lock contention.\nWhat workaround / Fix done ? Rebuilt fragmented indexes on INV_LEDGER_TBL.",
             "activityLogs": "[11:02 AM] Support Eng: Hey did you restart the listener?\n[11:03 AM] DB Admin: No, waiting on approval from team lead.\n[11:04 AM] Support Eng: Let me know when completed.\n[11:05 AM] DB Admin: Done now restarting query batch.",
             "hoursIdle": 3,
-            "incidentState": "Solve Proposed",
+            "incidentState": "Resolved",
             "updatedDate": "2026-09-20"
         },
         "expected": {
@@ -167,7 +167,7 @@ GOLDEN_TEST_CASES = [
             "resolutionDescription": "Replaced faulty fiber patch cable and verified optical power levels within specification.",
             "activityLogs": "2026-09-20 14:00:00 - Database team engineer investigated and replaced fiber optic patch cable.",
             "hoursIdle": 2,
-            "incidentState": "Solve Proposed",
+            "incidentState": "Resolved",
             "updatedDate": "2026-09-20"
         },
         "expected": {
@@ -233,7 +233,7 @@ GOLDEN_TEST_CASES = [
             "resolutionDescription": "What was the Issue ? Wildcard SSL certificate expired.\nWhat workaround / Fix done ? Deployed DigiCert renewed wildcard certificate to all fronting load balancers.",
             "activityLogs": "2026-08-15 11:30:00 - Deployed renewed certificate and bound to port 443.",
             "hoursIdle": 6,
-            "incidentState": "Solve Proposed",
+            "incidentState": "Resolved",
             "updatedDate": "2026-08-15"  # Stale! Over a month old
         },
         "expected": {
@@ -266,7 +266,7 @@ GOLDEN_TEST_CASES = [
             "resolutionDescription": "What was the Issue ? Sensor locked.\nWhat workaround / Fix done ? Booted into safe mode, purged old kernel driver, and ran clean installer with force flag.",
             "activityLogs": "2026-09-20 12:00:00 - Reinstalled Falcon sensor and confirmed connected to cloud console.",
             "hoursIdle": 2,
-            "incidentState": "Solve Proposed",
+            "incidentState": "Resolved",
             "updatedDate": "2026-09-20"
         },
         "expected": {
@@ -577,7 +577,7 @@ class EvaluationHarness:
             "total_runtime_ms": total_runtime_ms,
             "status": "PASSED" if overall_accuracy >= 85 else "FAILED",
             "model_evaluated": os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"),
-            "embedding_evaluated": os.environ.get("GEMINI_EMBEDDING_MODEL", "gemini-embedding-exp-03-07"),
+            "embedding_evaluated": os.environ.get("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001"),
             "cases": case_results
         }
 

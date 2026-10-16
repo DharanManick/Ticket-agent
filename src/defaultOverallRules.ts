@@ -84,13 +84,13 @@ export const defaultOverallRules: OverallTicketAuditRule[] = [
     id: 'overall_rule_8',
     ruleCode: 'ACTIVITY_LOG_STATE_BYPASS',
     name: '8. Activity Logs Daily State Transition Audit',
-    description: 'activity logs -- daily updates, if 1 day miss have warnings as now, check all details like chats, mail chain, resolution description details etc. then full score, if no updates more then 2 days then reduce the score half based on audits (will validate with help of LLM) and ticket status need to move like in-progress --> solve propose --> solve confirm, if InProgress --> solve confirmed the false audit.',
+    description: 'activity logs -- daily updates, if 1 day miss have warnings as now, check all details like chats, mail chain, resolution description details etc. then full score, if no updates more then 2 days then reduce the score half based on audits (will validate with help of LLM) and ticket status need to move like in-progress --> resolved --> closed, if InProgress --> closed without resolved state it is false audit.',
     category: 'Process Compliance',
     weight: 2,
     isEnabled: true,
-    errorMessage: 'Transitions missed core checkpoints or bypassed propose state.',
+    errorMessage: 'Transitions missed core checkpoints or bypassed resolved state.',
     activityMaxDaysNoUpdate: 2,
-    activityRequiredStates: 'progress, propose, confirm'
+    activityRequiredStates: 'progress, resolved, closed'
   },
   {
     id: 'overall_rule_9',

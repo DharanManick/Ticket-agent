@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { TicketAuditReport, isSolveProposeTicket } from '../types';
+import { TicketAuditReport, isSolveProposeTicket, isResolvedTicket } from '../types';
 import { 
   User, 
   Search, 
@@ -350,7 +350,7 @@ function getIdealMetricSolution(
     case 'activityLogs': {
       const maxNoUpdateDays = rActivityLog?.activityMaxDaysNoUpdate ?? 2;
       return {
-        expected: 'State sequence: "In-Progress -> Solve Propose -> Solve Confirm", with active interval logs <= every ' + maxNoUpdateDays + ' days.',
+        expected: 'State sequence: "In-Progress -> Resolved -> Closed", with active interval logs <= every ' + maxNoUpdateDays + ' days.',
         recommendation: `Never bypass states directly from In-Progress to Closed, as this constitutes a ServiceNow audit bypass violation. Ensure also that communication logs (chats, emails) are tracked at least once every ${maxNoUpdateDays} days.`
       };
     }
@@ -830,7 +830,7 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
   const ticket = report.ticket;
   const scores = report.scores || {} as any;
   const logs = (ticket.activityLogs || '').toLowerCase();
-  const isBypassed = logs.includes('progress') && logs.includes('confirm') && !logs.includes('propose');
+  const isBypassed = logs.includes('progress') && (logs.includes('confirm') || logs.includes('close')) && !logs.includes('resolve') && !logs.includes('propose');
 
   // Helper: check if a metric is configured as optional (exempt) for this ticket's assignment group
   const isExempt = (key: string): boolean => {
@@ -851,9 +851,9 @@ export function extractTicketMistakes(report: TicketAuditReport): FormattedMista
       scoreDisplay: `${actScore}/2`,
       currentValue: ticket.activityLogs ? `"${ticket.activityLogs}"` : '(Empty Activity Logs)',
       failureReason: isBypassed
-        ? 'Critical Governance Bypass: State jumped from In-Progress directly to Solve-Confirm, skipping mandatory "Solve Propose" transitional quality review.'
+        ? 'Critical Governance Bypass: State jumped from In-Progress directly to Closed, skipping mandatory "Resolved" transitional quality review.'
         : (scores.activityLogs?.comment || 'Activity transitions are incomplete or missing required operational stage timestamps.'),
-      remediationAction: 'Record all sequential transitions (InProgress -> SolvePropose -> SolveConfirm) in the activity logs before final closure.'
+      remediationAction: 'Record all sequential transitions (InProgress -> Resolved -> Closed) in the activity logs before final closure.'
     });
   }
 
@@ -1195,7 +1195,7 @@ export function AuditorGeneralCommentsAndMistakesCard({
         metricComment = `Checked: Standard ITIL documentation quality criteria verified for ${cfg.label}. Conforms to ServiceNow audit standards.`;
       }
       if (isBypassed && cfg.key === 'activityLogs' && !isExempt) {
-        metricComment = 'Critical Governance Bypass: State jumped from In-Progress directly to Solve-Confirm, skipping mandatory "Solve Propose" transitional quality review.';
+        metricComment = 'Critical Governance Bypass: State jumped from In-Progress directly to Closed, skipping mandatory "Resolved" transitional quality review.';
       } else if (mistake && mistake.failureReason && !metricComment) {
         metricComment = mistake.failureReason;
       }
@@ -2130,57 +2130,66 @@ export default function AuditDetails({
   };
   const [assignmentGroupFilter, setAssignmentGroupFilter] = useState('All');
   const [complianceFilter, setComplianceFilter] = useState('All');
-  const [onlySolvePropose, setOnlySolvePropose] = useState<boolean>(false);
-  const [isTogglingSolvePropose, setIsTogglingSolvePropose] = useState<boolean>(false);
+  const [onlyResolved, setOnlyResolved] = useState<boolean>(false);
+  const onlySolvePropose = onlyResolved;
+  const setOnlySolvePropose = setOnlyResolved;
+  const [isTogglingResolved, setIsTogglingResolved] = useState<boolean>(false);
+  const isTogglingSolvePropose = isTogglingResolved;
 
-  // Sync onlySolvePropose status from backend on mount and listen to realtime updates
+  // Sync onlyResolved status from backend on mount and listen to realtime updates
   useEffect(() => {
     fetch('/api/servicenow/credentials')
       .then(r => r.json())
       .then(data => {
-        if (data && data.credentials && data.credentials.onlySolvePropose !== undefined) {
-          setOnlySolvePropose(!!data.credentials.onlySolvePropose);
+        if (data && data.credentials) {
+          const val = data.credentials.onlyResolved !== undefined ? data.credentials.onlyResolved : data.credentials.onlySolvePropose;
+          if (val !== undefined) {
+            setOnlyResolved(!!val);
+          }
         }
       })
       .catch(() => {});
 
     const handleRealtimeSync = (e: any) => {
-      if (e?.detail?.onlySolvePropose !== undefined) {
-        setOnlySolvePropose(!!e.detail.onlySolvePropose);
+      const val = e?.detail?.onlyResolved !== undefined ? e.detail.onlyResolved : e?.detail?.onlySolvePropose;
+      if (val !== undefined) {
+        setOnlyResolved(!!val);
       }
     };
     window.addEventListener('servicenow_realtime_sync', handleRealtimeSync);
     return () => window.removeEventListener('servicenow_realtime_sync', handleRealtimeSync);
   }, []);
 
-  const solveProposedReportsCount = useMemo(() => {
-    return reports.filter(r => isSolveProposeTicket(r.ticket)).length;
+  const resolvedReportsCount = useMemo(() => {
+    return reports.filter(r => isResolvedTicket(r.ticket)).length;
   }, [reports]);
+  const solveProposedReportsCount = resolvedReportsCount;
 
-  const handleToggleSolvePropose = async () => {
-    setIsTogglingSolvePropose(true);
+  const handleToggleResolved = async () => {
+    setIsTogglingResolved(true);
     try {
-      const nextVal = !onlySolvePropose;
-      setOnlySolvePropose(nextVal);
-      const res = await fetch('/api/servicenow/toggle-solve-propose', {
+      const nextVal = !onlyResolved;
+      setOnlyResolved(nextVal);
+      const res = await fetch('/api/servicenow/toggle-resolved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ onlySolvePropose: nextVal })
+        body: JSON.stringify({ onlyResolved: nextVal, onlySolvePropose: nextVal })
       });
       const data = await res.json();
       if (data && data.success) {
         triggerPopup(
-          `Workspace Solve Proposed: ${nextVal ? 'ON (15 Solve Proposed)' : 'OFF (Showing all tickets)'}`,
+          `Workspace Resolved Only: ${nextVal ? 'ON (Filtered to Resolved)' : 'OFF (Showing all tickets)'}`,
           'success'
         );
         window.dispatchEvent(new CustomEvent('governance_audit_refetch_requested'));
       }
     } catch (err: any) {
-      triggerPopup(`Failed to toggle Solve Propose: ${err.message || err}`, 'warning');
+      triggerPopup(`Failed to toggle Resolved: ${err.message || err}`, 'warning');
     } finally {
-      setIsTogglingSolvePropose(false);
+      setIsTogglingResolved(false);
     }
   };
+  const handleToggleSolvePropose = handleToggleResolved;
 
   const [activeMetricKey, setActiveMetricKey] = useState<string>('shortDescription');
   const [middleColumnView, setMiddleColumnView] = useState<'metric_inspector' | 'mistakes_and_comments' | 'both'>('metric_inspector');
@@ -2298,7 +2307,7 @@ export default function AuditDetails({
       targetTicket.externalReference = targetTicket.externalReference || 'EXT-REF-9092';
       targetTicket.serviceImpactDescription = "P3L - Minor Service Impact under operational parameters.";
       targetTicket.businessImpactDescription = "Operational transaction speed degraded. Corrective re-alignment prevents subsequent delay in batch processing lanes.";
-      targetTicket.activityLogs = "InProgress -> SolvePropose -> SolveConfirm";
+      targetTicket.activityLogs = "InProgress -> Resolved -> Closed";
       targetTicket.incidentState = "Closed";
       targetTicket.previousState = "Resolved";
 
@@ -2396,7 +2405,7 @@ export default function AuditDetails({
           targetTicket.externalReference = targetTicket.externalReference || 'EXT-REF-9092';
           targetTicket.serviceImpactDescription = "P3L - Minor Service Impact under operational parameters.";
           targetTicket.businessImpactDescription = "Operational transaction speed degraded. Corrective re-alignment prevents subsequent delay in batch processing lanes.";
-          targetTicket.activityLogs = "InProgress -> SolvePropose -> SolveConfirm";
+          targetTicket.activityLogs = "InProgress -> Resolved -> Closed";
           targetTicket.incidentState = "Closed";
           targetTicket.previousState = "Resolved";
 
@@ -2547,8 +2556,8 @@ export default function AuditDetails({
     return reports.filter(r => {
       const ticket = r.ticket;
 
-      // Workspace Checklist Solve Proposed Filter
-      if (onlySolvePropose && !isSolveProposeTicket(ticket)) {
+      // Workspace Checklist Resolved Filter
+      if ((onlyResolved ?? onlySolvePropose) && !isResolvedTicket(ticket)) {
         return false;
       }
 
@@ -2567,7 +2576,7 @@ export default function AuditDetails({
 
       return matchSearch && matchGroup && matchCompliance;
     });
-  }, [reports, searchTerm, assignmentGroupFilter, complianceFilter, onlySolvePropose]);
+  }, [reports, searchTerm, assignmentGroupFilter, complianceFilter, onlyResolved]);
 
   // Sort logic applied
   const sortedReports = useMemo(() => {
@@ -2882,28 +2891,28 @@ export default function AuditDetails({
             </div>
             
             <div className="flex gap-2 flex-wrap items-center">
-              {/* Workspace Checklist Solve Proposed Toggle Button */}
+              {/* Workspace Checklist Resolved Toggle Button */}
               <button
                 type="button"
-                id="workspace-solve-propose-toggle-btn"
-                onClick={handleToggleSolvePropose}
-                disabled={isTogglingSolvePropose}
+                id="workspace-resolved-toggle-btn"
+                onClick={handleToggleResolved}
+                disabled={isTogglingResolved}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
-                  onlySolvePropose 
+                  onlyResolved 
                     ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25 shadow-xs' 
                     : 'bg-slate-50 dark:bg-[#0A0C0F] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-[#2A2D35] hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-gray-600'
                 }`}
-                title={onlySolvePropose ? "Click to view all live tickets" : "Click to filter strictly to Solve Proposed tickets"}
+                title={onlyResolved ? "Click to view all live tickets" : "Click to filter strictly to Resolved tickets"}
               >
-                <span className={`w-2 h-2 rounded-full ${onlySolvePropose ? 'bg-emerald-500 dark:bg-emerald-400 animate-pulse' : 'bg-slate-400 dark:bg-gray-500'}`} />
-                <span>Solve Proposed:</span>
+                <span className={`w-2 h-2 rounded-full ${onlyResolved ? 'bg-emerald-500 dark:bg-emerald-400 animate-pulse' : 'bg-slate-400 dark:bg-gray-500'}`} />
+                <span>Resolved Only:</span>
                 <span className={`font-mono font-bold px-1.5 py-0.5 rounded text-[10px] ${
-                  onlySolvePropose ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/25 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-gray-800 dark:text-gray-400'
+                  onlyResolved ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/25 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-gray-800 dark:text-gray-400'
                 }`}>
-                  {onlySolvePropose ? 'ON' : 'OFF'}
+                  {onlyResolved ? 'ON' : 'OFF'}
                 </span>
                 <span className="text-[11px] opacity-75 font-mono">
-                  ({onlySolvePropose ? solveProposedReportsCount : reports.length})
+                  ({onlyResolved ? resolvedReportsCount : reports.length})
                 </span>
               </button>
 
@@ -2949,7 +2958,7 @@ export default function AuditDetails({
           {/* Critical Bypass Alert Callout */}
           {(() => {
             const logs = activeReport.ticket.activityLogs ? activeReport.ticket.activityLogs.toLowerCase() : '';
-            const activeIsBypassed = logs.includes('progress') && logs.includes('confirm') && !logs.includes('propose');
+            const activeIsBypassed = logs.includes('progress') && (logs.includes('confirm') || logs.includes('close')) && !logs.includes('resolve') && !logs.includes('propose');
             if (!activeIsBypassed) return null;
             return (
               <div className="bg-rose-950/25 border border-rose-500/30 p-4 rounded-xl flex items-start gap-4 shadow-xl animate-scaleUp">
@@ -2958,9 +2967,9 @@ export default function AuditDetails({
                 </div>
                 <div className="space-y-1">
                   <span className="text-[9px] uppercase tracking-widest font-mono font-black text-rose-400 block pb-0.5">Critical Governance Compliance Failure</span>
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">"Solve Propose" Transitional Buffer Bypassed</h4>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">"Resolved" Transitional Buffer Bypassed</h4>
                   <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                    This ticket has bypassed standard state sequence transitions by moving directly from <strong className="text-white">In-Progress</strong> straight to <strong className="text-white">Solve Confirm</strong>. Skip audit loops are critical audit violations that compromise product delivery validation.
+                    This ticket has bypassed standard state sequence transitions by moving directly from <strong className="text-white">In-Progress</strong> straight to <strong className="text-white">Closed</strong> without entering <strong className="text-white">Resolved</strong>. Skip audit loops are critical audit violations that compromise product delivery validation.
                   </p>
                 </div>
               </div>
@@ -3413,7 +3422,7 @@ export default function AuditDetails({
                     sortedReports.map((report, idx) => {
                       const incidentState = report.ticket.incidentState || (report.ticket.activityLogs?.toLowerCase().includes('confirm') ? 'Closed' : 'Resolved');
                       const logs = report.ticket.activityLogs ? report.ticket.activityLogs.toLowerCase() : '';
-                      const isBypassed = logs.includes('progress') && logs.includes('confirm') && !logs.includes('propose');
+                      const isBypassed = logs.includes('progress') && (logs.includes('confirm') || logs.includes('close')) && !logs.includes('resolve') && !logs.includes('propose');
                       const isSelected = selectedIncNumbers.includes(report.ticket.incNumber);
                       
                       return (

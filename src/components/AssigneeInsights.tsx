@@ -44,7 +44,7 @@ export default function AssigneeInsights({ reports, historyRuns, triggerPopup }:
       perfectPasses: number; // >= 90
       warnings: number;       // 70 - 89
       criticalFails: number;  // < 70
-      bypassedSLA: number;    // bypassed Solve Propose transition
+      bypassedSLA: number;    // bypassed Resolved transition
       groupNames: Set<string>;
       tickets: TicketAuditReport[];
       assigneesManaged: Set<string>;
@@ -57,7 +57,7 @@ export default function AssigneeInsights({ reports, historyRuns, triggerPopup }:
         : r.ticket.assignee) || (viewType === 'manager' ? 'Unassigned Manager' : 'Unassigned Associate');
       
       const isBypassed = r.ticket.activityLogs 
-        ? (r.ticket.activityLogs.toLowerCase().includes('progress') && r.ticket.activityLogs.toLowerCase().includes('confirm') && !r.ticket.activityLogs.toLowerCase().includes('propose'))
+        ? (r.ticket.activityLogs.toLowerCase().includes('progress') && (r.ticket.activityLogs.toLowerCase().includes('confirm') || r.ticket.activityLogs.toLowerCase().includes('close')) && !r.ticket.activityLogs.toLowerCase().includes('resolve') && !r.ticket.activityLogs.toLowerCase().includes('propose'))
         : false;
 
       if (!stats[name]) {
@@ -166,7 +166,7 @@ export default function AssigneeInsights({ reports, historyRuns, triggerPopup }:
           speech += `Strategic roll-up analysis shows these key compliance elements to address at the team standup:\n`;
           
           if (foundStat.bypassedSLA > 0) {
-            speech += `- **Process Integrity Alert**: There were **${foundStat.bypassedSLA} cases** where team analysts skipped the 'Solve Propose' transition, closing incidents directly.\n`;
+            speech += `- **Process Integrity Alert**: There were **${foundStat.bypassedSLA} cases** where team analysts skipped the 'Resolved' transition, closing incidents directly.\n`;
           }
 
           // Gather individual weaknesses
@@ -203,7 +203,7 @@ export default function AssigneeInsights({ reports, historyRuns, triggerPopup }:
         speech += `Strategic review isolated key areas to address for ${foundStat.name.split(' ')[0]}:\n`;
         
         if (foundStat.bypassedSLA > 0) {
-          speech += `- **Bypassed Solve Propose**: The agent skipped 'Solve Propose' in ${foundStat.bypassedSLA} tickets. Transitioning directly from In-Progress to Close is an SLA failure.\n`;
+          speech += `- **Bypassed Resolved State**: The agent skipped 'Resolved' state in ${foundStat.bypassedSLA} tickets. Transitioning directly from In-Progress to Closed is an audit compliance failure.\n`;
         }
         
         let missingKA = 0;
@@ -627,8 +627,8 @@ export default function AssigneeInsights({ reports, historyRuns, triggerPopup }:
                   <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" />
                   <span>
                     {viewType === 'manager' 
-                      ? `Notice: Process policy bypassed. Analysts under this manager bypassed 'Solve Propose' in ${activeModalAssignee.bypassedSLA} incident resolutions. Leadership oversight recommended.`
-                      : `Notice: Skip policy bypass records alert. This analyst has bypassed the 'Solve Propose' transition in ${activeModalAssignee.bypassedSLA} incident resolutions. A review of ServiceNow logs is advised.`}
+                      ? `Notice: Process policy bypassed. Analysts under this manager bypassed 'Resolved' state in ${activeModalAssignee.bypassedSLA} incident resolutions. Leadership oversight recommended.`
+                      : `Notice: Skip policy bypass records alert. This analyst has bypassed the 'Resolved' state transition in ${activeModalAssignee.bypassedSLA} incident resolutions. A review of ServiceNow logs is advised.`}
                   </span>
                 </div>
               )}

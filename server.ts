@@ -15,6 +15,15 @@ import { AI_CONFIG } from './src/aiConfig';
 // Allow connection to corporate/sandbox ServiceNow instances with self-signed SSL certificates
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
+// Global resilience handlers to prevent unexpected background sweep rejections from crashing the server
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION PREVENTED CRASH]', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[UNHANDLED REJECTION PREVENTED CRASH]', reason);
+});
+
 // Custom fetch implementation to bypass SSL/TLS self-signed certificate issues for ServiceNow requests
 const nativeFetch = globalThis.fetch;
 
@@ -227,7 +236,7 @@ function handleGeminiError(err: any, context: string = "") {
 }
 
 /**
- * Gemini 2.5 Flash Model Configuration & System Prompt
+ * Gemini 3.8 Flash Model Configuration & System Prompt
  */
 const GEMINI_PRIMARY_MODEL = process.env.GEMINI_MODEL || AI_CONFIG.PRIMARY_MODEL;
 const GEMINI_SYSTEM_PROMPT = AI_CONFIG.SYSTEM_AUDITOR_INSTRUCTION;
@@ -1223,9 +1232,9 @@ function generateEnhancedAuditComments(
     `Business Risk: Articulate operational or financial downtime exposure in the Business Impact field.`
   );
 
-  const isBypassed = logs.includes('progress') && logs.includes('confirm') && !logs.includes('propose');
+  const isBypassed = logs.includes('progress') && (logs.includes('confirm') || logs.includes('close')) && !logs.includes('resolve') && !logs.includes('propose');
   const actAction = isBypassed
-    ? `Governance Flow: Critical bypass detected — log 'Solve Propose' transitional review status in work notes before final closure.`
+    ? `Governance Flow: Critical bypass detected — transition through 'Resolved' review status in work notes before final closure.`
     : `Audit Trail: Ensure activity log notes capture sequential customer updates and engineer troubleshooting milestones.`;
   check('activityLogs', 'Activity Logs', (scores.activityLogs?.score ?? 0) < 2 || isBypassed, actAction);
 
@@ -1599,7 +1608,7 @@ Fields to evaluate for each ticket:
      * If resolution is skeletal (e.g. 'fixed it', 'done'), nonsensical, or contradicts logs/KB: Award SCORE 0 (Rating: 'Fail' / Red).
    - Write a natural human auditor comment (2-3 sentences) explaining the content validity, how it aligns with the activity logs and KB article, and whether the 8-point format is complete (Pass) or advisory/partial (Amber).
 6. activityLogs: Audit the progression of work notes, customer updates, and state transitions:
-   - State progression: Must move In-Progress -> Solve Propose -> Solve Confirm. If ticket jumped directly from In-Progress to Solve Confirmed (or Closed/Resolved) without Solve Propose review, this is a FALSE AUDIT: Award SCORE 0 (Rating: 'Fail' / Red).
+   - State progression: Must move In-Progress -> Resolved -> Closed. If ticket jumped directly from In-Progress to Closed (or Solve Confirmed) without Resolved review, this is a FALSE AUDIT: Award SCORE 0 (Rating: 'Fail' / Red).
    - Daily updates: If updates are daily, check communication details (chats, mail chains, diagnostic notes, resolution details) -> Award SCORE 2 (Rating: 'Pass' / Green). If 1 day was missed: give a Warning, but award SCORE 2 (Pass) if details are verified. If no updates for more than 2 days (>48 hours gap without documentation): reduce score by half -> Award SCORE 1 (Rating: 'Partial' / Amber). If logs are empty -> Award SCORE 0 (Fail).
 7. comments: Dedicated holistic reviewer remark summarizing the overall quality of this ticket's documentation in a natural, conversational human reviewer voice. Score 2 (Pass - high quality documentation throughout), 1 (Partial - minor gaps), 0 (Fail - critical missing documentation).
 8. correctiveRemediation: 2-3 sentences of direct, actionable advice tailored specifically to what this engineer needs to update or correct on this record.
@@ -2123,30 +2132,30 @@ AUDIT REQUIREMENTS:
     }
 
     // Check 8: Activity logs transition check
-    // Updates need to move: Progress -> Propose -> Confirm. If InProgress -> Confirm instantly, it's a False Audit!
+    // Updates need to move: In-Progress -> Resolved -> Closed. If InProgress -> Closed instantly without Resolved, it's a False Audit!
     let activityScore: AuditResultDetail;
     const logs = ticket.activityLogs ? ticket.activityLogs.toLowerCase() : '';
     const stateVal = ticket.incidentState ? ticket.incidentState.toLowerCase() : '';
     const prevStateVal = ticket.previousState ? ticket.previousState.toLowerCase() : '';
     
-    const statesList = (rActivityLog?.activityRequiredStates ?? 'progress, propose, confirm')
+    const statesList = (rActivityLog?.activityRequiredStates ?? 'progress, resolved, closed')
       .split(',')
       .map(s => s.trim().toLowerCase())
       .filter(Boolean);
     const progressKeyword = statesList[0] || 'progress';
-    const proposeKeyword = statesList[1] || 'propose';
-    const confirmKeyword = statesList[2] || 'confirm';
+    const resolvedKeyword = statesList[1] || 'resolve';
+    const closedKeyword = statesList[2] || 'close';
 
-    const hasProgress = logs.includes(progressKeyword) || stateVal.includes(progressKeyword) || logs.includes('open') || logs.includes('active') || stateVal.includes('open') || stateVal.includes('active');
-    const hasPropose = logs.includes(proposeKeyword) || stateVal.includes(proposeKeyword) || logs.includes('review') || logs.includes('draft');
-    const hasConfirm = logs.includes(confirmKeyword) || stateVal.includes(confirmKeyword) || logs.includes('solve') || logs.includes('close') || stateVal.includes('resolved') || stateVal.includes('closed');
+    const hasProgress = logs.includes(progressKeyword) || stateVal.includes(progressKeyword) || prevStateVal.includes(progressKeyword) || logs.includes('open') || logs.includes('active') || stateVal.includes('open') || stateVal.includes('active') || prevStateVal.includes('open') || prevStateVal.includes('active') || stateVal === '2' || prevStateVal === '2';
+    const hasResolved = logs.includes(resolvedKeyword) || stateVal.includes(resolvedKeyword) || prevStateVal.includes(resolvedKeyword) || logs.includes('resolve') || logs.includes('propose') || logs.includes('review') || logs.includes('draft') || stateVal.includes('propose') || prevStateVal.includes('propose') || stateVal === '6' || prevStateVal === '6';
+    const hasClosed = logs.includes(closedKeyword) || stateVal.includes(closedKeyword) || prevStateVal.includes(closedKeyword) || logs.includes('close') || logs.includes('confirm') || logs.includes('solve') || stateVal.includes('closed') || stateVal === '7' || prevStateVal === '7';
 
     // Refer to Previous State column in excel to identify exact bypasses
-    const prevIsProgress = prevStateVal.includes('progress') || prevStateVal.includes('active') || prevStateVal.includes('work') || prevStateVal.includes('open');
-    const currIsClosed = stateVal.includes('closed') || stateVal.includes('resolved') || stateVal.includes('confirm') || stateVal.includes('solv');
+    const prevIsProgress = prevStateVal.includes('progress') || prevStateVal.includes('active') || prevStateVal.includes('work') || prevStateVal.includes('open') || prevStateVal === '2';
+    const currIsClosed = stateVal.includes('closed') || stateVal === '7' || stateVal.includes('confirm');
     
-    const isDirectBypass = prevIsProgress && currIsClosed && !logs.includes(proposeKeyword) && !stateVal.includes(proposeKeyword) && !prevStateVal.includes(proposeKeyword);
-    const jumpsToConfirm = isDirectBypass || (hasProgress && hasConfirm && !hasPropose);
+    const isDirectBypass = prevIsProgress && currIsClosed && !hasResolved;
+    const jumpsToConfirm = isDirectBypass || (hasProgress && hasClosed && !hasResolved);
 
     // Calculate open duration
     let dayDifference = 0;
@@ -2191,7 +2200,7 @@ AUDIT REQUIREMENTS:
       } else if (jumpsToConfirm) {
         actScore = 0;
         actRating = 'Fail';
-        actComment = `Fail: Activity logs state progression transition is bypassed. Directly jumping from In-Progress to Solve Confirmed without Solve Propose review is a FALSE AUDIT! State progression must follow: In-Progress -> Solve Propose -> Solve Confirm.`;
+        actComment = `Fail: Activity logs state progression transition is bypassed. Directly jumping from In-Progress to Closed without Resolved review is a FALSE AUDIT! State progression must follow: In-Progress -> Resolved -> Closed.`;
       } else if (logsText.length === 0) {
         actScore = 0;
         actRating = 'Fail';
@@ -3285,13 +3294,13 @@ AUDIT REQUIREMENTS:
       mistakes.push(`• [Business Impact] Mistake: Mismatched or absent business impact explanation. Operational fallout details must be documented for management audit trails.`);
     }
     if (activityScore.score === 0) {
-      if (logs.includes('confirm') && !logs.includes('propose')) {
-        mistakes.push(`• [Activity Logs - CRITICAL BYPASS] Major Mistake: Instant confirmation bypass! Incident jumped from In-Progress straight to Closed without the mandatory 'Solve Propose' review buffer.`);
+      if ((logs.includes('confirm') || logs.includes('close')) && !logs.includes('resolve') && !logs.includes('propose')) {
+        mistakes.push(`• [Activity Logs - CRITICAL BYPASS] Major Mistake: Instant closure bypass! Incident jumped from In-Progress straight to Closed without the mandatory 'Resolved' review buffer.`);
       } else {
         mistakes.push(`• [Activity Logs] Mistake: Empty work log trail. State transition validation could not be fulfilled.`);
       }
     } else if (activityScore.score === 1) {
-      mistakes.push(`• [Activity Logs Warning] Missing formal "Solve Propose" transitional update in activity history logs.`);
+      mistakes.push(`• [Activity Logs Warning] Missing formal "Resolved" transitional update in activity history logs.`);
     }
     if (closureCode1Score.score === 0) {
       const targetC1 = matchedRule ? matchedRule.closureCode : 'N/A';
@@ -4147,7 +4156,7 @@ const GOLDEN_HARNESS_CASES = [
       resolutionDescription: "What was the Issue ? Outlook crashed immediately on boot.\nWhat caused the issue ? Corrupted mso20win32client DLL cache in user profile.\nWhat workaround / Fix done ? Online Office repair executed and credential cache wiped.\nService Impact: Single user Outlook client failure.\nBusiness Impact: Executive email communication blocked for 30 minutes.\nIssue Type: Application / Desktop Client.\nEffort Calculation: 45 minutes investigation and repair.\nRemediation: Ensured latest monthly Office 365 cumulative update applied.",
       activityLogs: "2026-09-20 10:15:00 - Rob Phillips: Executed Office 365 online repair, cleared credentials token cache, verified Outlook opens cleanly. User confirmed fix.",
       hoursIdle: 1,
-      incidentState: "Solve Proposed",
+      incidentState: "Resolved",
       updatedDate: "2026-09-20"
     },
     expected: {
@@ -4180,7 +4189,7 @@ const GOLDEN_HARNESS_CASES = [
       resolutionDescription: "fixed it for user",
       activityLogs: "working",
       hoursIdle: 8,
-      incidentState: "Solve Proposed",
+      incidentState: "Resolved",
       updatedDate: "2026-09-20"
     },
     expected: {
@@ -4213,7 +4222,7 @@ const GOLDEN_HARNESS_CASES = [
       resolutionDescription: "Adjusted MTU size to 1350 to prevent packet fragmentation over ISP tunnel.",
       activityLogs: "From: jsmith@example.com\nSent: Monday, September 20, 2026 9:14 AM\nTo: helpdesk@example.com\nSubject: VPN disconnects constantly\nHi team, my VPN keeps cutting off every 10 minutes please fix this immediately as I have an audit presentation today.",
       hoursIdle: 4,
-      incidentState: "Solve Proposed",
+      incidentState: "Resolved",
       updatedDate: "2026-09-20"
     },
     expected: {
@@ -4246,7 +4255,7 @@ const GOLDEN_HARNESS_CASES = [
       resolutionDescription: "What was the Issue ? DB lock contention.\nWhat workaround / Fix done ? Rebuilt fragmented indexes on INV_LEDGER_TBL.",
       activityLogs: "[11:02 AM] Support Eng: Hey did you restart the listener?\n[11:03 AM] DB Admin: No, waiting on approval from team lead.\n[11:04 AM] Support Eng: Let me know when completed.\n[11:05 AM] DB Admin: Done now restarting query batch.",
       hoursIdle: 3,
-      incidentState: "Solve Proposed",
+      incidentState: "Resolved",
       updatedDate: "2026-09-20"
     },
     expected: {
@@ -4279,7 +4288,7 @@ const GOLDEN_HARNESS_CASES = [
       resolutionDescription: "Replaced faulty fiber patch cable and verified optical power levels within specification.",
       activityLogs: "2026-09-20 14:00:00 - Database team engineer investigated and replaced fiber optic patch cable.",
       hoursIdle: 2,
-      incidentState: "Solve Proposed",
+      incidentState: "Resolved",
       updatedDate: "2026-09-20"
     },
     expected: {
@@ -4345,7 +4354,7 @@ const GOLDEN_HARNESS_CASES = [
       resolutionDescription: "What was the Issue ? Wildcard SSL certificate expired.\nWhat workaround / Fix done ? Deployed DigiCert renewed wildcard certificate to all fronting load balancers.",
       activityLogs: "2026-08-15 11:30:00 - Deployed renewed certificate and bound to port 443.",
       hoursIdle: 6,
-      incidentState: "Solve Proposed",
+      incidentState: "Resolved",
       updatedDate: "2026-08-15"
     },
     expected: {
@@ -4378,7 +4387,7 @@ const GOLDEN_HARNESS_CASES = [
       resolutionDescription: "What was the Issue ? Sensor locked.\nWhat workaround / Fix done ? Booted into safe mode, purged old kernel driver, and ran clean installer with force flag.",
       activityLogs: "2026-09-20 12:00:00 - Reinstalled Falcon sensor and confirmed connected to cloud console.",
       hoursIdle: 2,
-      incidentState: "Solve Proposed",
+      incidentState: "Resolved",
       updatedDate: "2026-09-20"
     },
     expected: {
@@ -4621,8 +4630,8 @@ app.post('/api/mandatory-metrics', async (req, res) => {
     // Instantly transform masterReportsCache, processedReportsCache, and auditedTicketReportsMap in 1ms
     if (masterReportsCache.length > 0) {
       masterReportsCache = masterReportsCache.map(applyMandatoryMetricsConfigToReport);
-      if (storedServiceNowCredentials.onlySolvePropose) {
-        processedReportsCache = masterReportsCache.filter(r => isSolveProposeTicket(r.ticket));
+      if (storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose) {
+        processedReportsCache = masterReportsCache.filter(r => isResolvedTicket(r.ticket));
       } else {
         processedReportsCache = masterReportsCache;
       }
@@ -4760,47 +4769,40 @@ const mockServiceNowIncidents: any[] = [];
 
 
 // Helper functions for ticket classification
-function isSolveProposeTicket(t: any): boolean {
+function isResolvedTicket(t: any): boolean {
   if (!t) return false;
   const stateVal = String(t.incidentState || t.state || t.incident_state || '').trim().toLowerCase();
   const prevState = String(t.previousState || t.u_previous_state || '').trim().toLowerCase();
   const logs = String(t.activityLogs || t.comments_and_work_notes || '').toLowerCase();
   const desc = String(t.resolutionDescription || t.close_notes || t.technicalDescription || t.description || '').toLowerCase();
 
-  // State matches
+  // State matches: Standard ServiceNow 'Resolved' (state 6)
   if (
-    stateVal.includes('propose') ||
-    stateVal.includes('proposed') ||
-    stateVal === 'solve propose' ||
-    stateVal === 'solve_propose' ||
-    stateVal === 'solvepropose' ||
-    prevState.includes('propose') ||
-    prevState.includes('proposed')
+    stateVal.includes('resolve') ||
+    stateVal.includes('resolved') ||
+    stateVal.includes('resolv') ||
+    stateVal === '6' ||
+    prevState.includes('resolve') ||
+    prevState.includes('resolved') ||
+    prevState === '6'
   ) {
     return true;
   }
 
-  // Work note transitions e.g. "InProgress -> SolvePropose -> SolveConfirm" or "solve propose"
+  // Work note transitions e.g. "InProgress -> Resolved -> Closed"
   if (
-    logs.includes('solve propose') ||
-    logs.includes('solve proposed') ||
-    logs.includes('solvepropose') ||
-    logs.includes('solve_propose') ||
-    logs.includes('solved propose') ||
-    logs.includes('solved_propose') ||
-    logs.includes('propose solve') ||
-    logs.includes('proposed solve') ||
-    logs.includes('proposed solved') ||
-    logs.includes('proposal')
+    logs.includes('resolved') ||
+    logs.includes('resolve') ||
+    logs.includes('marked resolved') ||
+    logs.includes('state changed to resolved')
   ) {
     return true;
   }
 
   // Resolution description matches
   if (
-    desc.includes('solve propose') ||
-    desc.includes('proposed solve') ||
-    desc.includes('proposed solved')
+    desc.includes('resolved') ||
+    desc.includes('resolution')
   ) {
     return true;
   }
@@ -4808,24 +4810,26 @@ function isSolveProposeTicket(t: any): boolean {
   return false;
 }
 
+const isSolveProposeTicket = isResolvedTicket;
+
 function isEmpathyEligibleTicket(t: any): boolean {
   const stateVal = String(t.incidentState || t.state || '').trim().toLowerCase();
-  const logs = String(t.activityLogs || '').toLowerCase();
   
-  const isSolvePropose = stateVal.includes('propose') || stateVal.includes('proposed') || logs.includes('solve propose') || logs.includes('solved_propose');
-  const isSolveConfirmed = stateVal.includes('confirm') || stateVal.includes('confirmed') || logs.includes('solve confirmed');
-  const isClosedOrResolved = (
-    stateVal.includes('close') || 
-    stateVal.includes('closed') || 
+  const isResolved = (
     stateVal.includes('resolve') || 
     stateVal.includes('resolved') || 
-    stateVal.includes('solv') ||
-    stateVal === '6' ||
+    stateVal === '6'
+  );
+  const isSolveConfirmedOrClosed = (
+    stateVal.includes('confirm') || 
+    stateVal.includes('confirmed') || 
+    stateVal.includes('close') || 
+    stateVal.includes('closed') || 
     stateVal === '7' ||
     stateVal === '8'
   );
   
-  return !isSolvePropose && !isSolveConfirmed && !isClosedOrResolved;
+  return !isResolved && !isSolveConfirmedOrClosed;
 }
 
 // Shared ServiceNow credentials storage persisted in-memory / local configurations
@@ -4876,6 +4880,7 @@ let storedServiceNowCredentials = {
   autoFetchInterval: 5, // in seconds (range 3-300)
   lastFetchedSysUpdatedOn: '',
   assignmentGroupFilter: 'ALL',
+  onlyResolved: false,
   onlySolvePropose: false,
   manualLoadEnabled: false,
   trackedGroups: [] as string[]
@@ -5875,6 +5880,7 @@ app.post('/api/servicenow/credentials', (req, res) => {
       autoFetchEnabled,
       autoFetchInterval,
       assignmentGroupFilter,
+      onlyResolved,
       onlySolvePropose,
       manualLoadEnabled,
       trackedGroups
@@ -5885,6 +5891,10 @@ app.post('/api/servicenow/credentials', (req, res) => {
     const resolvedUseSimulator = useSimulator !== undefined ? useSimulator : isDefaultOrMock;
     const limitIsOff = isFetchLimitOff(limit);
     const resolvedLimit = limitIsOff ? 0 : (parseInt(String(limit), 10) || 10);
+
+    const resolvedFilterVal = onlyResolved !== undefined
+      ? onlyResolved === true
+      : (onlySolvePropose !== undefined ? onlySolvePropose === true : (storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose));
 
     storedServiceNowCredentials = {
       instanceName: instanceName || 'dev12000',
@@ -5898,7 +5908,8 @@ app.post('/api/servicenow/credentials', (req, res) => {
       autoFetchInterval: Math.max(1, Math.min(60, Number(autoFetchInterval) || 1)),
       lastFetchedSysUpdatedOn: storedServiceNowCredentials.lastFetchedSysUpdatedOn || '',
       assignmentGroupFilter: assignmentGroupFilter || 'ALL',
-      onlySolvePropose: onlySolvePropose !== undefined ? onlySolvePropose === true : storedServiceNowCredentials.onlySolvePropose,
+      onlyResolved: resolvedFilterVal,
+      onlySolvePropose: resolvedFilterVal,
       manualLoadEnabled: manualLoadEnabled !== undefined ? manualLoadEnabled === true : storedServiceNowCredentials.manualLoadEnabled,
       trackedGroups: Array.isArray(trackedGroups) ? trackedGroups : (storedServiceNowCredentials.trackedGroups || [])
     };
@@ -6292,6 +6303,7 @@ app.post('/api/servicenow/sync', async (req, res) => {
     tickets: [] as any[],
     articles: [] as any[],
     cis: [] as any[],
+    onlyResolved: false as boolean,
     onlySolvePropose: false as boolean,
     reports: [] as any[]
   };
@@ -6299,7 +6311,7 @@ app.post('/api/servicenow/sync', async (req, res) => {
   const addLog = (msg: string) => results.logs.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
 
   try {
-    const { instanceName, username, password, syncType, limit, useSimulator, autoSyncEnabled, autoFetchEnabled, autoFetchInterval, assignmentGroupFilter, onlySolvePropose, manualLoadEnabled, trackedGroups } = req.body;
+    const { instanceName, username, password, syncType, limit, useSimulator, autoSyncEnabled, autoFetchEnabled, autoFetchInterval, assignmentGroupFilter, onlyResolved, onlySolvePropose, manualLoadEnabled, trackedGroups } = req.body;
     const resolvedGroupFilter = assignmentGroupFilter || storedServiceNowCredentials.assignmentGroupFilter || 'ALL';
     const resolvedTable = 'incident';
     const isLimitOff = isFetchLimitOff(limit !== undefined ? limit : storedServiceNowCredentials.limit);
@@ -6309,6 +6321,10 @@ app.post('/api/servicenow/sync', async (req, res) => {
     const effectiveUser = username || storedServiceNowCredentials.username || process.env.SERVICENOW_USERNAME || '';
     const effectivePass = password || storedServiceNowCredentials.password || process.env.SERVICENOW_PASSWORD || '';
     const resolvedUseSimulator = false; // Never use simulator mode per user directive
+
+    const resolvedFilterVal = onlyResolved !== undefined
+      ? onlyResolved === true
+      : (onlySolvePropose !== undefined ? onlySolvePropose === true : (storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose));
 
     storedServiceNowCredentials = {
       instanceName: effectiveInstance,
@@ -6322,7 +6338,8 @@ app.post('/api/servicenow/sync', async (req, res) => {
       autoFetchInterval: Math.max(3, Math.min(300, Number(autoFetchInterval) || storedServiceNowCredentials.autoFetchInterval || 5)),
       lastFetchedSysUpdatedOn: storedServiceNowCredentials.lastFetchedSysUpdatedOn || '',
       assignmentGroupFilter: resolvedGroupFilter,
-      onlySolvePropose: onlySolvePropose !== undefined ? onlySolvePropose === true : storedServiceNowCredentials.onlySolvePropose,
+      onlyResolved: resolvedFilterVal,
+      onlySolvePropose: resolvedFilterVal,
       manualLoadEnabled: manualLoadEnabled !== undefined ? manualLoadEnabled === true : storedServiceNowCredentials.manualLoadEnabled,
       trackedGroups: trackedGroups || storedServiceNowCredentials.trackedGroups || []
     };
@@ -6362,22 +6379,28 @@ app.post('/api/servicenow/sync', async (req, res) => {
         if (storedServiceNowCredentials.manualLoadEnabled) {
           addLog("Manual Load mode active: skipped fetching live tickets from ServiceNow to preserve manually loaded dataset.");
         } else if (syncType === 'tickets' || syncType === 'both' || syncType === 'all') {
-          let queryParam = '';
+          let queryFilters: string[] = [];
           const rawTracked = storedServiceNowCredentials.trackedGroups || [];
           const tracked = rawTracked.filter((g: string) => Boolean(g && g.trim()));
 
-          const orderClause = 'ORDERBYDESCsys_updated_on';
           if (tracked.length > 0) {
             const joinedNames = tracked.map(g => g.replace(/,/g, '\\,')).join(',');
-            queryParam = `&sysparm_query=assignment_group.nameIN${encodeURIComponent(joinedNames)}^${orderClause}`;
+            queryFilters.push(`assignment_group.nameIN${joinedNames}`);
             addLog(`Filtering Live API query for tracked Assignment Groups: ${tracked.join(', ')}`);
           } else if (resolvedGroupFilter && resolvedGroupFilter !== 'ALL') {
-            queryParam = `&sysparm_query=assignment_group.name=${encodeURIComponent(resolvedGroupFilter)}^${orderClause}`;
+            queryFilters.push(`assignment_group.name=${resolvedGroupFilter}`);
             addLog(`Filtering Live API query for Assignment Group Filter: ${resolvedGroupFilter}`);
           } else {
-            queryParam = `&sysparm_query=${orderClause}`;
             addLog(`No specific active/tracked Assignment Group filter. Querying table: ${resolvedTable} (latest first)`);
           }
+
+          if (resolvedFilterVal) {
+            queryFilters.push('state=6');
+            addLog(`Filtering Live API query strictly for Resolved incidents (state=6)`);
+          }
+
+          queryFilters.push('ORDERBYDESCsys_updated_on');
+          const queryParam = queryFilters.length > 0 ? `&sysparm_query=${encodeURIComponent(queryFilters.join('^'))}` : '';
           
           let snowRecords: any[] = [];
           if (isLimitOff) {
@@ -6613,30 +6636,33 @@ app.post('/api/servicenow/sync', async (req, res) => {
       const allAuditedReports = await executeAudit(masterLiveTickets, currentRules, currentCiCombinations, currentResolutionQuestions, currentOverallRules);
       masterReportsCache = allAuditedReports;
 
-      // 1. Workspace Checklist Audit: Only Solve Propose tickets if configured
-      const shouldFilterSolvePropose = req.body.onlySolvePropose !== undefined
-        ? req.body.onlySolvePropose === true
-        : storedServiceNowCredentials.onlySolvePropose;
+      // 1. Workspace Checklist Audit: Only Resolved tickets if configured
+      const shouldFilterResolved = req.body.onlyResolved !== undefined
+        ? req.body.onlyResolved === true
+        : (req.body.onlySolvePropose !== undefined
+          ? req.body.onlySolvePropose === true
+          : (storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose));
 
       let auditTickets = masterLiveTickets;
-      if (shouldFilterSolvePropose) {
-        auditTickets = masterLiveTickets.filter(isSolveProposeTicket);
-        processedReportsCache = masterReportsCache.filter(r => isSolveProposeTicket(r.ticket));
-        addLog(`Workspace Checklist: Filtered down to ${auditTickets.length} 'Solve Propose' records for quality audit (from ${masterLiveTickets.length} total live tickets).`);
+      if (shouldFilterResolved) {
+        auditTickets = masterLiveTickets.filter(isResolvedTicket);
+        processedReportsCache = masterReportsCache.filter(r => isResolvedTicket(r.ticket));
+        addLog(`Workspace Checklist: Filtered down to ${auditTickets.length} 'Resolved' records for quality audit (from ${masterLiveTickets.length} total live tickets).`);
       } else {
         processedReportsCache = masterReportsCache;
-        addLog(`Workspace Checklist: 'Solve Propose' filter is disabled. Synced all ${auditTickets.length} incident records for quality audit.`);
+        addLog(`Workspace Checklist: 'Resolved' filter is disabled. Synced all ${auditTickets.length} incident records for quality audit.`);
       }
 
       // Ensure results.tickets and results.ticketsSynced accurately reflect what should be audited in Workspace Checklist
       results.tickets = auditTickets;
       results.ticketsSynced = auditTickets.length;
-      results.onlySolvePropose = shouldFilterSolvePropose;
+      results.onlyResolved = shouldFilterResolved;
+      results.onlySolvePropose = shouldFilterResolved;
       results.reports = processedReportsCache;
 
-      // 2. Incident Empathy Dashboard: Evaluates active ongoing tickets from masterLiveTickets (excluding solve proposed/confirmed/resolved/closed)
+      // 2. Incident Empathy Dashboard: Evaluates active ongoing tickets from masterLiveTickets (excluding resolved/closed)
       const empathyTickets = masterLiveTickets.filter(isEmpathyEligibleTicket);
-      addLog(`Incident Empathy Dashboard: Evaluating ${empathyTickets.length} active ongoing tickets (excluding solve proposed/confirmed/resolved/closed)...`);
+      addLog(`Incident Empathy Dashboard: Evaluating ${empathyTickets.length} active ongoing tickets (excluding resolved/closed)...`);
 
       const syncedActivityIncidents: ActivityIncident[] = [];
       for (const t of empathyTickets) {
@@ -6898,38 +6924,42 @@ async function triggerAutomaticBreachNotification(incident: ActivityIncident) {
 // Audit incident dump API
 app.get('/api/audit', (req, res) => {
   let reportsToReturn = (processedReportsCache || []).map(applyMandatoryMetricsConfigToReport);
-  if (storedServiceNowCredentials.onlySolvePropose) {
-    reportsToReturn = reportsToReturn.filter(r => isSolveProposeTicket(r.ticket));
+  if (storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose) {
+    reportsToReturn = reportsToReturn.filter(r => isResolvedTicket(r.ticket));
   }
+  const isOnlyResolved = storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose;
   res.json({
     success: true,
     reports: reportsToReturn,
-    onlySolvePropose: storedServiceNowCredentials.onlySolvePropose,
+    onlyResolved: isOnlyResolved,
+    onlySolvePropose: isOnlyResolved,
     totalMasterTickets: masterLiveTickets.length,
     filteredCount: reportsToReturn.length
   });
 });
 
-// Dedicated Instant Toggle for Solve Propose (Workspace Checklist specific)
-app.post('/api/servicenow/toggle-solve-propose', async (req, res) => {
+// Dedicated Instant Toggle for Resolved / Solve Propose (Workspace Checklist specific)
+const handleToggleResolved = async (req: any, res: any) => {
   try {
-    const nextVal = req.body.onlySolvePropose !== undefined
-      ? req.body.onlySolvePropose === true
-      : !storedServiceNowCredentials.onlySolvePropose;
+    const inputVal = req.body.onlyResolved !== undefined ? req.body.onlyResolved : req.body.onlySolvePropose;
+    const nextVal = inputVal !== undefined
+      ? inputVal === true
+      : !(storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose);
 
+    storedServiceNowCredentials.onlyResolved = nextVal;
     storedServiceNowCredentials.onlySolvePropose = nextVal;
     try {
       fs.writeFileSync(snConfigPath, JSON.stringify(storedServiceNowCredentials, null, 2), 'utf8');
-      console.log(`[ServiceNow Config] Saved onlySolvePropose=${nextVal} to servicenow_config.json`);
+      console.log(`[ServiceNow Config] Saved onlyResolved=${nextVal} to servicenow_config.json`);
     } catch (_) {}
 
     // Derive processedReportsCache for Workspace Checklist
     if (nextVal) {
       if (masterReportsCache.length > 0) {
-        processedReportsCache = masterReportsCache.filter(r => isSolveProposeTicket(r.ticket));
+        processedReportsCache = masterReportsCache.filter(r => isResolvedTicket(r.ticket));
       } else if (masterLiveTickets.length > 0) {
-        const solveTickets = masterLiveTickets.filter(isSolveProposeTicket);
-        processedReportsCache = await executeAudit(solveTickets, currentRules, currentCiCombinations, currentResolutionQuestions, currentOverallRules);
+        const resolvedTickets = masterLiveTickets.filter(isResolvedTicket);
+        processedReportsCache = await executeAudit(resolvedTickets, currentRules, currentCiCombinations, currentResolutionQuestions, currentOverallRules);
       }
     } else {
       if (masterReportsCache.length > 0) {
@@ -6941,6 +6971,7 @@ app.post('/api/servicenow/toggle-solve-propose', async (req, res) => {
     }
 
     broadcastSSE('servicenow_realtime_sync', {
+      onlyResolved: nextVal,
       onlySolvePropose: nextVal,
       count: processedReportsCache.length,
       total: masterLiveTickets.length
@@ -6948,14 +6979,18 @@ app.post('/api/servicenow/toggle-solve-propose', async (req, res) => {
 
     res.json({
       success: true,
+      onlyResolved: nextVal,
       onlySolvePropose: nextVal,
       count: processedReportsCache.length,
       total: masterLiveTickets.length
     });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to toggle solve propose' });
+    res.status(500).json({ error: err.message || 'Failed to toggle resolved filter' });
   }
-});
+};
+
+app.post('/api/servicenow/toggle-resolved', handleToggleResolved);
+app.post('/api/servicenow/toggle-solve-propose', handleToggleResolved);
 
 app.post('/api/audit', async (req, res) => {
   try {
@@ -6976,13 +7011,12 @@ app.post('/api/audit', async (req, res) => {
     // Dynamically synchronize the uploaded audit incidents into the Activity Log Compliance Audit suite
     const syncedActivityIncidents: ActivityIncident[] = [];
     for (const t of enrichedTickets) {
-      // ⚠️ Skip tickets in state: solve propose, solve confirmed, or closed/resolved
+      // ⚠️ Skip tickets in state: closed/resolved
       const stateVal = (t.incidentState || t.state || '').trim().toLowerCase();
-      const isSolvePropose = stateVal.includes('propose') || stateVal.includes('proposed');
       const isSolveConfirmed = stateVal.includes('confirm') || stateVal.includes('confirmed');
       const isClosedOrResolved = stateVal.includes('close') || stateVal.includes('closed') || stateVal.includes('resolve') || stateVal.includes('resolved') || stateVal.includes('solv');
       
-      if (isSolvePropose || isSolveConfirmed || isClosedOrResolved) {
+      if (isSolveConfirmed || isClosedOrResolved) {
         continue; // Do NOT pick these tickets for the Activity Log Audit desk
       }
 
@@ -7147,8 +7181,8 @@ app.post('/api/audit/rerun', async (req, res) => {
     const ticketsToAudit = masterLiveTickets.length > 0 ? masterLiveTickets : [];
     if (ticketsToAudit.length > 0) {
       masterReportsCache = await executeAudit(ticketsToAudit, currentRules, currentCiCombinations, currentResolutionQuestions, currentOverallRules);
-      if (storedServiceNowCredentials.onlySolvePropose) {
-        processedReportsCache = masterReportsCache.filter(r => isSolveProposeTicket(r.ticket));
+      if (storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose) {
+        processedReportsCache = masterReportsCache.filter(r => isResolvedTicket(r.ticket));
       } else {
         processedReportsCache = masterReportsCache;
       }
@@ -8027,22 +8061,22 @@ net start spooler
 4. Short Description: Minimum 10 characters, descriptive non-boilerplate.
 5. Technical Description: Minimum 50 characters detailing diagnostics.
 6. Service & Business Impact: Must specify operational and commercial fallout.
-7. Activity Logs: Sequential progression (InProgress -> Solve Propose -> Solve Confirm). Direct jump from In-Progress to Closed is a false audit.
+7. Activity Logs: Sequential progression (In-Progress -> Resolved -> Closed). Direct jump from In-Progress to Closed is a false audit.
 8. Closure Codes & Solution: Closure Code 1 & 2 must align with solution category.
 9. KB Article Linking: Valid ServiceNow knowledge article must be linked.
 10. Resolution Description: Minimum 50 characters detailing resolution procedure.`;
     suggestions = [
       "Check status of INC0000004",
-      "Explain the Solve Propose bypass rule",
+      "Explain the Resolved state bypass rule",
       "Look up VPN troubleshooting runbook"
     ];
-  } else if (query.includes('solve propose') || query.includes('propose') || query.includes('bypass')) {
+  } else if (query.includes('resolved') || query.includes('solve propose') || query.includes('propose') || query.includes('bypass')) {
     toolsCalled.push("list_active_rules");
-    sourcesUsed.push("Governance Audit Policy: Solve Propose State Invariant");
-    reply = `The 'Solve Propose' rule requires all incidents to enter the transitional review state 'Solve Proposed' before moving to 'Resolved' or 'Closed'.
-- Expected progression: In-Progress -> Solve Proposed -> Closed.
-- Direct bypass penalty: A direct jump from In-Progress to Closed scores 0/2 on Activity Logs and triggers a Critical Governance Compliance Failure.
-- Workspace filter: When Solve Proposed is enabled in the Workspace Checklist, only incidents in 'Solve Proposed' state or with propose checkpoints are shown.`;
+    sourcesUsed.push("Governance Audit Policy: Resolved State Invariant");
+    reply = `The 'Resolved' state rule requires all incidents to enter the transitional review state 'Resolved' (State 6) before moving to 'Closed' (State 7).
+- Expected progression: In-Progress -> Resolved -> Closed.
+- Direct bypass penalty: A direct jump from In-Progress to Closed scores 0 pts on Activity Logs and triggers a Critical Governance Compliance Failure (False Audit).
+- Workspace filter: When 'Resolved Only' is enabled in the Workspace Checklist, only incidents in 'Resolved' state or with resolved checkpoints are shown.`;
     suggestions = [
       "Check status of INC0000004",
       "List active ITIL rules",
@@ -8142,6 +8176,7 @@ app.post('/api/chat-bot', async (req, res) => {
       queryLower.includes('hello') ||
       queryLower.includes('confluence') ||
       queryLower.includes('jira') ||
+      queryLower.includes('resolved') ||
       queryLower.includes('solve propose')
     );
 
@@ -9809,7 +9844,7 @@ function buildManagementInfractionDigestHtml(
                     </h4>
                     <ol style="margin: 0; padding-left: 18px; font-size: 12px; color: #475569; line-height: 1.6;">
                       <li><strong>Same-Day Worknote Compliance:</strong> Ensure all engineers update work notes daily. Items flagged with stale timestamps indicate missing progress updates.</li>
-                      <li><strong>Technical Depth Enforcement:</strong> Vague notes like "Resolved" without diagnostic proof or resolution steps must be corrected prior to Solve Propose acceptance.</li>
+                      <li><strong>Technical Depth Enforcement:</strong> Vague notes like "Resolved" without diagnostic proof or resolution steps must be corrected prior to incident resolution acceptance.</li>
                       <li><strong>SLA Inactivity Sweep:</strong> Engage assignment group leads for any tickets exceeding the 24-hour idle threshold.</li>
                     </ol>
                   </td>
@@ -11114,6 +11149,12 @@ async function runBackgroundServiceNowSync(isAutoFetch: boolean = true) {
         addBackgroundLog(`No tracked Assignment Groups configured. Polling all latest incidents.`);
       }
 
+      const filterResolved = storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose;
+      if (filterResolved) {
+        queryFilters.push('state=6');
+        addBackgroundLog(`Filtering Live API background query strictly for Resolved incidents (state=6)`);
+      }
+
         // Only apply incremental sys_updated_on filter if limit is not OFF and we already have populated records in memory
         if (!isLimitOff && isAutoFetch && storedServiceNowCredentials.lastFetchedSysUpdatedOn && processedReportsCache.length > 5) {
           queryFilters.push(`sys_updated_on>=${storedServiceNowCredentials.lastFetchedSysUpdatedOn}`);
@@ -11350,12 +11391,13 @@ async function runBackgroundServiceNowSync(isAutoFetch: boolean = true) {
     }
 
     // Strictly derive processedReportsCache for Workspace Checklist ONLY:
-    if (storedServiceNowCredentials.onlySolvePropose) {
-      processedReportsCache = masterReportsCache.filter(r => isSolveProposeTicket(r.ticket));
-      addBackgroundLog(`Workspace Checklist: Filtered down to ${processedReportsCache.length} 'Solve Propose' records for ticket audit (from ${masterReportsCache.length} total live tickets).`);
+    const filterResolved = storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose;
+    if (filterResolved) {
+      processedReportsCache = masterReportsCache.filter(r => isResolvedTicket(r.ticket));
+      addBackgroundLog(`Workspace Checklist: Filtered down to ${processedReportsCache.length} 'Resolved' records for ticket audit (from ${masterReportsCache.length} total live tickets).`);
     } else {
       processedReportsCache = masterReportsCache;
-      addBackgroundLog(`Workspace Checklist: 'Solve Propose' filter disabled. Auditing all ${processedReportsCache.length} records under workspace.`);
+      addBackgroundLog(`Workspace Checklist: 'Resolved' filter disabled. Auditing all ${processedReportsCache.length} records under workspace.`);
     }
 
     if (processedReportsCache.length > 0) {
@@ -11366,10 +11408,10 @@ async function runBackgroundServiceNowSync(isAutoFetch: boolean = true) {
     }
 
     // --- 2. INCIDENT EMPATHY DASHBOARD ---
-    // Auto-fetch all ongoing tickets from masterLiveTickets (EXCEPT solve proposed, solve confirmed, resolved, closed)
+    // Auto-fetch all ongoing tickets from masterLiveTickets (EXCEPT resolved, closed)
     const empathyTicketsToUse = masterLiveTickets.filter(isEmpathyEligibleTicket);
     if (empathyTicketsToUse.length > 0) {
-      addBackgroundLog(`Incident Empathy Dashboard: Auto-fetching and evaluating ${empathyTicketsToUse.length} active ongoing tickets (excluding solve proposed/confirmed/resolved/closed)...`);
+      addBackgroundLog(`Incident Empathy Dashboard: Auto-fetching and evaluating ${empathyTicketsToUse.length} active ongoing tickets (excluding resolved/closed)...`);
 
       const syncedActivityIncidents: ActivityIncident[] = [];
       for (const t of empathyTicketsToUse) {
