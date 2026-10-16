@@ -33,3 +33,34 @@ test('Security (SEC-03): Global NODE_TLS_REJECT_UNAUTHORIZED is not disabled in 
   assert.notStrictEqual(process.env.NODE_TLS_REJECT_UNAUTHORIZED, '0');
 });
 
+test('Security (SEC-02): isBlockedSsrfUrl blocks SSRF, private IPs, loopback, and metadata endpoints', async () => {
+  const { isBlockedSsrfUrl } = await import('../lib/security');
+
+  // Loopback and Localhost
+  assert.strictEqual(isBlockedSsrfUrl('http://localhost:3000/webhook').blocked, true);
+  assert.strictEqual(isBlockedSsrfUrl('http://127.0.0.1:8080/test').blocked, true);
+  assert.strictEqual(isBlockedSsrfUrl('http://[::1]:8080/').blocked, true);
+  assert.strictEqual(isBlockedSsrfUrl('http://0.0.0.0/').blocked, true);
+
+  // Cloud Instance Metadata (AWS/GCP/Azure)
+  assert.strictEqual(isBlockedSsrfUrl('http://169.254.169.254/latest/meta-data/').blocked, true);
+
+  // Private RFC 1918 Subnets
+  assert.strictEqual(isBlockedSsrfUrl('http://10.0.0.1/admin').blocked, true);
+  assert.strictEqual(isBlockedSsrfUrl('http://172.16.50.4/internal').blocked, true);
+  assert.strictEqual(isBlockedSsrfUrl('http://192.168.1.1/router').blocked, true);
+
+  // Non-HTTP/HTTPS Protocols
+  assert.strictEqual(isBlockedSsrfUrl('file:///etc/passwd').blocked, true);
+  assert.strictEqual(isBlockedSsrfUrl('ftp://internal-server/data').blocked, true);
+  assert.strictEqual(isBlockedSsrfUrl('gopher://127.0.0.1:70/').blocked, true);
+
+  // Obfuscated / integer IPs
+  assert.strictEqual(isBlockedSsrfUrl('http://2130706433/').blocked, true); // 127.0.0.1 in dword
+
+  // Valid external public HTTPS endpoints
+  assert.strictEqual(isBlockedSsrfUrl('https://webhook.office.com/webhookb2/guid/IncomingWebhook').blocked, false);
+  assert.strictEqual(isBlockedSsrfUrl('https://api.example.com/alerts/v1').blocked, false);
+});
+
+

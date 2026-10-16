@@ -115,6 +115,7 @@ import { defaultOverallRules } from './src/defaultOverallRules';
 import { defaultKnowledgeArticles, approvedClosureConfirmations, defaultActivityReferences, ActivityLogReference } from './src/data/knowledgeBase';
 import { ActivityIncident } from './src/types';
 import { sendTeamsMessage, sendOutlookEmail, isIndividualUpn, normalizeTicket, buildIndividualEmailBody, buildManagerEmailBody } from './lib/notify';
+import { isBlockedSsrfUrl } from './lib/security';
 
 export function getInitialSampleIncidents(): ActivityIncident[] {
   return [];
@@ -3433,10 +3434,13 @@ app.post('/api/dispatch-teams-webhook', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Webhook URL is required.' });
     }
 
+    const ssrfCheck = isBlockedSsrfUrl(webhookUrl);
+    if (ssrfCheck.blocked) {
+      return res.status(400).json({ success: false, error: `Invalid webhook destination: ${ssrfCheck.reason}` });
+    }
+
     console.log(`[Teams Proxy Routing] Attempting dispatch to: ${webhookUrl}`);
 
-    // Standard fetch can fail in corporate proxies due to self-signed root certs.
-    // We implement a secure, fallback-aware HTTP client with rejectUnauthorized disabled.
     const response = await new Promise<{ status: number; text: string }>((resolve, reject) => {
       try {
         const parsedUrl = new URL(webhookUrl);
@@ -3454,11 +3458,6 @@ app.post('/api/dispatch-teams-webhook', async (req, res) => {
             'Content-Length': Buffer.byteLength(postData)
           }
         };
-
-        // Bypass self-signed or intercepting corporate proxy certificates (solves "fetch failed")
-        if (isHttps) {
-          options.rejectUnauthorized = false;
-        }
 
         const request = transport.request(options, (responseStream) => {
           let responseData = '';
@@ -10717,6 +10716,11 @@ app.post('/api/notify/verify-webhook', async (req, res) => {
 
     if (!webhookUrl) {
       return res.status(400).json({ verified: false, error: 'Webhook URL is required for verification.' });
+    }
+
+    const ssrfCheck = isBlockedSsrfUrl(webhookUrl);
+    if (ssrfCheck.blocked) {
+      return res.status(400).json({ verified: false, error: `Webhook URL rejected: ${ssrfCheck.reason}` });
     }
 
     const payload = {
