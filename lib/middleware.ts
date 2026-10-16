@@ -19,12 +19,19 @@ export function traceMiddleware(req: RequestWithTrace, res: express.Response, ne
   req._startTime = Date.now();
   res.setHeader('X-Request-Id', traceId);
 
-  res.on('finish', () => {
-    if (req._startTime) {
+  // Intercept writeHead to set X-Response-Time before headers are flushed to the client
+  const originalWriteHead = res.writeHead;
+  res.writeHead = function (this: express.Response, ...args: any[]) {
+    if (req._startTime && !this.headersSent) {
       const duration = Date.now() - req._startTime;
-      res.setHeader('X-Response-Time', `${duration}ms`);
+      try {
+        this.setHeader('X-Response-Time', `${duration}ms`);
+      } catch {
+        // Ignored if headers were already committed
+      }
     }
-  });
+    return originalWriteHead.apply(this, args as any);
+  };
 
   next();
 }
@@ -66,7 +73,6 @@ export function apiErrorHandler(
   err: any,
   req: RequestWithTrace,
   res: express.Response,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: express.NextFunction
 ) {
   const status = typeof err.status === 'number' && err.status >= 400 && err.status < 600 ? err.status : 500;
@@ -74,6 +80,10 @@ export function apiErrorHandler(
   const traceId = req.traceId || 'unknown';
 
   console.error(`[API Error ${status}][${traceId}] ${req.method} ${req.url}:`, err);
+
+  if (res.headersSent) {
+    return next(err);
+  }
 
   res.status(status).json({
     error: {

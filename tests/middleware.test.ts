@@ -99,3 +99,55 @@ test('Middleware (REL-01): apiErrorHandler formats unexpected errors into consis
   assert.strictEqual(jsonBody?.error?.message, 'Database connection failed');
   assert.strictEqual(jsonBody?.error?.traceId, 'trace-test-500');
 });
+
+test('Middleware (OBS-01): traceMiddleware sets X-Response-Time on writeHead without header errors', () => {
+  const req: any = { headers: {} };
+  const headersSet: Record<string, string> = {};
+  let originalWriteHeadCalled = false;
+
+  const res: any = {
+    headersSent: false,
+    setHeader: (key: string, val: string) => {
+      if (res.headersSent) throw new Error('ERR_HTTP_HEADERS_SENT');
+      headersSet[key.toLowerCase()] = val;
+    },
+    writeHead: function (..._args: any[]) {
+      originalWriteHeadCalled = true;
+      res.headersSent = true;
+      return res;
+    }
+  };
+
+  traceMiddleware(req, res, () => {});
+
+  // Simulate response completion via writeHead
+  res.writeHead(200);
+
+  assert.strictEqual(originalWriteHeadCalled, true);
+  assert.ok(headersSet['x-response-time'], 'X-Response-Time should be set');
+  assert.ok(headersSet['x-response-time'].endsWith('ms'));
+
+  // Calling writeHead again when headers are already sent should not throw
+  assert.doesNotThrow(() => {
+    res.writeHead(200);
+  });
+});
+
+test('Middleware (REL-01): apiErrorHandler delegates to next(err) if headers already sent', () => {
+  const err = new Error('Late streaming failure');
+  const req: any = { method: 'GET', url: '/api/stream', traceId: 'trace-stream' };
+  let nextCalledWith: any = null;
+  const res: any = {
+    headersSent: true,
+    status: () => {
+      throw new Error('Should not call status when headersSent is true');
+    }
+  };
+
+  apiErrorHandler(err, req, res, (passedErr: any) => {
+    nextCalledWith = passedErr;
+  });
+
+  assert.strictEqual(nextCalledWith, err);
+});
+
