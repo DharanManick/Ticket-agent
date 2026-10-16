@@ -115,7 +115,7 @@ import { defaultOverallRules } from './src/defaultOverallRules';
 import { defaultKnowledgeArticles, approvedClosureConfirmations, defaultActivityReferences, ActivityLogReference } from './src/data/knowledgeBase';
 import { ActivityIncident } from './src/types';
 import { sendTeamsMessage, sendOutlookEmail, isIndividualUpn, normalizeTicket, buildIndividualEmailBody, buildManagerEmailBody } from './lib/notify';
-import { isBlockedSsrfUrl } from './lib/security';
+import { isBlockedSsrfUrl, maskServiceNowCredentials, maskSmtpSettings } from './lib/security';
 
 export function getInitialSampleIncidents(): ActivityIncident[] {
   return [];
@@ -5704,10 +5704,11 @@ app.post('/api/servicenow/fetch-logs/clear', (req, res) => {
 
 app.get('/api/servicenow/credentials', (req, res) => {
   applyServiceNowEnvCredentials();
+  const safeCreds = maskServiceNowCredentials(storedServiceNowCredentials);
   res.json({
     success: true,
-    credentials: storedServiceNowCredentials,
-    ...storedServiceNowCredentials
+    credentials: safeCreds,
+    ...safeCreds
   });
 });
 
@@ -5886,7 +5887,7 @@ app.post('/api/servicenow/credentials', (req, res) => {
     storedServiceNowCredentials = {
       instanceName: instanceName || 'dev12000',
       username: username || 'admin',
-      password: password || 'admin',
+      password: (password && password !== '********') ? password : (storedServiceNowCredentials.password || 'admin'),
       limit: resolvedLimit,
       syncType: syncType || 'all',
       useSimulator: resolvedUseSimulator,
@@ -5916,7 +5917,7 @@ app.post('/api/servicenow/credentials', (req, res) => {
       console.error('[Credentials Update Sync Error]', err);
     });
 
-    res.json({ success: true, credentials: storedServiceNowCredentials });
+    res.json({ success: true, credentials: maskServiceNowCredentials(storedServiceNowCredentials) });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || String(err) });
   }
@@ -10115,14 +10116,18 @@ startAutomatedDigestScheduler();
 // --- REST Endpoints for Digest & SMTP Configuration ---
 
 app.get('/api/smtp/config', (req, res) => {
-  res.json({ success: true, config: storedSmtpSettings });
+  res.json({ success: true, config: maskSmtpSettings(storedSmtpSettings) });
 });
 
 app.post('/api/smtp/config', (req, res) => {
   try {
+    const updatePayload = { ...req.body };
+    if (updatePayload.pass === '********') {
+      delete updatePayload.pass;
+    }
     storedSmtpSettings = {
       ...storedSmtpSettings,
-      ...req.body
+      ...updatePayload
     };
     try {
       fs.writeFileSync(snSmtpConfigPath, JSON.stringify(storedSmtpSettings, null, 2), 'utf8');
@@ -10130,7 +10135,7 @@ app.post('/api/smtp/config', (req, res) => {
     } catch (fsErr) {
       console.warn('[SMTP Config API] Failed to write smtp_config.json:', fsErr);
     }
-    res.json({ success: true, message: 'SMTP configuration saved successfully.', config: storedSmtpSettings });
+    res.json({ success: true, message: 'SMTP configuration saved successfully.', config: maskSmtpSettings(storedSmtpSettings) });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || String(err) });
   }
@@ -10140,7 +10145,7 @@ app.get('/api/digest/config', (req, res) => {
   res.json({
     success: true,
     digestConfig: storedDigestSettings,
-    smtpConfig: storedSmtpSettings
+    smtpConfig: maskSmtpSettings(storedSmtpSettings)
   });
 });
 

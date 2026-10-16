@@ -96,3 +96,31 @@ export function isBlockedSsrfUrl(targetUrl: string): { blocked: boolean; reason?
 
   return { blocked: false };
 }
+
+/**
+ * Masks a password or credential string, returning '********' if set or empty string if unset.
+ */
+export function maskPassword(secret?: string): string {
+  return (secret && secret.trim() !== '') ? '********' : '';
+}
+
+/**
+ * Strips/masks sensitive secrets from ServiceNow credential responses.
+ */
+export function maskServiceNowCredentials<T extends Record<string, any>>(creds: T): T {
+  return {
+    ...creds,
+    password: maskPassword(creds.password)
+  };
+}
+
+/**
+ * Strips/masks sensitive secrets from SMTP settings responses.
+ */
+export function maskSmtpSettings<T extends Record<string, any>>(settings: T): T {
+  return {
+    ...settings,
+    pass: maskPassword(settings.pass)
+  };
+}
+

@@ -63,4 +63,39 @@ test('Security (SEC-02): isBlockedSsrfUrl blocks SSRF, private IPs, loopback, an
   assert.strictEqual(isBlockedSsrfUrl('https://api.example.com/alerts/v1').blocked, false);
 });
 
+test('Security (SEC-04): maskPassword and credential sanitization protects secrets in responses', async () => {
+  const { maskPassword, maskServiceNowCredentials, maskSmtpSettings } = await import('../lib/security');
+
+  // Basic password masking
+  assert.strictEqual(maskPassword('superSecret123!'), '********');
+  assert.strictEqual(maskPassword(''), '');
+  assert.strictEqual(maskPassword(undefined), '');
+
+  // ServiceNow credential masking
+  const rawSnowCreds = {
+    instanceName: 'dev423209',
+    username: 'admin',
+    password: 'superSecretPassword123',
+    limit: 10
+  };
+  const safeSnowCreds = maskServiceNowCredentials(rawSnowCreds);
+  assert.strictEqual(safeSnowCreds.password, '********');
+  assert.strictEqual(safeSnowCreds.username, 'admin');
+  assert.strictEqual(safeSnowCreds.instanceName, 'dev423209');
+
+  // SMTP settings masking
+  const rawSmtpSettings = {
+    host: 'smtp.office365.com',
+    port: 587,
+    user: 'bot@corp.com',
+    pass: 'smtpSecretToken456',
+    from: 'bot@corp.com'
+  };
+  const safeSmtpSettings = maskSmtpSettings(rawSmtpSettings);
+  assert.strictEqual(safeSmtpSettings.pass, '********');
+  assert.strictEqual(safeSmtpSettings.user, 'bot@corp.com');
+  assert.strictEqual(safeSmtpSettings.host, 'smtp.office365.com');
+});
+
+
 
