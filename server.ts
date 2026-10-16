@@ -117,6 +117,7 @@ import { ActivityIncident } from './src/types';
 import { sendTeamsMessage, sendOutlookEmail, isIndividualUpn, normalizeTicket, buildIndividualEmailBody, buildManagerEmailBody } from './lib/notify';
 import { isBlockedSsrfUrl, maskServiceNowCredentials, maskSmtpSettings, validateEmailPayload } from './lib/security';
 import { isResolvedTicket, isSolveProposeTicket, isEmpathyEligibleTicket } from './lib/classification';
+import { traceMiddleware, corsMiddleware, apiNotFoundHandler, apiErrorHandler } from './lib/middleware';
 
 export function getInitialSampleIncidents(): ActivityIncident[] {
   return [];
@@ -133,6 +134,8 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
+app.use(corsMiddleware);
+app.use(traceMiddleware);
 app.use(express.json({ limit: '50mb' }));
 app.use('/api/alerts', alertController);
 
@@ -11496,6 +11499,10 @@ async function runBackgroundServiceNowSync(isAutoFetch: boolean = true) {
 
 // Vite server connection mapping for dev and static delivery for production
 const distPath = path.join(process.cwd(), 'dist');
+
+// Dedicated JSON 404 handler for API routes before SPA static fallback
+app.all('/api/*', apiNotFoundHandler);
+app.use(apiErrorHandler);
 
 async function bootstrapServer() {
   if (process.env.NODE_ENV !== 'production') {
