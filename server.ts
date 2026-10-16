@@ -12,9 +12,6 @@ import nodemailer from 'nodemailer';
 import alertController from './src/alertController';
 import { AI_CONFIG } from './src/aiConfig';
 
-// Allow connection to corporate/sandbox ServiceNow instances with self-signed SSL certificates
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
 // Global resilience handlers to prevent unexpected background sweep rejections from crashing the server
 process.on('uncaughtException', (err) => {
   console.error('[UNCAUGHT EXCEPTION PREVENTED CRASH]', err);
@@ -52,7 +49,9 @@ const nativeFetch = globalThis.fetch;
         };
 
         if (parsedUrl.protocol === 'https:') {
-          reqOpts.rejectUnauthorized = false;
+          // Strict TLS validation is enforced by default. Only allow self-signed certs for ServiceNow if explicitly enabled in env.
+          const allowInsecureSnow = isServiceNow && process.env.SNOW_ALLOW_INSECURE_TLS === 'true';
+          reqOpts.rejectUnauthorized = !allowInsecureSnow;
         }
 
         const req = protocol.request(reqOpts, (res) => {
@@ -101,12 +100,9 @@ const nativeFetch = globalThis.fetch;
     });
   };
 
-  // Delegate non-ServiceNow calls to native fetch (e.g. Gemini, Microsoft Graph, Outlook, Teams)
+  // Delegate non-ServiceNow calls to native fetch with standard TLS verification (e.g. Gemini, Microsoft Graph, Outlook, Teams)
   if (nativeFetch && !isServiceNow) {
-    return nativeFetch(url, options).catch((err) => {
-      console.warn(`[Fetch Interceptor Warning] Native fetch failed for ${url}. Retrying using custom Node https/http module fetch... Details:`, err?.message || err);
-      return runCustomFetch();
-    });
+    return nativeFetch(url, options);
   }
 
   return runCustomFetch();

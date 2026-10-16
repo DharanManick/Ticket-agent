@@ -10,3 +10,4 @@ All notable changes to the Ticket Audit Agent will be documented in this file.
 
 ### Fixed
 - `fix(SEC-01)`: Eradicated hardcoded Google Gemini API key string from `.env.example` and fallback defaults in `server.ts`. Removed fallback loading of `.env.example` into `process.env`. Added regression assertions in `tests/security.test.ts`.
+- `fix(SEC-03)`: Re-enabled Node global TLS verification by removing `process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'`. Scoped relaxed TLS strictly to ServiceNow via `SNOW_ALLOW_INSECURE_TLS` and preserved strict TLS for all external API endpoints. Added regression test in `tests/security.test.ts`.

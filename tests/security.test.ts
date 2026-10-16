@@ -19,3 +19,17 @@ test('Security (SEC-01): No hardcoded live key in server.ts default fallbacks', 
 
   assert.strictEqual(content.includes('AIzaSyBOkaS9x62PF'), false, 'Hardcoded live key found in server.ts');
 });
+
+test('Security (SEC-03): Global NODE_TLS_REJECT_UNAUTHORIZED is not disabled in server.ts', () => {
+  const serverPath = path.resolve(process.cwd(), 'server.ts');
+  const content = fs.readFileSync(serverPath, 'utf8');
+
+  assert.strictEqual(
+    content.includes("process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'") ||
+    content.includes('process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"'),
+    false,
+    'Global TLS verification must not be disabled via NODE_TLS_REJECT_UNAUTHORIZED = 0'
+  );
+  assert.notStrictEqual(process.env.NODE_TLS_REJECT_UNAUTHORIZED, '0');
+});
+
