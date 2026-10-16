@@ -115,7 +115,7 @@ import { defaultOverallRules } from './src/defaultOverallRules';
 import { defaultKnowledgeArticles, approvedClosureConfirmations, defaultActivityReferences, ActivityLogReference } from './src/data/knowledgeBase';
 import { ActivityIncident } from './src/types';
 import { sendTeamsMessage, sendOutlookEmail, isIndividualUpn, normalizeTicket, buildIndividualEmailBody, buildManagerEmailBody } from './lib/notify';
-import { isBlockedSsrfUrl, maskServiceNowCredentials, maskSmtpSettings } from './lib/security';
+import { isBlockedSsrfUrl, maskServiceNowCredentials, maskSmtpSettings, validateEmailPayload } from './lib/security';
 
 export function getInitialSampleIncidents(): ActivityIncident[] {
   return [];
@@ -9378,13 +9378,23 @@ app.post('/api/test-smtp', async (req, res) => {
 
 app.post('/api/send-email', async (req, res) => {
   try {
-    const { to, cc, subject, body, html, smtpConfig, useSimulator } = req.body;
+    const { to, cc, subject, body, html, useSimulator } = req.body;
 
     if (!to || !subject || (!body && !html)) {
       return res.status(400).json({ error: 'Recipient email, subject, and body or html are required.' });
     }
 
-    const configToUse = smtpConfig || storedSmtpSettings;
+    const emailCheck = validateEmailPayload({
+      to,
+      cc,
+      subject,
+      allowedDomains: process.env.ALLOWED_EMAIL_DOMAINS
+    });
+    if (!emailCheck.valid) {
+      return res.status(400).json({ error: emailCheck.error });
+    }
+
+    const configToUse = storedSmtpSettings;
 
     if (useSimulator || configToUse.useSimulator || !configToUse.host) {
       return res.json({
@@ -9395,6 +9405,7 @@ app.post('/api/send-email', async (req, res) => {
       });
     }
 
+    const allowInsecureSmtp = process.env.SMTP_ALLOW_INSECURE_TLS === 'true';
     const transporter = nodemailer.createTransport({
       host: configToUse.host,
       port: Number(configToUse.port) || 587,
@@ -9404,7 +9415,7 @@ app.post('/api/send-email', async (req, res) => {
         pass: configToUse.pass
       } : undefined,
       tls: {
-       rejectUnauthorized: false
+        rejectUnauthorized: !allowInsecureSmtp
       },
       connectionTimeout: 10000
     });

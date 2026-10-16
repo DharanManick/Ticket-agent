@@ -124,3 +124,82 @@ export function maskSmtpSettings<T extends Record<string, any>>(settings: T): T 
   };
 }
 
+/**
+ * Validates email addresses and prevents SMTP header injection (CRLF).
+ */
+export function isValidEmailAddress(email: string): boolean {
+  if (!email || typeof email !== 'string') return false;
+  const trimmed = email.trim();
+  // Prevent CRLF header injection
+  if (/[\r\n]/.test(trimmed)) return false;
+  // Standard RFC 5322 simplified email regex
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  return emailRegex.test(trimmed);
+}
+
+/**
+ * Validates that an email recipient is permitted based on optional domain allowlist.
+ */
+export function isAllowedRecipientDomain(email: string, allowedDomains?: string): boolean {
+  if (!allowedDomains || allowedDomains.trim() === '' || allowedDomains === '*') {
+    return true; // No domain restriction active
+  }
+  const domains = allowedDomains.split(',').map(d => d.trim().toLowerCase().replace(/^@/, ''));
+  const domainPart = email.split('@')[1]?.toLowerCase();
+  if (!domainPart) return false;
+  return domains.some(allowed => domainPart === allowed || domainPart.endsWith(`.${allowed}`));
+}
+
+/**
+ * Validates email dispatch payload against header injection and open relay abuse.
+ */
+export function validateEmailPayload(params: {
+  to: string;
+  cc?: string;
+  subject: string;
+  allowedDomains?: string;
+}): { valid: boolean; error?: string } {
+  const { to, cc, subject, allowedDomains } = params;
+
+  if (!to || typeof to !== 'string') {
+    return { valid: false, error: 'Recipient email is required.' };
+  }
+  if (!subject || typeof subject !== 'string') {
+    return { valid: false, error: 'Email subject is required.' };
+  }
+  // Prevent SMTP header injection in subject
+  if (/[\r\n]/.test(subject)) {
+    return { valid: false, error: 'CRLF characters are prohibited in email subject.' };
+  }
+
+  // Parse comma or semicolon separated recipients in 'to'
+  const toRecipients = to.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+  if (toRecipients.length === 0) {
+    return { valid: false, error: 'At least one valid recipient is required.' };
+  }
+  for (const r of toRecipients) {
+    if (!isValidEmailAddress(r)) {
+      return { valid: false, error: `Invalid recipient email address format: ${r}` };
+    }
+    if (!isAllowedRecipientDomain(r, allowedDomains)) {
+      return { valid: false, error: `Recipient domain not authorized for dispatch: ${r}` };
+    }
+  }
+
+  // Validate 'cc' if present
+  if (cc && typeof cc === 'string') {
+    const ccRecipients = cc.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+    for (const r of ccRecipients) {
+      if (!isValidEmailAddress(r)) {
+        return { valid: false, error: `Invalid CC email address format: ${r}` };
+      }
+      if (!isAllowedRecipientDomain(r, allowedDomains)) {
+        return { valid: false, error: `CC recipient domain not authorized for dispatch: ${r}` };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
+

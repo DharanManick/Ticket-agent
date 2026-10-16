@@ -97,5 +97,48 @@ test('Security (SEC-04): maskPassword and credential sanitization protects secre
   assert.strictEqual(safeSmtpSettings.host, 'smtp.office365.com');
 });
 
+test('Security (SEC-05): validateEmailPayload blocks header injection and open relay abuse', async () => {
+  const { isValidEmailAddress, isAllowedRecipientDomain, validateEmailPayload } = await import('../lib/security');
+
+  // Email format validation
+  assert.strictEqual(isValidEmailAddress('analyst@company.com'), true);
+  assert.strictEqual(isValidEmailAddress('invalid-email'), false);
+  assert.strictEqual(isValidEmailAddress('user@domain\r\nBcc: evil@domain.com'), false); // CRLF rejection
+
+  // Domain allowlist check
+  const allowed = 'company.com,enterprise.corp';
+  assert.strictEqual(isAllowedRecipientDomain('user@company.com', allowed), true);
+  assert.strictEqual(isAllowedRecipientDomain('ops@sub.enterprise.corp', allowed), true);
+  assert.strictEqual(isAllowedRecipientDomain('attacker@malicious.com', allowed), false);
+
+  // Payload validation: subject CRLF rejection
+  const headerInjectionRes = validateEmailPayload({
+    to: 'user@company.com',
+    subject: 'Infraction Report\r\nBcc: external@hacker.com',
+    allowedDomains: allowed
+  });
+  assert.strictEqual(headerInjectionRes.valid, false);
+  assert.ok(headerInjectionRes.error?.includes('CRLF'));
+
+  // Payload validation: unauthorized relay target
+  const unauthorizedRelayRes = validateEmailPayload({
+    to: 'random-victim@external.org',
+    subject: 'Test Subject',
+    allowedDomains: allowed
+  });
+  assert.strictEqual(unauthorizedRelayRes.valid, false);
+  assert.ok(unauthorizedRelayRes.error?.includes('not authorized'));
+
+  // Payload validation: valid internal dispatch
+  const validRes = validateEmailPayload({
+    to: 'user@company.com',
+    cc: 'manager@enterprise.corp',
+    subject: 'Quarterly Ticket Quality Report',
+    allowedDomains: allowed
+  });
+  assert.strictEqual(validRes.valid, true);
+});
+
+
 
 
