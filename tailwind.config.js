@@ -41,6 +41,28 @@ export default {
           DEFAULT: 'hsl(var(--card) / <alpha-value>)',
           foreground: 'hsl(var(--card-foreground) / <alpha-value>)',
         },
+        surface: {
+          DEFAULT: 'hsl(var(--surface) / <alpha-value>)',
+          secondary: 'hsl(var(--surface-secondary) / <alpha-value>)',
+          elevated: 'hsl(var(--surface-elevated) / <alpha-value>)',
+        },
+        'border-strong': 'hsl(var(--border-strong) / <alpha-value>)',
+        success: {
+          DEFAULT: 'hsl(var(--success) / <alpha-value>)',
+          foreground: 'hsl(var(--success-foreground) / <alpha-value>)',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning) / <alpha-value>)',
+          foreground: 'hsl(var(--warning-foreground) / <alpha-value>)',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info) / <alpha-value>)',
+          foreground: 'hsl(var(--info-foreground) / <alpha-value>)',
+        },
+      },
+      boxShadow: {
+        card: 'var(--shadow-card)',
+        overlay: 'var(--shadow-overlay)',
       },
       borderRadius: {
         lg: 'var(--radius)',

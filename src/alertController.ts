@@ -154,12 +154,11 @@ router.post('/dispatch', async (req: Request, res: Response) => {
       logs.push(`${timestamp()} [TEAMS] Constructing Adaptive Card v1.4 for Assignee DM targeting <${assigneeEmail}>...`);
       
       const assigneeName = incidentPayload.assignee || "Incident Assignee";
-      const cleanInstance = (process.env.SERVICENOW_INSTANCE || 'https://dev423209.service-now.com').replace(/^https?:\/\//, '').replace(/\/$/, '').replace(/\.service-now\.com$/, '');
-      const snowUser = process.env.SERVICENOW_USERNAME || 'admin';
-      const snowPass = process.env.SERVICENOW_PASSWORD || '';
+      const rawInstance = (process.env.SERVICENOW_INSTANCE || 'https://dev423209.service-now.com').replace(/^https?:\/\//, '').replace(/\.service-now\.com.*$/, '').replace(/\/+$/, '').trim() || 'dev423209';
+      const snowHost = rawInstance.includes('.') ? rawInstance : `${rawInstance}.service-now.com`;
       const directSnowUrl = incidentPayload.incNumber
-        ? `https://${cleanInstance}.service-now.com/login.do?user_name=${encodeURIComponent(snowUser)}&sys_action=sysverb_login&user_password=${encodeURIComponent(snowPass)}&sysparm_goto_url=${encodeURIComponent(`incident.do?sysparm_query=number=${incidentPayload.incNumber}`)}`
-        : `https://${cleanInstance}.service-now.com`;
+        ? `https://${snowHost}/nav_to.do?uri=${encodeURIComponent(`incident.do?sysparm_query=number=${incidentPayload.incNumber}`)}`
+        : `https://${snowHost}`;
 
       const assigneeCardPayload = {
         type: "message",
@@ -217,7 +216,7 @@ router.post('/dispatch', async (req: Request, res: Response) => {
               actions: [
                 {
                   type: "Action.OpenUrl",
-                  title: `Open ${incidentPayload.incNumber || 'Ticket'} in ServiceNow (Direct Login)`,
+                  title: `Open ${incidentPayload.incNumber || 'Ticket'} in ServiceNow`,
                   url: directSnowUrl
                 },
                 {
@@ -640,18 +639,16 @@ router.post('/dispatch-group-digest', async (req: Request, res: Response) => {
     const groupName = assignmentGroup && assignmentGroup !== 'ALL' ? assignmentGroup : 'All Monitored Assignment Groups';
     const managerEmail = targetManagerEmail || 'manager@company.com';
 
-    // Build consolidated HTML email table
-    const cleanInstance = (process.env.SERVICENOW_INSTANCE || 'https://dev423209.service-now.com').replace(/^https?:\/\//, '').replace(/\/$/, '').replace(/\.service-now\.com$/, '');
-    const snowUser = process.env.SERVICENOW_USERNAME || 'admin';
-    const snowPass = process.env.SERVICENOW_PASSWORD || '';
+    const rawInstance = (process.env.SERVICENOW_INSTANCE || 'https://dev423209.service-now.com').replace(/^https?:\/\//, '').replace(/\.service-now\.com.*$/, '').replace(/\/+$/, '').trim() || 'dev423209';
+    const snowHost = rawInstance.includes('.') ? rawInstance : `${rawInstance}.service-now.com`;
 
     const rowsHtml = failingTickets.map(r => {
       const t = r.ticket || {};
       const score = r.percentage ?? 0;
       const scoreColor = score < 50 ? '#ef4444' : (score < 75 ? '#f59e0b' : '#10b981');
       const directUrl = t.incNumber
-        ? `https://${cleanInstance}.service-now.com/login.do?user_name=${encodeURIComponent(snowUser)}&sys_action=sysverb_login&user_password=${encodeURIComponent(snowPass)}&sysparm_goto_url=${encodeURIComponent(`incident.do?sysparm_query=number=${t.incNumber}`)}`
-        : `https://${cleanInstance}.service-now.com`;
+        ? `https://${snowHost}/nav_to.do?uri=${encodeURIComponent(`incident.do?sysparm_query=number=${t.incNumber}`)}`
+        : `https://${snowHost}`;
 
       const infractions = Array.isArray(r.details) 
         ? r.details.filter((d: any) => d.rating === 'Fail' || d.score < d.maxScore).map((d: any) => d.ruleName || d.metricKey).slice(0, 3).join(', ')

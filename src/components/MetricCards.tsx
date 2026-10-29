@@ -158,38 +158,38 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
   return (
     <div className="space-y-6 animate-fadeIn" id="metrics-panel">
       {/* 🚀 AI Governance Engine & Pipeline Telemetry Bar */}
-      <div className="bg-[#12151D] border border-[#232736] rounded-xl p-4 shadow-md flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0A0C10] border border-[#1E2330] rounded-lg">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            <span className="text-[11px] font-mono font-bold text-gray-400">LLM Core:</span>
-            <span className="text-[11px] font-mono font-extrabold text-cyan-300">Gemini 3.8 Flash</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/60 border border-border rounded-lg">
+            <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+            <span className="text-[11px] font-mono font-bold text-muted-foreground">LLM Core:</span>
+            <span className="text-[11px] font-mono font-extrabold text-blue-600 dark:text-cyan-300">Gemini 3.8 Flash</span>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0A0C10] border border-[#1E2330] rounded-lg">
-            <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-            <span className="text-[11px] font-mono font-bold text-gray-400">Embedding:</span>
-            <span className="text-[11px] font-mono font-extrabold text-purple-300">exp-03-07</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/60 border border-border rounded-lg">
+            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+            <span className="text-[11px] font-mono font-bold text-muted-foreground">Embedding:</span>
+            <span className="text-[11px] font-mono font-extrabold text-purple-600 dark:text-purple-300">exp-03-07</span>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0A0C10] border border-[#1E2330] rounded-lg">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-mono font-bold text-gray-400">ServiceNow Sync:</span>
-            <span className="text-[11px] font-mono font-extrabold text-emerald-300">Active (Continuous)</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/60 border border-border rounded-lg">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[11px] font-mono font-bold text-muted-foreground">ServiceNow Sync:</span>
+            <span className="text-[11px] font-mono font-extrabold text-emerald-600 dark:text-emerald-300">Active (Continuous)</span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <div className="text-[10px] uppercase font-mono tracking-wider text-gray-400">Governance Index</div>
+            <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Governance Index</div>
             <div className="text-xs font-mono font-bold">
-              Mean Score: <span className={avgScore >= 80 ? 'text-green-400' : avgScore >= 65 ? 'text-yellow-400' : 'text-red-400'}>{avgScore}%</span>
+              Mean Score: <span className={avgScore >= 80 ? 'text-emerald-600 dark:text-green-400' : avgScore >= 65 ? 'text-amber-600 dark:text-yellow-400' : 'text-rose-600 dark:text-red-400'}>{avgScore}%</span>
             </div>
           </div>
           <div className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase ${
-            avgScore >= 80 ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-            avgScore >= 65 ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-            'bg-red-500/10 text-red-400 border border-red-500/20'
+            avgScore >= 80 ? 'bg-emerald-50 dark:bg-green-500/10 text-emerald-700 dark:text-green-400 border border-emerald-200 dark:border-green-500/20' :
+            avgScore >= 65 ? 'bg-amber-50 dark:bg-yellow-500/10 text-amber-700 dark:text-yellow-400 border border-amber-200 dark:border-yellow-500/20' :
+            'bg-rose-50 dark:bg-red-500/10 text-rose-700 dark:text-red-400 border border-rose-200 dark:border-red-500/20'
           }`}>
             {avgScore >= 80 ? 'Compliant' : avgScore >= 65 ? 'Needs Review' : 'Critical Drift'}
           </div>
@@ -203,14 +203,14 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
           key={`card-total-${sweepKey}`}
           initial={{ opacity: 0, y: 15, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          whileHover={{ y: -4, scale: 1.015, boxShadow: '0 12px 28px -5px rgba(0, 0, 0, 0.6), 0 0 20px 0 rgba(59, 130, 246, 0.18)' }}
+          whileHover={{ y: -4, scale: 1.015 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-md hover:border-blue-500/50 transition-all cursor-pointer group"
+          className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-blue-500/50 transition-all cursor-pointer group"
         >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] uppercase font-semibold tracking-wider text-gray-500 group-hover:text-blue-400 transition-colors">Total Reviewed Pool</p>
-              <h3 className="text-2xl font-mono font-bold text-white mt-1.5 flex items-baseline gap-1">
+              <p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground group-hover:text-blue-500 transition-colors">Total Reviewed Pool</p>
+              <h3 className="text-2xl font-mono font-bold text-foreground mt-1.5 flex items-baseline gap-1">
                 <AnimatePresence mode="popLayout">
                   <motion.span
                     key={total}
@@ -222,14 +222,14 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                     {total}
                   </motion.span>
                 </AnimatePresence>
-                <span className="text-xs text-gray-400 font-sans ml-1">INCS</span>
+                <span className="text-xs text-muted-foreground font-sans ml-1">INCS</span>
               </h3>
             </div>
-            <div className="p-2 bg-blue-500/10 rounded text-blue-400 border border-blue-500/10 group-hover:scale-110 group-hover:bg-blue-500/20 transition-all">
+            <div className="p-2 bg-blue-50 dark:bg-blue-500/10 rounded text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/10 group-hover:scale-110 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition-all">
               <Activity className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-[11px] text-gray-500 mt-3 font-mono">ServiceNow dump database active</p>
+          <p className="text-[11px] text-muted-foreground mt-3 font-mono">ServiceNow dump database active</p>
         </motion.div>
 
         {/* Pass Rate */}
@@ -237,14 +237,14 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
           key={`card-pass-${sweepKey}`}
           initial={{ opacity: 0, y: 15, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          whileHover={{ y: -4, scale: 1.015, boxShadow: '0 12px 28px -5px rgba(0, 0, 0, 0.6), 0 0 20px 0 rgba(34, 197, 94, 0.18)' }}
+          whileHover={{ y: -4, scale: 1.015 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-md hover:border-green-500/50 transition-all cursor-pointer group"
+          className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-emerald-500/50 transition-all cursor-pointer group"
         >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] uppercase font-semibold tracking-wider text-gray-500 group-hover:text-green-400 transition-colors">Perfect Align Rank (Green)</p>
-              <h3 className="text-2xl font-mono font-bold text-green-400 mt-1.5">
+              <p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-green-400 transition-colors">Perfect Align Rank (Green)</p>
+              <h3 className="text-2xl font-mono font-bold text-emerald-600 dark:text-green-400 mt-1.5">
                 <AnimatePresence mode="popLayout">
                   <motion.span
                     key={passRate}
@@ -259,20 +259,20 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                 %
               </h3>
             </div>
-            <div className="p-2 bg-green-500/10 rounded text-green-400 border border-green-500/10 group-hover:scale-110 group-hover:bg-green-500/20 transition-all">
+            <div className="p-2 bg-emerald-50 dark:bg-green-500/10 rounded text-emerald-600 dark:text-green-400 border border-emerald-200 dark:border-green-500/10 group-hover:scale-110 group-hover:bg-emerald-100 dark:group-hover:bg-green-500/20 transition-all">
               <ShieldCheck className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-4">
-            <div className="w-full bg-[#0A0C0F] rounded-full h-1 overflow-hidden">
+            <div className="w-full bg-muted rounded-full h-1 overflow-hidden">
               <motion.div 
-                className="bg-green-400 h-1 rounded-full" 
+                className="bg-emerald-500 dark:bg-green-400 h-1 rounded-full" 
                 initial={{ width: 0 }}
                 animate={{ width: `${passRate}%` }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
               />
             </div>
-            <div className="flex justify-between text-[10px] text-gray-500 mt-1.5">
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5">
               <span>{greenCount} passed</span>
               <span>Min target score &ge; 90%</span>
             </div>
@@ -284,14 +284,14 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
           key={`card-warning-${sweepKey}`}
           initial={{ opacity: 0, y: 15, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          whileHover={{ y: -4, scale: 1.015, boxShadow: '0 12px 28px -5px rgba(0, 0, 0, 0.6), 0 0 20px 0 rgba(234, 179, 8, 0.18)' }}
+          whileHover={{ y: -4, scale: 1.015 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-md hover:border-yellow-500/50 transition-all cursor-pointer group"
+          className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-amber-500/50 transition-all cursor-pointer group"
         >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] uppercase font-semibold tracking-wider text-gray-500 group-hover:text-yellow-400 transition-colors">Warning Align Rank (Amber)</p>
-              <h3 className="text-2xl font-mono font-bold text-yellow-500 mt-1.5">
+              <p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground group-hover:text-amber-600 dark:group-hover:text-yellow-400 transition-colors">Warning Align Rank (Amber)</p>
+              <h3 className="text-2xl font-mono font-bold text-amber-600 dark:text-yellow-500 mt-1.5">
                 <AnimatePresence mode="popLayout">
                   <motion.span
                     key={warningRate}
@@ -306,20 +306,20 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                 %
               </h3>
             </div>
-            <div className="p-2 bg-yellow-500/10 rounded text-yellow-500 border border-yellow-500/10 group-hover:scale-110 group-hover:bg-yellow-500/20 transition-all">
+            <div className="p-2 bg-amber-50 dark:bg-yellow-500/10 rounded text-amber-600 dark:text-yellow-500 border border-amber-200 dark:border-yellow-500/10 group-hover:scale-110 group-hover:bg-amber-100 dark:group-hover:bg-yellow-500/20 transition-all">
               <AlertTriangle className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-4">
-            <div className="w-full bg-[#0A0C0F] rounded-full h-1 overflow-hidden">
+            <div className="w-full bg-muted rounded-full h-1 overflow-hidden">
               <motion.div 
-                className="bg-yellow-500 h-1 rounded-full" 
+                className="bg-amber-500 dark:bg-yellow-500 h-1 rounded-full" 
                 initial={{ width: 0 }}
                 animate={{ width: `${warningRate}%` }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
               />
             </div>
-            <div className="flex justify-between text-[10px] text-gray-500 mt-1.5">
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5">
               <span>{amberCount} in warning</span>
               <span>Bounds 70% to 89%</span>
             </div>
@@ -331,14 +331,14 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
           key={`card-bypassed-${sweepKey}`}
           initial={{ opacity: 0, y: 15, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          whileHover={{ y: -4, scale: 1.015, boxShadow: '0 12px 28px -5px rgba(0, 0, 0, 0.6), 0 0 20px 0 rgba(239, 68, 68, 0.18)' }}
+          whileHover={{ y: -4, scale: 1.015 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-md hover:border-red-500/50 transition-all cursor-pointer group"
+          className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-rose-500/50 transition-all cursor-pointer group"
         >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] uppercase font-semibold tracking-wider text-gray-500 group-hover:text-red-400 transition-colors">Critical State Jumps (Red)</p>
-              <h3 className={`text-2xl font-mono font-bold mt-1.5 ${falseAudits.length > 0 ? 'text-red-400' : 'text-gray-400'}`}>
+              <p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground group-hover:text-rose-600 dark:group-hover:text-red-400 transition-colors">Critical State Jumps (Red)</p>
+              <h3 className={`text-2xl font-mono font-bold mt-1.5 ${falseAudits.length > 0 ? 'text-rose-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                 <AnimatePresence mode="popLayout">
                   <motion.span
                     key={falseAudits.length}
@@ -352,22 +352,22 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                 </AnimatePresence>
               </h3>
             </div>
-            <div className={`p-2 rounded transition-all group-hover:scale-110 ${falseAudits.length > 0 ? 'bg-red-500/10 text-red-400 border border-red-500/10 group-hover:bg-red-500/20' : 'bg-[#0A0C0F] text-gray-500'}`}>
+            <div className={`p-2 rounded transition-all group-hover:scale-110 ${falseAudits.length > 0 ? 'bg-rose-50 dark:bg-red-500/10 text-rose-600 dark:text-red-400 border border-rose-200 dark:border-red-500/10 group-hover:bg-rose-100 dark:group-hover:bg-red-500/20' : 'bg-muted text-muted-foreground'}`}>
               <XCircle className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-4">
-            <div className="w-full bg-[#0A0C0F] rounded-full h-1 overflow-hidden">
+            <div className="w-full bg-muted rounded-full h-1 overflow-hidden">
               <motion.div 
-                className="bg-red-400 h-1 rounded-full animate-none" 
+                className="bg-rose-500 dark:bg-red-400 h-1 rounded-full animate-none" 
                 initial={{ width: 0 }}
                 animate={{ width: `${total > 0 ? (falseAudits.length / total) * 100 : 0}%` }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
               />
             </div>
-            <div className="flex justify-between text-[10px] text-gray-500 mt-1.5">
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5">
               <span>Bypassed Resolved State</span>
-              <span className={`font-semibold ${falseAudits.length > 0 ? 'text-red-400' : 'text-green-500'}`}>
+              <span className={`font-semibold ${falseAudits.length > 0 ? 'text-rose-600 dark:text-red-400' : 'text-emerald-600 dark:text-green-500'}`}>
                 {falseAudits.length > 0 ? 'Action Protocol' : 'Compliant'}
               </span>
             </div>
@@ -404,13 +404,13 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="executive-trends-panel">
         
         {/* Module A: Compliance Distribution Donut Chart (4/12) */}
-        <div className="lg:col-span-4 bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-lg flex flex-col space-y-4" id="donut-distribution">
-          <div className="flex items-center justify-between border-b border-[#2A2D35] pb-2">
-            <h4 className="text-xs uppercase font-black font-mono tracking-widest text-[#10b981] flex items-center gap-1.5">
+        <div className="lg:col-span-4 bg-card border border-border rounded-xl p-5 shadow-sm flex flex-col space-y-4" id="donut-distribution">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <h4 className="text-xs uppercase font-black font-mono tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
               <Activity className="h-4 w-4" />
               COMPLIANCE DISTRIBUTION
             </h4>
-            <span className="text-[9px] text-gray-500 font-mono">Real-time Breakdown</span>
+            <span className="text-[9px] text-muted-foreground font-mono">Real-time Breakdown</span>
           </div>
 
           {reports.length === 0 ? (
@@ -421,12 +421,13 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                   cy="60"
                   r="38"
                   fill="transparent"
-                  stroke="#2A2D35"
+                  stroke="currentColor"
+                  className="text-border"
                   strokeWidth="12"
                   strokeDasharray="4 4"
                 />
               </svg>
-              <p className="text-xs text-gray-400 mt-3 font-mono">0 Incidents Loaded</p>
+              <p className="text-xs text-muted-foreground mt-3 font-mono">0 Incidents Loaded</p>
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row items-center gap-4 py-2">
@@ -440,7 +441,7 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                       cy="60"
                       r="38"
                       fill="transparent"
-                      stroke="#22c55e"
+                      stroke="#10b981"
                       strokeWidth={hoveredSlice === 'Green' ? 14 : 11}
                       strokeDasharray={`${gLen} ${238.76 - gLen}`}
                       strokeDashoffset={0}
@@ -449,7 +450,7 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                       onMouseLeave={() => setHoveredSlice(null)}
                       style={{
                         opacity: hoveredSlice && hoveredSlice !== 'Green' ? 0.45 : 1,
-                        filter: hoveredSlice === 'Green' ? 'drop-shadow(0 0 4px rgba(34, 197, 94, 0.4))' : 'none'
+                        filter: hoveredSlice === 'Green' ? 'drop-shadow(0 0 4px rgba(16, 185, 129, 0.4))' : 'none'
                       }}
                     />
                   )}
@@ -460,7 +461,7 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                       cy="60"
                       r="38"
                       fill="transparent"
-                      stroke="#eab308"
+                      stroke="#f59e0b"
                       strokeWidth={hoveredSlice === 'Amber' ? 14 : 11}
                       strokeDasharray={`${aLen} ${238.76 - aLen}`}
                       strokeDashoffset={-gLen}
@@ -469,7 +470,7 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                       onMouseLeave={() => setHoveredSlice(null)}
                       style={{
                         opacity: hoveredSlice && hoveredSlice !== 'Amber' ? 0.45 : 1,
-                        filter: hoveredSlice === 'Amber' ? 'drop-shadow(0 0 4px rgba(234, 179, 8, 0.4))' : 'none'
+                        filter: hoveredSlice === 'Amber' ? 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.4))' : 'none'
                       }}
                     />
                   )}
@@ -497,24 +498,24 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
 
                 {/* Central Labels */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                  <span className="text-[8.5px] uppercase font-mono font-bold text-gray-500 tracking-wider">
+                  <span className="text-[8.5px] uppercase font-mono font-bold text-muted-foreground tracking-wider">
                     {hoveredSlice === 'Green' ? 'Pass (Audit)' :
                      hoveredSlice === 'Amber' ? 'Warning' :
                      hoveredSlice === 'Red' ? 'Fail (Crit)' :
                      'Avg Quality'}
                   </span>
                   <span className={`text-[17px] font-mono font-extrabold mt-0.5 transition-colors duration-200 ${
-                    hoveredSlice === 'Green' ? 'text-green-400' :
-                    hoveredSlice === 'Amber' ? 'text-yellow-500' :
-                    hoveredSlice === 'Red' ? 'text-red-400' :
-                    'text-white'
+                    hoveredSlice === 'Green' ? 'text-emerald-600 dark:text-green-400' :
+                    hoveredSlice === 'Amber' ? 'text-amber-600 dark:text-yellow-500' :
+                    hoveredSlice === 'Red' ? 'text-rose-600 dark:text-red-400' :
+                    'text-foreground'
                   }`}>
                     {hoveredSlice === 'Green' ? `${Math.round(greenPct)}%` :
                      hoveredSlice === 'Amber' ? `${Math.round(amberPct)}%` :
                      hoveredSlice === 'Red' ? `${Math.round(redPct)}%` :
                      `${avgScore}%`}
                   </span>
-                  <span className="text-[9px] text-gray-400 font-mono">
+                  <span className="text-[9px] text-muted-foreground font-mono">
                     {hoveredSlice === 'Green' ? `${greenCount} INCS` :
                      hoveredSlice === 'Amber' ? `${amberCount} INCS` :
                      hoveredSlice === 'Red' ? `${redCount} INCS` :
@@ -527,45 +528,45 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
               <div className="flex-1 flex flex-col justify-center space-y-1.5 w-full">
                 {/* Green item */}
                 <div
-                  className="bg-[#0A0C0F]/80 border border-[#23262D] rounded-lg p-1.5 py-1.5 flex items-center justify-between transition-all duration-200 cursor-pointer"
+                  className="bg-muted/50 border border-border rounded-lg p-1.5 py-1.5 flex items-center justify-between transition-all duration-200 cursor-pointer hover:border-emerald-500/40"
                   onMouseEnter={() => setHoveredSlice('Green')}
                   onMouseLeave={() => setHoveredSlice(null)}
                   style={{
-                    borderColor: hoveredSlice === 'Green' ? '#22c55e' : undefined,
-                    backgroundColor: hoveredSlice === 'Green' ? 'rgba(34, 197, 94, 0.08)' : undefined
+                    borderColor: hoveredSlice === 'Green' ? '#10b981' : undefined,
+                    backgroundColor: hoveredSlice === 'Green' ? 'rgba(16, 185, 129, 0.08)' : undefined
                   }}
                 >
                   <div className="flex items-center space-x-1.5">
-                    <span className="w-2 h-2 rounded bg-green-500 shrink-0" />
-                    <span className="text-[10px] font-bold text-slate-200">Green (PAS)</span>
+                    <span className="w-2 h-2 rounded bg-emerald-500 shrink-0" />
+                    <span className="text-[10px] font-bold text-foreground">Green (PAS)</span>
                   </div>
-                  <div className="text-right font-mono font-extrabold text-[11px] text-green-400">
-                    {greenCount} <span className="text-[9px] font-normal text-gray-400">({Math.round(greenPct)}%)</span>
+                  <div className="text-right font-mono font-extrabold text-[11px] text-emerald-600 dark:text-green-400">
+                    {greenCount} <span className="text-[9px] font-normal text-muted-foreground">({Math.round(greenPct)}%)</span>
                   </div>
                 </div>
 
                 {/* Amber item */}
                 <div
-                  className="bg-[#0A0C0F]/80 border border-[#23262D] rounded-lg p-1.5 py-1.5 flex items-center justify-between transition-all duration-200 cursor-pointer"
+                  className="bg-muted/50 border border-border rounded-lg p-1.5 py-1.5 flex items-center justify-between transition-all duration-200 cursor-pointer hover:border-amber-500/40"
                   onMouseEnter={() => setHoveredSlice('Amber')}
                   onMouseLeave={() => setHoveredSlice(null)}
                   style={{
-                    borderColor: hoveredSlice === 'Amber' ? '#eab308' : undefined,
-                    backgroundColor: hoveredSlice === 'Amber' ? 'rgba(234, 179, 8, 0.08)' : undefined
+                    borderColor: hoveredSlice === 'Amber' ? '#f59e0b' : undefined,
+                    backgroundColor: hoveredSlice === 'Amber' ? 'rgba(245, 158, 11, 0.08)' : undefined
                   }}
                 >
                   <div className="flex items-center space-x-1.5">
-                    <span className="w-2 h-2 rounded bg-yellow-500 shrink-0" />
-                    <span className="text-[10px] font-bold text-slate-200">Amber (WARN)</span>
+                    <span className="w-2 h-2 rounded bg-amber-500 shrink-0" />
+                    <span className="text-[10px] font-bold text-foreground">Amber (WARN)</span>
                   </div>
-                  <div className="text-right font-mono font-extrabold text-[11px] text-yellow-500">
-                    {amberCount} <span className="text-[9px] font-normal text-gray-400">({Math.round(amberPct)}%)</span>
+                  <div className="text-right font-mono font-extrabold text-[11px] text-amber-600 dark:text-yellow-500">
+                    {amberCount} <span className="text-[9px] font-normal text-muted-foreground">({Math.round(amberPct)}%)</span>
                   </div>
                 </div>
 
                 {/* Red item */}
                 <div
-                  className="bg-[#0A0C0F]/80 border border-[#23262D] rounded-lg p-1.5 py-1.5 flex items-center justify-between transition-all duration-200 cursor-pointer"
+                  className="bg-muted/50 border border-border rounded-lg p-1.5 py-1.5 flex items-center justify-between transition-all duration-200 cursor-pointer hover:border-rose-500/40"
                   onMouseEnter={() => setHoveredSlice('Red')}
                   onMouseLeave={() => setHoveredSlice(null)}
                   style={{
@@ -574,11 +575,11 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                   }}
                 >
                   <div className="flex items-center space-x-1.5">
-                    <span className="w-2 h-2 rounded bg-red-500 shrink-0" />
-                    <span className="text-[10px] font-bold text-slate-200">Red (FAIL)</span>
+                    <span className="w-2 h-2 rounded bg-rose-500 shrink-0" />
+                    <span className="text-[10px] font-bold text-foreground">Red (FAIL)</span>
                   </div>
-                  <div className="text-right font-mono font-extrabold text-[11px] text-red-400">
-                    {redCount} <span className="text-[9px] font-normal text-gray-400">({Math.round(redPct)}%)</span>
+                  <div className="text-right font-mono font-extrabold text-[11px] text-rose-600 dark:text-red-400">
+                    {redCount} <span className="text-[9px] font-normal text-muted-foreground">({Math.round(redPct)}%)</span>
                   </div>
                 </div>
               </div>
@@ -587,34 +588,34 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
         </div>
 
         {/* Module 1: Compliance Hotspots & Drift Tracking (4/12) */}
-        <div className="lg:col-span-4 bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-lg space-y-4">
-          <div className="flex items-center justify-between border-b border-[#2A2D35] pb-2">
-            <h4 className="text-xs uppercase font-black font-mono tracking-widest text-[#FF6584] flex items-center gap-1.5">
+        <div className="lg:col-span-4 bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <h4 className="text-xs uppercase font-black font-mono tracking-widest text-rose-600 dark:text-[#FF6584] flex items-center gap-1.5">
               <BarChart3 className="h-4 w-4" />
               TOP COMPLIANCE HOT SPOTS
             </h4>
-            <span className="text-[9px] text-gray-500 font-mono">Lowest pass first</span>
+            <span className="text-[9px] text-muted-foreground font-mono">Lowest pass first</span>
           </div>
 
           {reports.length === 0 ? (
-            <p className="text-xs text-gray-500 italic py-6 text-center">No audited logs loaded to identify compliance hotspots.</p>
+            <p className="text-xs text-muted-foreground italic py-6 text-center">No audited logs loaded to identify compliance hotspots.</p>
           ) : (
             <div className="space-y-3.5 pt-1">
               {categoryPassRates.slice(0, 4).map((hotspot, idx) => {
-                const colorClass = hotspot.passRate >= 90 ? 'bg-green-400' : hotspot.passRate >= 70 ? 'bg-yellow-500' : 'bg-red-500';
-                const textClass = hotspot.passRate >= 90 ? 'text-green-400' : hotspot.passRate >= 70 ? 'text-yellow-500' : 'text-red-400';
+                const colorClass = hotspot.passRate >= 90 ? 'bg-emerald-500 dark:bg-green-400' : hotspot.passRate >= 70 ? 'bg-amber-500 dark:bg-yellow-500' : 'bg-rose-500 dark:bg-red-500';
+                const textClass = hotspot.passRate >= 90 ? 'text-emerald-600 dark:text-green-400' : hotspot.passRate >= 70 ? 'text-amber-600 dark:text-yellow-500' : 'text-rose-600 dark:text-red-400';
                 
                 return (
                   <div key={idx} className="space-y-1">
                     <div className="flex justify-between text-xs font-medium font-sans">
-                      <span className="text-gray-300 truncate max-w-[150px]" title={hotspot.name}>
+                      <span className="text-foreground truncate max-w-[150px]" title={hotspot.name}>
                         {hotspot.name}
                       </span>
                       <span className={`font-mono font-bold ${textClass}`}>
                         {hotspot.passRate}%
                       </span>
                     </div>
-                    <div className="w-full bg-[#0A0C0F] rounded-full h-1 overflow-hidden border border-[#2A2D35]/30">
+                    <div className="w-full bg-muted rounded-full h-1 overflow-hidden border border-border">
                       <motion.div 
                         key={`${hotspot.name}-${sweepKey}`}
                         className={`h-1 rounded-full ${colorClass}`} 
@@ -631,17 +632,17 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
         </div>
 
         {/* Module 2: Team and Manager Coaching Board (4/12) */}
-        <div className="lg:col-span-4 bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-lg space-y-4">
-          <div className="flex items-center justify-between border-b border-[#2A2D35] pb-2">
-            <h4 className="text-xs uppercase font-black font-mono tracking-widest text-emerald-400 flex items-center gap-1.5">
+        <div className="lg:col-span-4 bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <h4 className="text-xs uppercase font-black font-mono tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
               <Users className="h-4 w-4" />
               COACHING TARGETS BY OWNER MANAGER
             </h4>
-            <span className="text-[9px] text-gray-500 font-mono">Mean Compliance %</span>
+            <span className="text-[9px] text-muted-foreground font-mono">Mean Compliance %</span>
           </div>
 
           {reports.length === 0 ? (
-            <p className="text-xs text-gray-500 italic py-6 text-center">No team roster loaded.</p>
+            <p className="text-xs text-muted-foreground italic py-6 text-center">No team roster loaded.</p>
           ) : (
             <div className="space-y-2.5 max-h-[170px] overflow-y-auto pr-1">
               {Object.entries(managerStats).map(([mgr, stat]) => {
@@ -650,19 +651,19 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                 const hasStateJumps = stat.redCount > 0;
                 
                 return (
-                  <div key={mgr} className="bg-[#0A0C0F] border border-[#23262D] rounded-lg p-2 flex items-center justify-between">
+                  <div key={mgr} className="bg-muted/50 border border-border rounded-lg p-2 flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <span className="text-[11px] font-bold text-slate-200 block truncate max-w-[130px]" title={mgr}>{mgr}</span>
-                      <span className="text-[9px] text-gray-500 font-mono block">Pool: {stat.total} INCS</span>
+                      <span className="text-[11px] font-bold text-foreground block truncate max-w-[130px]" title={mgr}>{mgr}</span>
+                      <span className="text-[9px] text-muted-foreground font-mono block">Pool: {stat.total} INCS</span>
                     </div>
                     <div className="text-right flex flex-col items-end">
                       <span className={`text-xs font-mono font-bold ${
-                        isCompliant ? 'text-green-400' : avgPercent >= 70 ? 'text-yellow-500' : 'text-red-400'
+                        isCompliant ? 'text-emerald-600 dark:text-green-400' : avgPercent >= 70 ? 'text-amber-600 dark:text-yellow-500' : 'text-rose-600 dark:text-red-400'
                       }`}>
                         {avgPercent}% avg
                       </span>
                       <span className={`text-[8.5px] font-mono uppercase font-bold px-1.5 py-0.5 mt-1 rounded ${
-                        hasStateJumps ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'
+                        hasStateJumps ? 'bg-rose-50 dark:bg-red-500/10 text-rose-600 dark:text-red-400 border border-rose-200 dark:border-red-500/20' : 'bg-emerald-50 dark:bg-green-500/10 text-emerald-700 dark:text-green-400 border border-emerald-200 dark:border-green-500/20'
                       }`}>
                         {hasStateJumps ? 'Coaching' : 'Stable'}
                       </span>
@@ -675,19 +676,19 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
         </div>
 
         {/* Module 3: Dynamic Management Governance Directives (Full 12/12) */}
-        <div className="lg:col-span-12 bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-lg space-y-3.5">
-          <div className="flex items-center gap-1.5 text-blue-400 text-xs font-black uppercase tracking-widest border-b border-[#2A2D35] pb-2">
+        <div className="lg:col-span-12 bg-card border border-border rounded-xl p-5 shadow-sm space-y-3.5">
+          <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 text-xs font-black uppercase tracking-widest border-b border-border pb-2">
             <BookOpen className="h-4 w-4" />
             <span>AI EXECUTIVE MANAGEMENT GOVERNANCE BLUEPRINT STRATEGIES</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {managementRecommendations.map((rec, rIdx) => (
-              <div key={rIdx} className="bg-[#0A0C0F] border border-[#2A2D35] p-3.5 rounded-xl flex items-start gap-3 shadow-inner">
-                <div className="text-blue-400 text-base shrink-0 mt-0.5 font-bold">💡</div>
+              <div key={rIdx} className="bg-muted/50 border border-border p-3.5 rounded-xl flex items-start gap-3 shadow-inner">
+                <div className="text-blue-500 text-base shrink-0 mt-0.5 font-bold">💡</div>
                 <div className="space-y-1">
-                  <span className="text-[9.5px] font-bold uppercase font-mono tracking-wider text-blue-400">Directive #{rIdx + 1}</span>
-                  <p className="text-slate-300 font-sans text-xs leading-relaxed">{rec}</p>
+                  <span className="text-[9.5px] font-bold uppercase font-mono tracking-wider text-blue-600 dark:text-blue-400">Directive #{rIdx + 1}</span>
+                  <p className="text-foreground/90 font-sans text-xs leading-relaxed">{rec}</p>
                 </div>
               </div>
             ))}
@@ -696,26 +697,26 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
 
         {/* Module 4: Priority Action Queue (Full 12/12) */}
         {priorityActionTickets.length > 0 && (
-          <div className="lg:col-span-12 bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-lg space-y-3.5" id="priority-action-queue">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#2A2D35] pb-2.5 gap-2">
+          <div className="lg:col-span-12 bg-card border border-border rounded-xl p-5 shadow-sm space-y-3.5" id="priority-action-queue">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-2.5 gap-2">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg">
+                <div className="p-1.5 bg-rose-50 dark:bg-red-500/10 text-rose-600 dark:text-red-400 border border-rose-200 dark:border-red-500/20 rounded-lg">
                   <AlertTriangle className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs uppercase font-black font-mono tracking-widest text-red-400">
+                  <h4 className="text-xs uppercase font-black font-mono tracking-widest text-rose-600 dark:text-red-400">
                     PRIORITY ACTION QUEUE &bull; CRITICAL AUDIT FINDINGS
                   </h4>
-                  <p className="text-[10px] text-gray-500 font-mono">Lowest compliance scores requiring supervisory coaching or work note remediation</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">Lowest compliance scores requiring supervisory coaching or work note remediation</p>
                 </div>
               </div>
-              <span className="text-[10px] font-mono text-gray-400">Showing Top {priorityActionTickets.length} Incidents</span>
+              <span className="text-[10px] font-mono text-muted-foreground">Showing Top {priorityActionTickets.length} Incidents</span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-[#2A2D35] text-[10px] uppercase font-mono text-gray-500">
+                  <tr className="border-b border-border text-[10px] uppercase font-mono text-muted-foreground">
                     <th className="pb-2 font-semibold">Incident</th>
                     <th className="pb-2 font-semibold">Assignee / Manager</th>
                     <th className="pb-2 font-semibold">Assignment Group</th>
@@ -724,33 +725,33 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                     <th className="pb-2 font-semibold text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#2A2D35]/50">
+                <tbody className="divide-y divide-border">
                   {priorityActionTickets.map((rep) => {
                     const isRed = rep.statusColor === 'Red';
                     const isAmber = rep.statusColor === 'Amber';
                     return (
-                      <tr key={rep.ticket.id || rep.ticket.incNumber} className="hover:bg-[#1C202B]/40 transition-colors group">
-                        <td className="py-2.5 font-mono font-bold text-white flex items-center gap-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full ${isRed ? 'bg-red-400' : isAmber ? 'bg-yellow-400' : 'bg-green-400'}`} />
+                      <tr key={rep.ticket.id || rep.ticket.incNumber} className="hover:bg-muted/50 transition-colors group">
+                        <td className="py-2.5 font-mono font-bold text-foreground flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full ${isRed ? 'bg-rose-500' : isAmber ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                           <span>{rep.ticket.incNumber}</span>
                         </td>
                         <td className="py-2.5">
-                          <div className="text-gray-200 font-medium">{rep.ticket.assignee || 'Unassigned'}</div>
-                          <div className="text-[10px] text-gray-500 font-mono">Mgr: {rep.ticket.assigneeManager || 'N/A'}</div>
+                          <div className="text-foreground font-medium">{rep.ticket.assignee || 'Unassigned'}</div>
+                          <div className="text-[10px] text-muted-foreground font-mono">Mgr: {rep.ticket.assigneeManager || 'N/A'}</div>
                         </td>
-                        <td className="py-2.5 text-gray-400 font-mono text-[11px] max-w-[200px] truncate">
+                        <td className="py-2.5 text-muted-foreground font-mono text-[11px] max-w-[200px] truncate">
                           {rep.ticket.assignmentGroup || 'General Support'}
                         </td>
                         <td className="py-2.5 text-center font-mono font-bold">
-                          <span className={isRed ? 'text-red-400' : isAmber ? 'text-yellow-400' : 'text-green-400'}>
+                          <span className={isRed ? 'text-rose-600 dark:text-red-400' : isAmber ? 'text-amber-600 dark:text-yellow-500' : 'text-emerald-600 dark:text-green-500'}>
                             {rep.percentage}%
                           </span>
                         </td>
                         <td className="py-2.5 text-center">
                           <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                            isRed ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                            isAmber ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-                            'bg-green-500/10 text-green-400 border border-green-500/20'
+                            isRed ? 'bg-rose-50 dark:bg-red-500/10 text-rose-700 dark:text-red-400 border border-rose-200 dark:border-red-500/20' :
+                            isAmber ? 'bg-amber-50 dark:bg-yellow-500/10 text-amber-700 dark:text-yellow-500 border border-amber-200 dark:border-yellow-500/20' :
+                            'bg-emerald-50 dark:bg-green-500/10 text-emerald-700 dark:text-green-400 border border-emerald-200 dark:border-green-500/20'
                           }`}>
                             {rep.statusColor}
                           </span>
@@ -759,7 +760,7 @@ export default function MetricCards({ reports, onSelectTicket }: MetricCardsProp
                           <button
                             type="button"
                             onClick={() => onSelectTicket?.(rep.ticket.incNumber)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 border border-blue-500/20 hover:border-blue-500/40 rounded-lg font-mono text-[11px] font-bold cursor-pointer transition-all"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 dark:bg-blue-600/10 hover:bg-blue-100 dark:hover:bg-blue-600/20 text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 border border-blue-200 dark:border-blue-500/20 hover:border-blue-300 dark:hover:border-blue-500/40 rounded-lg font-mono text-[11px] font-bold cursor-pointer transition-all"
                           >
                             <span>Inspect</span>
                             <ArrowRight className="h-3 w-3" />

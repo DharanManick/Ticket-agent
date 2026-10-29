@@ -248,23 +248,23 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
   };
 
   return (
-    <div className="space-y-6 text-gray-200">
+    <div className="space-y-6 text-foreground">
       
       {/* Title & Top Action Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800/60 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-400 uppercase tracking-wide">ITSM Compliance Suite v2.4</span>
-            <div className="flex items-center gap-1.5 text-emerald-400 font-mono text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">ITSM Compliance Suite v2.4</span>
+            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               Outbound Dispatch Router Active
             </div>
           </div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2 mt-1">
-            <Bell className="h-5 w-5 text-indigo-400" />
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mt-1">
+            <Bell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             Individual Notification Setup
           </h2>
-          <p className="text-xs text-gray-400 mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
             Configure direct assignee notification channels. Use Microsoft Power Automate to send Adaptive Cards in Teams, and Microsoft Graph REST API to send automated emails.
           </p>
         </div>
@@ -272,7 +272,7 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
         <button
           onClick={handleSaveConfig}
           disabled={isSaving}
-          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-mono font-bold transition-all disabled:opacity-50 shadow-md shadow-indigo-600/15 shrink-0"
+          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-mono font-bold transition-all disabled:opacity-50 shadow-md shadow-indigo-600/15 shrink-0 cursor-pointer"
         >
           <Save className={`h-3.5 w-3.5 ${isSaving ? 'animate-spin' : ''}`} />
           Save Integration Settings
@@ -280,14 +280,14 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
       </div>
 
       {/* SUB-TAB NAVIGATION BAR */}
-      <div className="flex items-center space-x-2 border-b border-[#232836] pb-3 font-mono text-xs">
+      <div className="flex items-center space-x-2 border-b border-border pb-3 font-mono text-xs">
         <button
           type="button"
           onClick={() => setActiveTab('realtime_alerts')}
           className={`px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'realtime_alerts'
-              ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/40 shadow-sm'
-              : 'text-gray-400 hover:text-white hover:bg-gray-800/40 border border-transparent'
+              ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
           }`}
         >
           <Bell className="h-3.5 w-3.5" />
@@ -299,8 +299,8 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
           onClick={() => setActiveTab('email_digest')}
           className={`px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'email_digest'
-              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-              : 'text-gray-400 hover:text-white hover:bg-gray-800/40 border border-transparent'
+              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
           }`}
         >
           <Mail className="h-3.5 w-3.5" />
@@ -314,46 +314,46 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* PART 1: MICROSOFT TEAMS (Power Automate) */}
-        <div className="bg-[#0A0C0F] border border-[#1E2433] rounded-lg p-5 space-y-4 flex flex-col justify-between hover:border-[#1E2433]/80 transition-all">
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4 flex flex-col justify-between shadow-card hover:border-border-strong transition-all">
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-800/60 pb-3">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-[#4B5697]/20 text-[#4B5697] rounded">
+                <div className="p-1.5 bg-[#4B5697]/15 text-[#4B5697] dark:bg-[#4B5697]/25 dark:text-indigo-400 rounded">
                   <MessageSquare className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white font-mono">Part 1: MS Teams Chat Notification</h3>
-                  <p className="text-[10px] text-gray-400">Power Automate Adaptive Card Flow</p>
+                  <h3 className="text-sm font-bold text-foreground font-mono">Part 1: MS Teams Chat Notification</h3>
+                  <p className="text-[10px] text-muted-foreground">Power Automate Adaptive Card Flow</p>
                 </div>
               </div>
 
               <button
                 onClick={loadTeamsDemoPreset}
-                className="text-[9px] font-mono text-indigo-400 hover:text-indigo-300 font-bold transition-colors bg-[#171c2a] border border-[#2e374a] px-2 py-0.5 rounded"
+                className="text-[9px] font-mono text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-bold transition-colors bg-card hover:bg-muted border border-border px-2.5 py-1 rounded cursor-pointer shadow-2xs"
               >
                 Load Preset URLs
               </button>
             </div>
 
-            <p className="text-xs text-gray-400 leading-normal">
+            <p className="text-xs text-muted-foreground leading-normal">
               Post rich 1:1 Adaptive Cards directly into the assignee&apos;s and manager&apos;s MS Teams chat container immediately when a ticket fails documentation compliance.
             </p>
 
             {/* Dynamic Controls Grid */}
             <div className="space-y-4 pt-1">
               {/* Assignee Webhook Settings */}
-              <div className="bg-[#121620]/60 p-3 rounded-lg border border-[#222836] space-y-2.5">
+              <div className="bg-muted/40 p-3 rounded-lg border border-border space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
+                  <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                     Assignee Stream
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-mono text-gray-500 font-bold">ACTIVATE</span>
+                    <span className="text-[9px] font-mono text-muted-foreground font-bold">ACTIVATE</span>
                     <button
                       type="button"
                       onClick={() => setEnableIndividualAlerts(!enableIndividualAlerts)}
                       className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        enableIndividualAlerts ? 'bg-indigo-600' : 'bg-gray-800'
+                        enableIndividualAlerts ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-gray-800'
                       }`}
                     >
                       <span
@@ -365,30 +365,30 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-[9px] font-mono text-gray-400">Assignee Webhook Endpoint</label>
+                  <label className="block text-[9px] font-mono text-muted-foreground">Assignee Webhook Endpoint</label>
                   <input 
                     type="text"
                     value={webhookUrl}
                     onChange={(e) => setWebhookUrl(e.target.value)}
                     placeholder="https://prod-XX.southeastasia.logic.azure.com/workflows/..."
-                    className="w-full bg-[#090C12] border border-[#222836] focus:border-indigo-500/50 rounded p-1.5 text-[11px] font-mono text-gray-300 focus:outline-none transition-colors"
+                    className="w-full bg-card border border-border focus:border-indigo-500 rounded p-1.5 text-[11px] font-mono text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors"
                   />
                 </div>
               </div>
 
               {/* Manager Webhook Settings */}
-              <div className="bg-[#121620]/60 p-3 rounded-lg border border-[#222836] space-y-2.5">
+              <div className="bg-muted/40 p-3 rounded-lg border border-border space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-indigo-400 uppercase tracking-wider">
+                  <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
                     Manager Escalation Stream
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-mono text-gray-500 font-bold">ACTIVATE</span>
+                    <span className="text-[9px] font-mono text-muted-foreground font-bold">ACTIVATE</span>
                     <button
                       type="button"
                       onClick={() => setEnableManagerTeamsAlerts(!enableManagerTeamsAlerts)}
                       className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        enableManagerTeamsAlerts ? 'bg-indigo-600' : 'bg-gray-800'
+                        enableManagerTeamsAlerts ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-gray-800'
                       }`}
                     >
                       <span
@@ -400,50 +400,50 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-[9px] font-mono text-gray-400">Manager Webhook Endpoint</label>
+                  <label className="block text-[9px] font-mono text-muted-foreground">Manager Webhook Endpoint</label>
                   <input 
                     type="text"
                     value={managerWebhookUrl}
                     onChange={(e) => setManagerWebhookUrl(e.target.value)}
                     placeholder="https://prod-XX.southeastasia.logic.azure.com/workflows/..."
-                    className="w-full bg-[#090C12] border border-[#222836] focus:border-indigo-500/50 rounded p-1.5 text-[11px] font-mono text-gray-300 focus:outline-none transition-colors"
+                    className="w-full bg-card border border-border focus:border-indigo-500 rounded p-1.5 text-[11px] font-mono text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#121620]/80 border border-[#222836] p-3 rounded text-[10.5px] text-gray-400 leading-normal flex gap-2 mt-2">
-            <Info className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
+          <div className="bg-muted/50 border border-border p-3 rounded text-[10.5px] text-muted-foreground leading-normal flex gap-2 mt-2">
+            <Info className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
             <div className="font-sans">
-              <span className="font-bold text-white">Dynamic Routing:</span> Target addresses are matched dynamically against the assignee&apos;s email and their supervisor&apos;s email dynamically fetched from the incident ticket payload.
+              <span className="font-bold text-foreground">Dynamic Routing:</span> Target addresses are matched dynamically against the assignee&apos;s email and their supervisor&apos;s email dynamically fetched from the incident ticket payload.
             </div>
           </div>
         </div>
 
         {/* PART 2: MICROSOFT OUTLOOK (Microsoft Graph API) */}
-        <div className="bg-[#0A0C0F] border border-[#1E2433] rounded-lg p-5 space-y-4 flex flex-col justify-between hover:border-[#1E2433]/80 transition-all">
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4 flex flex-col justify-between shadow-card hover:border-border-strong transition-all">
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-800/60 pb-3">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-blue-500/10 text-blue-400 rounded">
+                <div className="p-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded">
                   <Mail className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white font-mono">Part 2: Outlook Email Notification</h3>
-                  <p className="text-[10px] text-gray-400">Microsoft Graph REST Mail Gateway</p>
+                  <h3 className="text-sm font-bold text-foreground font-mono">Part 2: Outlook Email Notification</h3>
+                  <p className="text-[10px] text-muted-foreground">Microsoft Graph REST Mail Gateway</p>
                 </div>
               </div>
 
               <button
                 onClick={loadOutlookDemoPreset}
-                className="text-[9px] font-mono text-indigo-400 hover:text-indigo-300 font-bold transition-colors bg-[#171c2a] border border-[#2e374a] px-2 py-0.5 rounded"
+                className="text-[9px] font-mono text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-bold transition-colors bg-card hover:bg-muted border border-border px-2.5 py-1 rounded cursor-pointer shadow-2xs"
               >
                 Load Preset Mailbox
               </button>
             </div>
 
-            <p className="text-xs text-gray-400 leading-normal">
+            <p className="text-xs text-muted-foreground leading-normal">
               Send formal corporate SLA Quality emails summarizing specific documentation infractions and AI coaching advice utilizing modern Microsoft Graph delegated routing.
             </p>
 
@@ -451,16 +451,16 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
             <div className="space-y-3 pt-1">
               {/* Toggles section */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#121620]/60 p-2.5 rounded border border-[#222836] flex items-center justify-between">
+                <div className="bg-muted/40 p-2.5 rounded border border-border flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase">Assignee</span>
-                    <span className="text-[9px] text-gray-500">Direct Email</span>
+                    <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 uppercase">Assignee</span>
+                    <span className="text-[9px] text-muted-foreground">Direct Email</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setEnableIndividualEmails(!enableIndividualEmails)}
                     className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      enableIndividualEmails ? 'bg-indigo-600' : 'bg-gray-800'
+                      enableIndividualEmails ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-gray-800'
                     }`}
                   >
                     <span
@@ -471,16 +471,16 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
                   </button>
                 </div>
 
-                <div className="bg-[#121620]/60 p-2.5 rounded border border-[#222836] flex items-center justify-between">
+                <div className="bg-muted/40 p-2.5 rounded border border-border flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-mono font-bold text-indigo-400 uppercase">Manager</span>
-                    <span className="text-[9px] text-gray-500">Escalation Email</span>
+                    <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase">Manager</span>
+                    <span className="text-[9px] text-muted-foreground">Escalation Email</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setEnableManagerEmails(!enableManagerEmails)}
                     className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      enableManagerEmails ? 'bg-indigo-600' : 'bg-gray-800'
+                      enableManagerEmails ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-gray-800'
                     }`}
                   >
                     <span
@@ -493,10 +493,10 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
               </div>
 
               {/* Shared Auth configuration */}
-              <div className="space-y-2 bg-[#121620]/30 p-3 rounded-lg border border-[#222836]/60">
+              <div className="space-y-2 bg-muted/30 p-3 rounded-lg border border-border">
                 {/* Mailbox Input */}
                 <div className="space-y-1">
-                  <label className="block text-[9px] font-mono font-bold text-gray-400 uppercase tracking-wider">
+                  <label className="block text-[9px] font-mono font-bold text-muted-foreground uppercase tracking-wider">
                     Outlook Sender Mailbox Account
                   </label>
                   <input 
@@ -504,13 +504,13 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
                     value={outlookSenderMailbox}
                     onChange={(e) => setOutlookSenderMailbox(e.target.value)}
                     placeholder="itsm-compliance-bot@global-mnc-it.com"
-                    className="w-full bg-[#090C12] border border-[#222836] focus:border-indigo-500/50 rounded p-1.5 text-[11px] font-mono text-gray-300 focus:outline-none transition-colors"
+                    className="w-full bg-card border border-border focus:border-indigo-500 rounded p-1.5 text-[11px] font-mono text-foreground focus:outline-none transition-colors shadow-2xs"
                   />
                 </div>
 
                 {/* Token Input */}
                 <div className="space-y-1">
-                  <label className="block text-[9px] font-mono font-bold text-gray-400 uppercase tracking-wider">
+                  <label className="block text-[9px] font-mono font-bold text-muted-foreground uppercase tracking-wider">
                     Microsoft Graph Access Token (Bearer Key)
                   </label>
                   <input 
@@ -518,17 +518,17 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
                     value={microsoftGraphToken}
                     onChange={(e) => setMicrosoftGraphToken(e.target.value)}
                     placeholder="Paste eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI..."
-                    className="w-full bg-[#090C12] border border-[#222836] focus:border-indigo-500/50 rounded p-1.5 text-[11px] font-mono text-gray-300 focus:outline-none transition-colors"
+                    className="w-full bg-card border border-border focus:border-indigo-500 rounded p-1.5 text-[11px] font-mono text-foreground focus:outline-none transition-colors shadow-2xs"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#121620]/80 border border-[#222836] p-3 rounded text-[10.5px] text-gray-400 leading-normal flex gap-2 mt-2">
-            <Key className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="bg-muted/50 border border-border p-3 rounded text-[10.5px] text-muted-foreground leading-normal flex gap-2 mt-2">
+            <Key className="h-4 w-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
             <div className="font-sans">
-              <span className="font-bold text-white">Simulation Fallback:</span> If no authorized access token is pasted, the mail router runs in Sandbox Simulation mode to allow seamless local testing.
+              <span className="font-bold text-foreground">Simulation Fallback:</span> If no authorized access token is pasted, the mail router runs in Sandbox Simulation mode to allow seamless local testing.
             </div>
           </div>
         </div>
@@ -539,18 +539,18 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
         
         {/* Compliance Threshold Rules */}
-        <div className="bg-[#0A0C0F] border border-[#1E2433] rounded-lg p-5 space-y-4 md:col-span-7 flex flex-col justify-between">
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4 md:col-span-7 flex flex-col justify-between shadow-card">
           <div>
-            <h3 className="text-xs font-bold text-white font-mono uppercase tracking-wider flex items-center gap-1.5 border-b border-gray-800/60 pb-3">
-              <Sliders className="h-4 w-4 text-emerald-400" /> Compliance Scoring Thresholds
+            <h3 className="text-xs font-bold text-foreground font-mono uppercase tracking-wider flex items-center gap-1.5 border-b border-border pb-3">
+              <Sliders className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Compliance Scoring Thresholds
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-3">
               {/* Score threshold */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-gray-300">Failure Trigger Limit</span>
-                  <span className="font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded font-bold">
+                  <span className="font-bold text-foreground">Failure Trigger Limit</span>
+                  <span className="font-mono text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded font-bold">
                     {lowScoreThreshold}%
                   </span>
                 </div>
@@ -561,25 +561,25 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
                   step="5"
                   value={lowScoreThreshold}
                   onChange={(e) => setLowScoreThreshold(parseInt(e.target.value))}
-                  className="w-full h-1.5 bg-[#121620] rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-indigo-600 dark:accent-indigo-500"
                 />
-                <p className="text-[10px] text-gray-500">Tickets with audit quality scores lower than this trigger immediate notifications.</p>
+                <p className="text-[10px] text-muted-foreground">Tickets with audit quality scores lower than this trigger immediate notifications.</p>
               </div>
 
               {/* Warning Classes */}
               <div className="space-y-2">
-                <span className="block text-xs font-bold text-gray-300">Target Categories</span>
-                <div className="flex bg-[#121620] rounded border border-[#222836] p-0.5">
+                <span className="block text-xs font-bold text-foreground">Target Categories</span>
+                <div className="flex bg-muted/50 rounded border border-border p-0.5">
                   {['Red', 'Amber', 'Green'].map(tier => {
                     const active = selectedFilters.includes(tier);
                     return (
                       <button
                         key={tier}
                         onClick={() => toggleFilter(tier)}
-                        className={`flex-1 text-center py-1 rounded text-[10px] font-mono font-bold transition-all ${
+                        className={`flex-1 text-center py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
                           active 
-                            ? tier === 'Red' ? 'bg-red-500/20 text-red-400 font-bold' : tier === 'Amber' ? 'bg-amber-500/20 text-amber-400 font-bold' : 'bg-green-500/20 text-green-400 font-bold'
-                            : 'text-gray-500 hover:text-gray-400'
+                            ? tier === 'Red' ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold shadow-2xs' : tier === 'Amber' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold shadow-2xs' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold shadow-2xs'
+                            : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
                         {tier.toUpperCase()}
@@ -587,31 +587,31 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
                     );
                   })}
                 </div>
-                <p className="text-[10px] text-gray-500">Filters active incident severity classes to dispatch alerts.</p>
+                <p className="text-[10px] text-muted-foreground">Filters active incident severity classes to dispatch alerts.</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#121620]/60 p-3 rounded text-[11px] text-gray-400 leading-relaxed font-sans">
-            <strong>Active Dispatch Logic:</strong> When a ServiceNow quality audit completes, our daemon validates if the assignee notifier switches are on. If yes, it routes customized Adaptive Cards and Outlook alerts simultaneously.
+          <div className="bg-muted/40 border border-border p-3 rounded text-[11px] text-muted-foreground leading-relaxed font-sans">
+            <strong className="text-foreground">Active Dispatch Logic:</strong> When a ServiceNow quality audit completes, our daemon validates if the assignee notifier switches are on. If yes, it routes customized Adaptive Cards and Outlook alerts simultaneously.
           </div>
         </div>
 
         {/* Instant Connectivity Test Panel */}
-        <div className="bg-[#0A0C0F] border border-[#1E2433] rounded-lg p-5 space-y-4 md:col-span-5 flex flex-col justify-between">
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4 md:col-span-5 flex flex-col justify-between shadow-card">
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-white font-mono uppercase tracking-wider flex items-center gap-1.5 border-b border-gray-800/60 pb-3">
-              <Wifi className="h-4 w-4 text-indigo-400" /> Instant Connection Test
+            <h3 className="text-xs font-bold text-foreground font-mono uppercase tracking-wider flex items-center gap-1.5 border-b border-border pb-3">
+              <Wifi className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Instant Connection Test
             </h3>
 
-            <p className="text-xs text-gray-400 leading-normal">
+            <p className="text-xs text-muted-foreground leading-normal">
               Execute a real-time, sandbox audit dispatch simulation using the first ServiceNow compliance record to verify integration connectivity immediately.
             </p>
 
             <button
               onClick={handleInstantConnectionTest}
               disabled={isSimulating || reports.length === 0}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded text-xs font-bold font-mono transition-all disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded text-xs font-bold font-mono transition-all disabled:opacity-50 cursor-pointer shadow-xs"
             >
               {isSimulating ? (
                 <>
@@ -628,29 +628,29 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
           </div>
 
           {/* Test Status Logs */}
-          <div className="bg-[#121620] border border-[#222836] rounded p-3 text-[10px] font-mono space-y-1.5 min-h-[95px]">
-            <span className="block text-gray-500 font-bold text-[9px] uppercase tracking-wider">Test Run Results</span>
+          <div className="bg-muted/40 border border-border rounded p-3 text-[10px] font-mono space-y-1.5 min-h-[95px]">
+            <span className="block text-muted-foreground font-bold text-[9px] uppercase tracking-wider">Test Run Results</span>
             {lastTestResult ? (
               <div className="space-y-1 leading-normal">
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-gray-400">Timestamp:</span>
-                  <span className="text-white font-bold">{lastTestResult.timestamp}</span>
+                  <span className="text-muted-foreground">Timestamp:</span>
+                  <span className="text-foreground font-bold">{lastTestResult.timestamp}</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-gray-500">Teams Card:</span>
-                  <span className="text-emerald-400 font-bold">{lastTestResult.teamsStatus}</span>
+                  <span className="text-muted-foreground">Teams Card:</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">{lastTestResult.teamsStatus}</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-gray-500">Outlook Mail:</span>
-                  <span className="text-emerald-400 font-bold">{lastTestResult.outlookStatus}</span>
+                  <span className="text-muted-foreground">Outlook Mail:</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">{lastTestResult.outlookStatus}</span>
                 </div>
-                <div className="flex justify-between text-[11px] border-t border-gray-800/60 pt-1 mt-1">
-                  <span className="text-gray-500">Score Evaluated:</span>
-                  <span className="text-indigo-400 font-bold">{lastTestResult.scoreEvaluated}%</span>
+                <div className="flex justify-between text-[11px] border-t border-border pt-1 mt-1">
+                  <span className="text-muted-foreground">Score Evaluated:</span>
+                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">{lastTestResult.scoreEvaluated}%</span>
                 </div>
               </div>
             ) : (
-              <div className="text-gray-500 text-center py-5">
+              <div className="text-muted-foreground text-center py-5">
                 No diagnostic dispatches completed. Click test to verify routes.
               </div>
             )}
@@ -660,19 +660,19 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
       </div>
 
       {/* CONSOLIDATED MANAGER EMAIL DIGEST BY ASSIGNMENT GROUP */}
-      <div className="bg-[#0A0C0F] border border-[#1E2433] rounded-lg p-5 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800/60 pb-3">
+      <div className="bg-card border border-border rounded-xl p-5 space-y-4 shadow-card">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-3">
           <div>
-            <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2">
-              <Mail className="h-4 w-4 text-emerald-400" /> Manager Consolidated Digest by Assignment Group
+            <h3 className="text-sm font-bold text-foreground font-mono uppercase tracking-wider flex items-center gap-2">
+              <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Manager Consolidated Digest by Assignment Group
             </h3>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Groups all non-compliant incidents (&lt; {lowScoreThreshold}%) for a specific ServiceNow Assignment Group into a single, high-fidelity executive review email for the team manager.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-gray-400">Total Monitored Queues:</span>
-            <span className="text-xs font-mono font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+            <span className="text-xs font-mono text-muted-foreground">Total Monitored Queues:</span>
+            <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
               {availableGroups.length} Live Groups
             </span>
           </div>
@@ -680,13 +680,13 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
           <div>
-            <label className="block text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
               Target Assignment Group
             </label>
             <select
               value={selectedDigestGroup}
               onChange={(e) => setSelectedDigestGroup(e.target.value)}
-              className="w-full bg-[#121620] border border-[#222836] focus:border-emerald-500/50 rounded p-2 text-xs font-mono text-gray-200 focus:outline-none"
+              className="w-full bg-card border border-border focus:border-emerald-500 rounded p-2 text-xs font-mono text-foreground focus:outline-none shadow-2xs"
             >
               <option value="ALL">All Monitored Assignment Groups</option>
               {availableGroups.map((grp) => (
@@ -696,7 +696,7 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
           </div>
 
           <div>
-            <label className="block text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
               Manager Recipient Email
             </label>
             <input
@@ -704,7 +704,7 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
               value={digestManagerEmail}
               onChange={(e) => setDigestManagerEmail(e.target.value)}
               placeholder="manager@global-mnc-it.com"
-              className="w-full bg-[#121620] border border-[#222836] focus:border-emerald-500/50 rounded p-2 text-xs font-mono text-gray-200 focus:outline-none"
+              className="w-full bg-card border border-border focus:border-emerald-500 rounded p-2 text-xs font-mono text-foreground focus:outline-none shadow-2xs"
             />
           </div>
 
@@ -730,15 +730,15 @@ export default function AlertDispatchCenter({ reports, triggerPopup }: AlertDisp
         </div>
 
         {lastDigestResult && (
-          <div className="bg-[#121620] border border-emerald-500/30 rounded p-3 text-xs font-mono flex flex-wrap items-center justify-between gap-2 mt-2">
-            <div className="flex items-center gap-2 text-emerald-400">
+          <div className="bg-muted/40 border border-emerald-500/30 rounded p-3 text-xs font-mono flex flex-wrap items-center justify-between gap-2 mt-2">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
               <Check className="h-4 w-4" />
               <span>Consolidated Digest Delivered for <strong>{lastDigestResult.assignmentGroup}</strong></span>
             </div>
-            <div className="flex items-center gap-4 text-gray-400 text-[11px]">
-              <span>Audited: <strong className="text-white">{lastDigestResult.totalAudited}</strong></span>
-              <span>Flagged (&lt;{lowScoreThreshold}%): <strong className="text-rose-400">{lastDigestResult.totalFlagged}</strong></span>
-              <span>Time: <strong className="text-white">{lastDigestResult.timestamp}</strong></span>
+            <div className="flex items-center gap-4 text-muted-foreground text-[11px]">
+              <span>Audited: <strong className="text-foreground">{lastDigestResult.totalAudited}</strong></span>
+              <span>Flagged (&lt;{lowScoreThreshold}%): <strong className="text-rose-600 dark:text-rose-400">{lastDigestResult.totalFlagged}</strong></span>
+              <span>Time: <strong className="text-foreground">{lastDigestResult.timestamp}</strong></span>
             </div>
           </div>
         )}

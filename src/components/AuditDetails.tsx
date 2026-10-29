@@ -34,7 +34,8 @@ import {
   PlusCircle,
   Clock,
   BookOpen,
-  Send
+  Send,
+  RefreshCw
 } from 'lucide-react';
 
 interface AuditDetailsProps {
@@ -43,7 +44,7 @@ interface AuditDetailsProps {
   onSelectTicketNumber: (incNumber: string | null) => void;
   triggerPopup: (msg: string, type: 'success' | 'info' | 'warning') => void;
   tickets?: any[];
-  onUpdateTickets?: (newTickets: any[]) => void;
+  onUpdateTickets?: (newTickets: any[], shouldReAudit?: boolean) => void;
   searchTerm?: string;
   onSearchChange?: (term: string) => void;
 }
@@ -78,18 +79,14 @@ function getTicketTrendData(incNumber: string, currentScore: number, precomputed
   return [p1, p2, p3, p4];
 }
 
-// Generate direct auto-login link to incident in ServiceNow (bypasses login screen)
+// Generate direct link to incident in ServiceNow using native session navigation
 export function getServiceNowIncidentUrl(incNumber: string, sysId?: string): string {
-  const rawInstance = (typeof window !== 'undefined' ? localStorage.getItem('gov_snow_instance') : '') || 'dev423209';
-  const cleanInstance = rawInstance.replace(/^https?:\/\//, '').replace(/\.service-now\.com.*$/, '').trim() || 'dev423209';
-  const user = (typeof window !== 'undefined' ? localStorage.getItem('gov_snow_user') : '') || 'admin';
-  const pass = (typeof window !== 'undefined' ? localStorage.getItem('gov_snow_pass') : '') || 'BrwYffM0%X*1';
-
-  const targetUri = (sysId && sysId.length === 32 && !sysId.includes('_') && !sysId.includes('.'))
-    ? `incident.do?sys_id=${sysId}`
-    : `incident.do?sysparm_query=number=${encodeURIComponent(incNumber)}`;
-
-  return `https://${cleanInstance}.service-now.com/login.do?user_name=${encodeURIComponent(user)}&sys_action=sysverb_login&user_password=${encodeURIComponent(pass)}&sysparm_goto_url=${encodeURIComponent(targetUri)}`;
+  const queryParams = new URLSearchParams();
+  if (incNumber) queryParams.set('incNumber', incNumber);
+  if (sysId && sysId.length === 32 && !sysId.includes('_') && !sysId.includes('.')) {
+    queryParams.set('sysId', sysId);
+  }
+  return `/api/servicenow/nav-to-ticket?${queryParams.toString()}`;
 }
 
 function Sparkline({ scores }: { scores: number[] }) {
@@ -1264,9 +1261,18 @@ export function AuditorGeneralCommentsAndMistakesCard({
 
     if (mandatoryInfractions.length === 0) {
       if (exemptMetrics.length > 0) {
-        return `Audit Verdict: FULLY COMPLIANT (${pct}% - ${tier} | ${pts}/26 pts). All mandatory ITIL quality standards verified for ${inc} (Assignment Group: '${grp}'). Note: ${exemptMetrics.length} non-mandatory check(s) (${exemptMetrics.map(m => m.label).join(', ')}) are configured as optional for this group and safely excluded from compliance requirements. Ready for governance closure.`;
+        return [
+          `Audit Verdict: FULLY COMPLIANT (${pct}% - ${tier} | ${pts}/26 pts)`,
+          `All mandatory ITIL quality standards verified for ${inc} (Assignment Group: '${grp}').`,
+          `Note: ${exemptMetrics.length} non-mandatory check(s) (${exemptMetrics.map(m => m.label).join(', ')}) are configured as optional for this group and safely excluded from compliance requirements.`,
+          `Status: Ready for governance closure.`
+        ].join('\n');
       }
-      return `Audit Verdict: FULLY COMPLIANT (${pct}% - ${tier} | ${pts}/26 pts). Documentation and ITIL classifications meet all 13 audit quality checkpoints for ${inc} (Assignment Group: '${grp}'). Conforms fully to ServiceNow governance standards.`;
+      return [
+        `Audit Verdict: FULLY COMPLIANT (${pct}% - ${tier} | ${pts}/26 pts)`,
+        `Documentation and ITIL classifications meet all 13 audit quality checkpoints for ${inc} (Assignment Group: '${grp}').`,
+        `Status: Conforms fully to ServiceNow governance standards.`
+      ].join('\n');
     }
 
     const exemptNotice = exemptMetrics.length > 0
@@ -1275,10 +1281,18 @@ export function AuditorGeneralCommentsAndMistakesCard({
 
     const directives = mandatoryInfractions.map((m, i) => {
       const act = m.remediationAction || m.failureReason || `Remediate ${m.label} to align with ITIL standards.`;
-      return `[${i + 1}] ${m.label}: ${act}`;
-    }).join(' ');
+      return `• [${i + 1}] ${m.label}: ${act}`;
+    }).join('\n');
 
-    return `Audit Verdict: ACTION REQUIRED (${pct}% - ${tier} | ${pts}/26 pts). ${mandatoryInfractions.length} mandatory governance remediation item(s) pending for ${inc} (Assignment Group: '${grp}').${exemptNotice} Directives: ${directives} | Corrections must be completed directly in ServiceNow prior to final quality approval.`;
+    return [
+      `Audit Verdict: ACTION REQUIRED (${pct}% - ${tier} | ${pts}/26 pts)`,
+      `${mandatoryInfractions.length} mandatory governance remediation item(s) pending for ${inc} (Assignment Group: '${grp}').${exemptNotice}`,
+      ``,
+      `Mandatory Remediation Directives:`,
+      directives,
+      ``,
+      `Governance Policy: Corrections must be completed directly in ServiceNow prior to final quality approval.`
+    ].join('\n');
   }, [report, mandatoryInfractions, exemptMetrics]);
 
   const generalComments = enhancedComments;
@@ -1911,9 +1925,26 @@ ${gapsBlock}
                 {mandatoryInfractions.length === 0 ? 'Compliant Sign-Off' : `${mandatoryInfractions.length} Action(s) Pending`}
               </span>
             </div>
-            <p className="text-slate-800 dark:text-slate-200 font-sans text-xs md:text-[13px] leading-relaxed select-text whitespace-pre-wrap font-medium">
-              "{generalComments}"
-            </p>
+            <div className="text-slate-800 dark:text-slate-200 font-sans text-xs md:text-[13px] leading-relaxed select-text whitespace-pre-wrap font-medium py-1">
+              {generalComments}
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-[#23262D]/60 text-[10.5px] font-mono text-slate-500">
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                <CheckCircle2 className="h-3 w-3" />
+                <span>Auto-synchronized to incident activity logs &amp; ServiceNow work notes</span>
+              </span>
+              {onAppendToActivityLog && (
+                <button
+                  type="button"
+                  onClick={() => onAppendToActivityLog(report.ticket.incNumber, generalComments)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-200/60 dark:bg-[#151820] hover:bg-slate-300 dark:hover:bg-[#202530] text-slate-700 dark:text-slate-300 transition-all cursor-pointer text-[10px]"
+                  title="Force sync audit verdict to activity logs"
+                >
+                  <RefreshCw className="h-2.5 w-2.5" />
+                  <span>Sync to Activity Logs</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Actionable Directives Breakdown */}
@@ -2338,7 +2369,7 @@ export default function AuditDetails({
     }
 
     updatedTickets[ticketIdx] = targetTicket;
-    onUpdateTickets(updatedTickets);
+    onUpdateTickets(updatedTickets, true);
   };
 
   const handleBatchQuickFix = (type: 'resolution' | 'closure' | 'all') => {
@@ -2437,7 +2468,7 @@ export default function AuditDetails({
       }
     });
 
-    onUpdateTickets(updatedTickets);
+    onUpdateTickets(updatedTickets, true);
     setSelectedIncNumbers([]);
     triggerPopup(`Applied batch action '${type}' to ${updateCount} selected ticket(s) and initiated re-audit!`, "success");
   };
@@ -2465,7 +2496,7 @@ export default function AuditDetails({
     targetTicket.activityLogs = currentLogs ? `${currentLogs}${newLogLine}` : `[${timestamp} - Quality Audit Desk]: ${commentEntry}`;
 
     updatedTickets[ticketIdx] = targetTicket;
-    onUpdateTickets(updatedTickets);
+    onUpdateTickets(updatedTickets, false);
 
     // Save to localStorage as a client-side recovery cache so it never vanishes
     try {

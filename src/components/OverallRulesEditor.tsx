@@ -175,7 +175,7 @@ export default function OverallRulesEditor({
   triggerPopup
 }: OverallRulesEditorProps) {
   // Active config page sub-tab controller
-  const [currentTab, setCurrentTab] = useState<'audit_rules' | 'keyword_mappings' | 'assignment_group_cis' | 'resolution_checklist'>('audit_rules');
+  const [currentTab, setCurrentTab] = useState<'audit_rules' | 'keyword_mappings' | 'assignment_group_cis' | 'resolution_checklist'>('keyword_mappings');
   const [localRules, setLocalRules] = useState<OverallTicketAuditRule[]>(() => JSON.parse(JSON.stringify(rules)));
   const [subView, setSubView] = useState<'visual' | 'raw'>('visual');
   const [jsonText, setJsonText] = useState('');
@@ -410,13 +410,13 @@ export default function OverallRulesEditor({
     <div className="space-y-6 animate-fadeIn" id="unified-servicenow-config-dashboard">
       
       {/* 🧭 Consolidating Navigation Header Tabs */}
-      <div className="bg-[#111318] border border-[#2A2D35] p-2.5 rounded-xl flex flex-wrap gap-1.5 shadow-md">
+      <div className="bg-card border border-border p-2.5 rounded-xl flex flex-wrap gap-1.5 shadow-card">
         <button
           onClick={() => setCurrentTab('keyword_mappings')}
           className={`flex-1 min-w-[140px] py-2 px-3.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-2 border cursor-pointer ${
             currentTab === 'keyword_mappings'
-              ? 'bg-blue-600/10 hover:bg-blue-600/15 text-blue-400 border-blue-500/30'
-              : 'text-gray-400 border-transparent hover:text-white hover:bg-gray-800/40'
+              ? 'bg-blue-500/10 hover:bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30'
+              : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted'
           }`}
         >
           <Sliders className="h-4 w-4" />
@@ -427,8 +427,8 @@ export default function OverallRulesEditor({
           onClick={() => setCurrentTab('assignment_group_cis')}
           className={`flex-1 min-w-[140px] py-2 px-3.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-2 border cursor-pointer ${
             currentTab === 'assignment_group_cis'
-              ? 'bg-teal-600/10 hover:bg-teal-600/15 text-teal-400 border-teal-500/30'
-              : 'text-gray-400 border-transparent hover:text-white hover:bg-gray-800/40'
+              ? 'bg-teal-500/10 hover:bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/30'
+              : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted'
           }`}
         >
           <Layers className="h-4 w-4" />
@@ -439,8 +439,8 @@ export default function OverallRulesEditor({
           onClick={() => setCurrentTab('resolution_checklist')}
           className={`flex-1 min-w-[140px] py-2 px-3.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-2 border cursor-pointer ${
             currentTab === 'resolution_checklist'
-              ? 'bg-purple-600/10 hover:bg-purple-600/15 text-purple-400 border-purple-500/30'
-              : 'text-gray-400 border-transparent hover:text-white hover:bg-gray-800/40'
+              ? 'bg-purple-500/10 hover:bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30'
+              : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted'
           }`}
         >
           <ListTodo className="h-4 w-4" />
@@ -1250,10 +1250,10 @@ export default function OverallRulesEditor({
 
       {currentTab === 'keyword_mappings' && (
         <div className="space-y-6 animate-fadeIn">
-          <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl">
-            <h4 className="text-xs uppercase tracking-widest text-blue-400 font-mono font-bold">ServiceNow Keywords Mapping Configuration</h4>
-            <p className="text-xs text-gray-400 mt-1 leading-normal">
-              Map resolution description text keywords to required ServiceNow classification parameters. If a incoming ticket possesses custom keywords, the parser checks and scores its categorizations.
+          <div className="bg-card border border-border p-4 rounded-xl shadow-card">
+            <h4 className="text-xs uppercase tracking-widest text-blue-600 dark:text-blue-400 font-mono font-bold">ServiceNow Classification Keyword Rules Matrix</h4>
+            <p className="text-xs text-muted-foreground mt-1 leading-normal">
+              Map resolution description text keywords to required ServiceNow classification parameters. If an incoming ticket possesses custom keywords, the parser checks and scores its categorizations.
             </p>
           </div>
           <RulesEditor 
@@ -1268,20 +1268,20 @@ export default function OverallRulesEditor({
       {currentTab === 'assignment_group_cis' && (
         <div className="space-y-6 animate-fadeIn">
           {/* Header Card */}
-          <div className="bg-[#15171C] border border-[#2A2D35] p-5 rounded-xl shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-card border border-border p-5 rounded-xl shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-start space-x-4">
-              <div className="p-3 bg-teal-600/10 text-teal-400 border border-teal-500/20 rounded-xl shrink-0">
+              <div className="p-3 bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 rounded-xl shrink-0">
                 <Layers className="h-6 w-6" />
               </div>
               <div className="space-y-1">
                 <div className="flex items-center space-x-2">
-                  <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">ServiceNow Configuration Items (CIs) by Assignment Group</h4>
-                  <span className="px-2 py-0.5 text-[9.5px] font-mono font-semibold rounded bg-teal-500/10 text-teal-300 border border-teal-500/25">
+                  <h4 className="text-sm font-bold text-foreground uppercase tracking-wider font-mono">ServiceNow Configuration Items (CIs) by Assignment Group</h4>
+                  <span className="px-2 py-0.5 text-[9.5px] font-mono font-semibold rounded bg-teal-500/10 text-teal-600 dark:text-teal-300 border border-teal-500/25">
                     Live CMDB Synced
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed max-w-3xl">
-                  Configuration Item (CI) details are dynamically fetched and coupled per <strong>Assignment Group</strong> from the ServiceNow CMDB and incident history. These automatically govern CI audit rules with zero manual alignment configuration required.
+                <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">
+                  Configuration Item (CI) details are dynamically fetched and coupled per <strong className="text-foreground">Assignment Group</strong> from the ServiceNow CMDB and incident history. These automatically govern CI audit rules with zero manual alignment configuration required.
                 </p>
               </div>
             </div>
@@ -1291,7 +1291,7 @@ export default function OverallRulesEditor({
                 type="button"
                 onClick={handleSyncGroupCisLive}
                 disabled={groupCisLoading}
-                className="px-3.5 py-2 rounded-lg text-xs font-bold font-mono bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-500/40 transition-all flex items-center space-x-2 cursor-pointer shadow-sm disabled:opacity-50"
+                className="px-3.5 py-2 rounded-lg text-xs font-bold font-mono bg-teal-600 hover:bg-teal-500 text-white transition-all flex items-center space-x-2 cursor-pointer shadow-xs disabled:opacity-50"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${groupCisLoading ? 'animate-spin' : ''}`} />
                 <span>{groupCisLoading ? 'Syncing CMDB CIs...' : 'Sync CIs from ServiceNow'}</span>
@@ -1300,20 +1300,20 @@ export default function OverallRulesEditor({
           </div>
 
           {/* Search & Filter Bar */}
-          <div className="bg-[#111317] border border-[#2A2D35] p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-card border border-border p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-card">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search Assignment Group or CI Name..."
                 value={groupCisSearch}
                 onChange={(e) => setGroupCisSearch(e.target.value)}
-                className="bg-[#0A0C0F] border border-[#2A2D35] rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-teal-500/60 w-full transition-all"
+                className="bg-card border border-border rounded-lg pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-teal-500 w-full transition-all shadow-2xs"
               />
             </div>
-            <div className="text-xs text-gray-400 font-mono flex items-center space-x-2">
-              <span className="text-gray-500">Tracked Assignment Groups with CIs:</span>
-              <span className="text-teal-400 font-bold bg-[#0A0C0F] px-2 py-1 rounded border border-[#2A2D35]">
+            <div className="text-xs text-muted-foreground font-mono flex items-center space-x-2">
+              <span>Tracked Assignment Groups with CIs:</span>
+              <span className="text-teal-600 dark:text-teal-400 font-bold bg-muted/40 px-2 py-1 rounded border border-border">
                 {Object.keys(groupCisMap).length}
               </span>
             </div>
@@ -1333,41 +1333,41 @@ export default function OverallRulesEditor({
 
               if (filteredGroups.length === 0) {
                 return (
-                  <div className="col-span-2 bg-[#15171C] border border-[#2A2D35] rounded-xl p-10 text-center text-gray-400">
-                    <p className="text-sm font-medium">No Assignment Groups or Configuration Items matched your search.</p>
-                    <p className="text-xs text-gray-500 mt-1">Try searching for a different group name or click "Sync CIs from ServiceNow".</p>
+                  <div className="col-span-2 bg-card border border-border rounded-xl p-10 text-center text-muted-foreground shadow-card">
+                    <p className="text-sm font-medium text-foreground">No Assignment Groups or Configuration Items matched your search.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Try searching for a different group name or click &quot;Sync CIs from ServiceNow&quot;.</p>
                   </div>
                 );
               }
 
               return filteredGroups.map(([groupName, cis]) => (
-                <div key={groupName} className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-4 shadow-md flex flex-col justify-between hover:border-teal-500/30 transition-all">
+                <div key={groupName} className="bg-card border border-border rounded-xl p-4 shadow-card flex flex-col justify-between hover:border-teal-500/30 transition-all">
                   <div>
-                    <div className="flex items-center justify-between border-b border-[#2A2D35] pb-2.5 mb-3">
+                    <div className="flex items-center justify-between border-b border-border pb-2.5 mb-3">
                       <div className="flex items-center space-x-2">
-                        <Users className="h-4 w-4 text-emerald-400" />
-                        <span className="font-mono text-xs font-bold text-white">{groupName}</span>
+                        <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="font-mono text-xs font-bold text-foreground">{groupName}</span>
                       </div>
-                      <span className="text-[10px] font-mono text-teal-400 bg-teal-950/40 border border-teal-800/40 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-mono text-teal-600 dark:text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded">
                         {(cis || []).length} {(cis || []).length === 1 ? 'CI' : 'CIs'} Mapped
                       </span>
                     </div>
 
                     <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                       {(cis || []).map((ci, cIdx) => (
-                        <div key={cIdx} className="bg-[#0A0C0F] border border-[#2A2D35]/70 rounded-lg p-2 flex items-center justify-between">
+                        <div key={cIdx} className="bg-muted/40 border border-border rounded-lg p-2 flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
-                            <span className="font-mono text-xs text-teal-300 font-medium">{ci.name}</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                            <span className="font-mono text-xs text-teal-700 dark:text-teal-300 font-medium">{ci.name}</span>
                           </div>
-                          <div className="flex items-center space-x-1.5 text-[10px] text-gray-400 font-mono">
+                          <div className="flex items-center space-x-1.5 text-[10px] text-muted-foreground font-mono">
                             {ci.category && (
-                              <span className="bg-[#15171C] border border-[#2A2D35] px-1.5 py-0.5 rounded text-gray-300">
+                              <span className="bg-card border border-border px-1.5 py-0.5 rounded text-foreground">
                                 {ci.category}
                               </span>
                             )}
                             {ci.className && (
-                              <span className="text-[9px] text-gray-500">
+                              <span className="text-[9px] text-muted-foreground">
                                 {ci.className}
                               </span>
                             )}
@@ -1377,12 +1377,12 @@ export default function OverallRulesEditor({
                     </div>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-[#2A2D35]/50 flex items-center justify-between text-[10.5px] text-gray-500">
+                  <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-[10.5px] text-muted-foreground">
                     <span className="flex items-center space-x-1">
-                      <CheckCircle className="h-3 w-3 text-emerald-400 inline" />
+                      <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400 inline" />
                       <span>Automatic CI Audit Rules active</span>
                     </span>
-                    <span className="text-teal-400/80 font-mono">CMDB Authorized</span>
+                    <span className="text-teal-600 dark:text-teal-400 font-mono">CMDB Authorized</span>
                   </div>
                 </div>
               ));
@@ -1393,9 +1393,9 @@ export default function OverallRulesEditor({
 
       {currentTab === 'resolution_checklist' && (
         <div className="space-y-6 animate-fadeIn">
-          <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl">
-            <h4 className="text-xs uppercase tracking-widest text-purple-400 font-mono font-bold">ServiceNow Corporate 8-Points Checklist Config</h4>
-            <p className="text-xs text-gray-400 mt-1 leading-normal">
+          <div className="bg-card border border-border p-4 rounded-xl shadow-card">
+            <h4 className="text-xs uppercase tracking-widest text-purple-600 dark:text-purple-400 font-mono font-bold">ServiceNow Corporate 8-Points Checklist Config</h4>
+            <p className="text-xs text-muted-foreground mt-1 leading-normal">
               Specify the explicit sequential checkpoints that incident resolution fields are cross-referenced against. The AI core checks text content against every line defined underneath.
             </p>
           </div>

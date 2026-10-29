@@ -654,14 +654,14 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
   };
 
   return (
-    <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-lg" id="upload-panel">
+    <div className="bg-card border border-border rounded-xl p-5 shadow-sm" id="upload-panel">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
         <div>
-          <h4 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
-            <span className="w-2.5 h-2.5 bg-blue-500 rounded-sm"></span>
+          <h4 className="text-sm font-semibold text-foreground tracking-tight flex items-center gap-2">
+            <span className="w-2.5 h-2.5 bg-blue-600 dark:bg-blue-500 rounded-sm"></span>
             Governance Incident Dump Processor & Parser
           </h4>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Pick up all incident details from your attached excel file automatically to execute a valid audit sweep.
           </p>
         </div>
@@ -671,17 +671,17 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
           <button
             type="button"
             onClick={toggleManualLoad}
-            className="flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] hover:border-[#10B981] rounded-lg px-3 py-1.5 transition-all text-xs text-slate-300 cursor-pointer"
+            className="flex items-center space-x-2 bg-muted/60 hover:bg-muted border border-border hover:border-emerald-500/50 rounded-lg px-3 py-1.5 transition-all text-xs text-foreground cursor-pointer"
             title="When ON, skips background automated incident fetches from ServiceNow, keeping manual uploads active. Knowledge articles are still pulled."
           >
-            <Database className={`h-3 w-3 ${manualLoadEnabled ? 'text-emerald-400' : 'text-gray-500'}`} />
+            <Database className={`h-3 w-3 ${manualLoadEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`} />
             <span>Manual Load Mode:</span>
             {manualLoadEnabled ? (
-              <span className="text-emerald-400 font-bold flex items-center space-x-1">
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center space-x-1">
                 <span>ON</span>
               </span>
             ) : (
-              <span className="text-gray-500 font-semibold">OFF</span>
+              <span className="text-muted-foreground font-semibold">OFF</span>
             )}
           </button>
 
@@ -689,16 +689,16 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
           <button
             type="button"
             onClick={toggleOnlyResolved}
-            className="flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] hover:border-gray-600 rounded-lg px-3 py-1.5 transition-all text-xs text-slate-300"
+            className="flex items-center space-x-2 bg-muted/60 hover:bg-muted border border-border hover:border-blue-500/50 rounded-lg px-3 py-1.5 transition-all text-xs text-foreground cursor-pointer"
           >
-            <Filter className={`h-3 w-3 ${onlyResolved ? 'text-blue-400' : 'text-gray-500'}`} />
+            <Filter className={`h-3 w-3 ${onlyResolved ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} />
             <span>Resolved Only:</span>
             {onlyResolved ? (
-              <span className="text-blue-400 font-bold flex items-center space-x-1">
+              <span className="text-blue-600 dark:text-blue-400 font-bold flex items-center space-x-1">
                 <span>ON</span>
               </span>
             ) : (
-              <span className="text-gray-500 font-semibold">OFF</span>
+              <span className="text-muted-foreground font-semibold">OFF</span>
             )}
           </button>
         </div>
@@ -713,7 +713,7 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
         className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
           dragActive 
             ? 'border-blue-500 bg-blue-500/5' 
-            : 'border-[#2A2D35] hover:border-gray-600 bg-[#0A0C0F]/40'
+            : 'border-border hover:border-blue-400 bg-muted/20 hover:bg-muted/40'
         }`}
       >
         <input
@@ -724,14 +724,14 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
           onChange={handleChange}
         />
         
-        <UploadCloud className="h-10 w-10 text-gray-500 mb-3" />
-        <p className="text-sm font-medium text-[#E0E0E0]">
-          Drag & drop your ServiceNow excel dump here, or <span className="text-blue-400 font-semibold underline">browse local directory</span>
+        <UploadCloud className="h-10 w-10 text-muted-foreground mb-3" />
+        <p className="text-sm font-medium text-foreground">
+          Drag & drop your ServiceNow excel dump here, or <span className="text-blue-600 dark:text-blue-400 font-semibold underline">browse local directory</span>
         </p>
-        <p className="text-[11px] text-gray-500 mt-1">Parsed to extract 24 specific parameters for complete alignment checks</p>
+        <p className="text-[11px] text-muted-foreground mt-1">Parsed to extract 24 specific parameters for complete alignment checks</p>
         
         {fileName && (
-          <div className="mt-4 flex items-center space-x-2 bg-[#1A1D24] border border-[#2A2D35] px-3.5 py-1.5 rounded-lg text-xs font-mono text-blue-400">
+          <div className="mt-4 flex items-center space-x-2 bg-blue-50 dark:bg-muted border border-blue-200 dark:border-border px-3.5 py-1.5 rounded-lg text-xs font-mono text-blue-700 dark:text-blue-400">
             <FileSpreadsheet className="h-3.5 w-3.5" />
             <span>{fileName}</span>
           </div>
@@ -739,7 +739,7 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
       </div>
 
       {errorText && (
-        <div className="mt-4 flex items-center space-x-2.5 bg-rose-950/20 border border-rose-900/40 p-3 rounded-lg text-xs text-rose-400">
+        <div className="mt-4 flex items-center space-x-2.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 p-3 rounded-lg text-xs text-rose-700 dark:text-rose-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{errorText}</span>
         </div>
@@ -748,12 +748,12 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
       {parsedCount !== null && !errorText && pendingTickets && (
         <div className="mt-4 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeIn">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs py-1">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold text-xs py-1">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               <span>ServiceNow Spreadsheet Dataset Attached Successfully</span>
             </div>
-            <p className="text-[11px] text-gray-400 leading-relaxed font-medium">
-              Extracted <strong className="text-emerald-300 font-bold">{parsedCount}</strong> matching incident rules target logs. {originalCount && originalCount !== parsedCount ? `(Down-sampled from total file index of ${originalCount}).` : ''} All parameters mapped.
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              Extracted <strong className="text-emerald-600 dark:text-emerald-300 font-bold">{parsedCount}</strong> matching incident rules target logs. {originalCount && originalCount !== parsedCount ? `(Down-sampled from total file index of ${originalCount}).` : ''} All parameters mapped.
             </p>
           </div>
           
@@ -778,39 +778,39 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
       )}
 
       {/* 📋 Schema specifications Accordion Section */}
-      <div className="mt-5 pt-4 border-t border-[#2A2D35]/50" id="schema-mapping-accordion">
+      <div className="mt-5 pt-4 border-t border-border" id="schema-mapping-accordion">
         <button
           type="button"
           onClick={() => setShowSchemaGuide(!showSchemaGuide)}
-          className="flex items-center justify-between w-full text-left py-2.5 px-4 bg-[#111317] hover:bg-[#1A1D24] border border-[#2A2D35] rounded-xl text-xs font-semibold text-slate-200 transition-all select-none group cursor-pointer"
+          className="flex items-center justify-between w-full text-left py-2.5 px-4 bg-muted/40 hover:bg-muted/70 border border-border rounded-xl text-xs font-semibold text-foreground transition-all select-none group cursor-pointer"
         >
           <div className="flex items-center space-x-2.5">
-            <BookOpen className="h-4 w-4 text-blue-400 group-hover:scale-105 transition-transform" />
+            <BookOpen className="h-4 w-4 text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform" />
             <div className="flex flex-col">
-              <span className="font-bold text-white tracking-wide">Excel/CSV Schema Mapping Guide & Required Columns</span>
-              <span className="text-[10px] text-gray-500 font-normal">Reference list of columns necessary for ServiceNow Audit compliance assessment</span>
+              <span className="font-bold text-foreground tracking-wide">Excel/CSV Schema Mapping Guide & Required Columns</span>
+              <span className="text-[10px] text-muted-foreground font-normal">Reference list of columns necessary for ServiceNow Audit compliance assessment</span>
             </div>
           </div>
           <div className="flex items-center space-x-2 font-mono text-[10.5px]">
-            <span className="text-gray-400 font-medium bg-[#1A1D24] px-2 py-0.5 rounded border border-[#2A2D35]/65">
+            <span className="text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded border border-border">
               {SCHEMA_COLUMNS.length} Columns Mapped
             </span>
             {showSchemaGuide ? (
-              <ChevronUp className="h-4 w-4 text-gray-400" />
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
             ) : (
-              <ChevronDown className="h-4 w-4 text-gray-400" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             )}
           </div>
         </button>
 
         {showSchemaGuide && (
-          <div className="mt-3 p-4 bg-[#0C0E12] border border-[#22242C] rounded-xl space-y-4 animate-fadeIn">
+          <div className="mt-3 p-4 bg-muted/30 border border-border rounded-xl space-y-4 animate-fadeIn">
             {/* Quick explanation banner */}
-            <div className="flex items-start bg-blue-500/5 border border-blue-500/10 p-3 rounded-lg text-xs leading-relaxed text-slate-400">
-              <Info className="h-4 w-4 text-blue-400 shrink-0 mt-0.5 mr-2.5 animate-pulse" />
+            <div className="flex items-start bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/10 p-3 rounded-lg text-xs leading-relaxed text-foreground/80">
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5 mr-2.5 animate-pulse" />
               <div>
-                <p className="font-bold text-blue-300">Fuzzy Header Parsing Support Enabled</p>
-                <p className="mt-0.5 text-[11px]">The analytical dump processor uses fuzzy spelling matching. Cell headers do NOT need to match the titles exactly; capitalization, spaces, underscores, or dashes are automatically normalized to simplify report uploads.</p>
+                <p className="font-bold text-blue-700 dark:text-blue-300">Fuzzy Header Parsing Support Enabled</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">The analytical dump processor uses fuzzy spelling matching. Cell headers do NOT need to match the titles exactly; capitalization, spaces, underscores, or dashes are automatically normalized to simplify report uploads.</p>
               </div>
             </div>
 
@@ -819,34 +819,34 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
               {SCHEMA_COLUMNS.map((col) => (
                 <div 
                   key={col.field} 
-                  className="bg-[#15171C] border border-[#2A2D35]/70 rounded-lg p-3 space-y-2 hover:border-[#3A3E4B] transition-all flex flex-col justify-between"
+                  className="bg-card border border-border rounded-lg p-3 space-y-2 hover:border-blue-500/40 hover:shadow-sm transition-all flex flex-col justify-between"
                   id={`schema-field-${col.field.toLowerCase().replace(/[\s_/()]+/g, '-')}`}
                 >
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-200 tracking-tight">{col.field}</span>
+                      <span className="text-xs font-bold text-foreground tracking-tight">{col.field}</span>
                       <span className={`px-2 py-0.5 rounded text-[9px] font-bold font-mono ${
                         col.required 
-                          ? 'text-rose-400 bg-rose-500/10 border border-rose-500/15' 
-                          : 'text-gray-400 bg-gray-500/10 border border-gray-500/15'
+                          ? 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/15' 
+                          : 'text-muted-foreground bg-muted border border-border'
                       }`}>
                         {col.required ? 'Mandatory' : 'Optional'}
                       </span>
                     </div>
 
-                    <p className="text-[11px] text-gray-400 font-sans leading-relaxed">
+                    <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
                       {col.description}
                     </p>
                   </div>
 
-                  <div className="space-y-1.5 pt-2 border-t border-[#2A2D35]/40 font-mono text-[10px]">
+                  <div className="space-y-1.5 pt-2 border-t border-border font-mono text-[10px]">
                     <div>
-                      <span className="text-gray-500 font-bold uppercase block text-[8px] tracking-wider mb-0.5">Matched Headers (Excel Candidates):</span>
+                      <span className="text-muted-foreground font-bold uppercase block text-[8px] tracking-wider mb-0.5">Matched Headers (Excel Candidates):</span>
                       <div className="flex flex-wrap gap-1">
                         {col.candidates.map((cand) => (
                           <span 
                             key={cand} 
-                            className="bg-[#1C1F26] border border-[#2A2D35]/50 px-1.5 py-0.5 rounded text-gray-300 font-medium font-mono text-[9px]"
+                            className="bg-muted border border-border px-1.5 py-0.5 rounded text-foreground font-medium font-mono text-[9px]"
                           >
                             {cand}
                           </span>
@@ -854,9 +854,9 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
                       </div>
                     </div>
                     
-                    <div className="flex justify-between items-center text-[10px] text-blue-400 font-semibold mt-1">
-                      <span className="text-[8.5px] uppercase font-bold text-gray-500 tracking-wider">Evaluation Focus:</span>
-                      <span className="text-blue-300 font-medium font-sans">{col.govRole}</span>
+                    <div className="flex justify-between items-center text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-1">
+                      <span className="text-[8.5px] uppercase font-bold text-muted-foreground tracking-wider">Evaluation Focus:</span>
+                      <span className="text-blue-700 dark:text-blue-300 font-medium font-sans">{col.govRole}</span>
                     </div>
                   </div>
                 </div>
@@ -864,8 +864,8 @@ export default function UploadSection({ onTicketsLoaded, isLoading, triggerPopup
             </div>
 
             {/* Quick hint for template download and verification */}
-            <div className="bg-[#111317] border border-[#22242C] p-3 rounded-lg flex items-center justify-between flex-wrap gap-3">
-              <p className="text-[10.5px] text-gray-500 font-sans">
+            <div className="bg-card border border-border p-3 rounded-lg flex items-center justify-between flex-wrap gap-3">
+              <p className="text-[10.5px] text-muted-foreground font-sans">
                 💡 <strong>Audit Pre-Check tip:</strong> Export a standard ServiceNow <em>incident.xlsx</em> dump list containing these columns directly, with active <strong>Closed / Resolved</strong> dates, to run an immediately green audit trial.
               </p>
             </div>

@@ -41,10 +41,10 @@ function TrendBadge({ delta, label, invertPolarity = false, unit = '%', isCount 
   const isBad = invertPolarity ? delta > 0 : delta < 0;
 
   const colorClasses = isZero
-    ? 'bg-slate-800/80 text-slate-400 border-slate-700/60'
+    ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/60'
     : isGood
-    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
-    : 'bg-rose-500/10 text-rose-400 border-rose-500/25';
+    ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/25'
+    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/25';
 
   const Icon = isZero ? Minus : isGood ? TrendingUp : TrendingDown;
 
@@ -244,30 +244,30 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
     <div className="space-y-6 animate-fadeIn" id="trends-page-view">
       
       {/* Trends Header Deck */}
-      <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-6 shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-card border border-border rounded-xl p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <TrendingUp className="h-4.5 w-4.5 text-blue-400" />
-            <h3 className="text-sm font-bold text-white tracking-wider uppercase">Compliance Performance Trend Intelligence</h3>
+            <TrendingUp className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
+            <h3 className="text-sm font-bold text-foreground tracking-wider uppercase">Compliance Performance Trend Intelligence</h3>
           </div>
-          <p className="text-xs text-gray-400 mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
             Continuously tracking audit score anomalies, peak operational quality distributions, and week-over-week performance changes across 13 compliance gates.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Comparative Timeframe Filter Selector */}
-          <div className="flex items-center bg-[#0A0C0F] border border-[#2A2D35] p-1 rounded-lg">
-            <span className="text-[10px] text-gray-500 uppercase font-mono px-2 flex items-center gap-1">
-              <Filter className="h-3 w-3 text-blue-400" /> Compare:
+          <div className="flex items-center bg-muted/50 border border-border p-1 rounded-lg">
+            <span className="text-[10px] text-muted-foreground uppercase font-mono px-2 flex items-center gap-1">
+              <Filter className="h-3 w-3 text-blue-600 dark:text-blue-400" /> Compare:
             </span>
             <button
               type="button"
               onClick={() => setTimeframe('week')}
-              className={`text-[11px] font-semibold px-2.5 py-1 rounded transition-all ${
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded transition-all cursor-pointer ${
                 timeframe === 'week'
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                  : 'text-gray-400 hover:text-gray-200'
+                  ? 'bg-card text-foreground shadow-xs border border-border font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               vs Last Week
@@ -275,10 +275,10 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
             <button
               type="button"
               onClick={() => setTimeframe('run')}
-              className={`text-[11px] font-semibold px-2.5 py-1 rounded transition-all ${
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded transition-all cursor-pointer ${
                 timeframe === 'run'
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                  : 'text-gray-400 hover:text-gray-200'
+                  ? 'bg-card text-foreground shadow-xs border border-border font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               vs Prior Run
@@ -286,21 +286,21 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
             <button
               type="button"
               onClick={() => setTimeframe('benchmark')}
-              className={`text-[11px] font-semibold px-2.5 py-1 rounded transition-all ${
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded transition-all cursor-pointer ${
                 timeframe === 'benchmark'
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                  : 'text-gray-400 hover:text-gray-200'
+                  ? 'bg-card text-foreground shadow-xs border border-border font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               vs 30d Baseline
             </button>
           </div>
 
-          <div className="flex items-center space-x-2.5 bg-[#0A0C0F] border border-[#2A2D35] px-3.5 py-2 rounded-lg shrink-0">
-            <Clock className="h-4 w-4 text-emerald-400" />
+          <div className="flex items-center space-x-2.5 bg-muted/50 border border-border px-3.5 py-2 rounded-lg shrink-0">
+            <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             <div className="text-left">
-              <p className="text-[9px] text-gray-500 uppercase font-mono tracking-wider">Telemetry Window</p>
-              <p className="text-xs font-bold text-white font-mono">Last 30 Calendar Days</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-mono tracking-wider">Telemetry Window</p>
+              <p className="text-xs font-bold text-foreground font-mono">Last 30 Calendar Days</p>
             </div>
           </div>
         </div>
@@ -335,15 +335,15 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="trends-metric-cards">
             
             {/* Card 1: Mean Quality Score */}
-            <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl shadow-md hover:border-[#3E4350] transition-all flex flex-col justify-between">
+            <div className="bg-card border border-border p-4 rounded-xl shadow-card hover:border-border-strong transition-all flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 font-mono tracking-wider">MEAN COMPLIANCE SCORE</span>
-                  <Award className="h-4 w-4 text-emerald-400" />
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground font-mono tracking-wider">MEAN COMPLIANCE SCORE</span>
+                  <Award className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 
                 <div className="flex items-baseline justify-between mt-2">
-                  <p className="text-2xl font-black text-white font-mono tracking-tight">
+                  <p className="text-2xl font-black text-foreground font-mono tracking-tight">
                     {Math.round(performanceTrend.current.avgScore || peakStats.peakScore)}%
                   </p>
                   <TrendBadge 
@@ -353,27 +353,27 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
                 </div>
               </div>
 
-              <div className="mt-3 pt-2.5 border-t border-[#2A2D35]/70 flex items-center justify-between text-[10.5px] text-gray-450 text-gray-400">
-                <span className="flex items-center gap-1 text-emerald-400 font-medium">
+              <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-[10.5px] text-muted-foreground">
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
                   <CheckCircle2 className="h-3 w-3 shrink-0" />
                   <span>Target SLA: 80%</span>
                 </span>
-                <span className="font-mono text-[10px] text-gray-500">
+                <span className="font-mono text-[10px] text-muted-foreground/80">
                   Peak: {peakStats.peakScore}% ({peakStats.peakDay})
                 </span>
               </div>
             </div>
 
             {/* Card 2: First-Time Pass Rate */}
-            <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl shadow-md hover:border-[#3E4350] transition-all flex flex-col justify-between">
+            <div className="bg-card border border-border p-4 rounded-xl shadow-card hover:border-border-strong transition-all flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 font-mono tracking-wider">FIRST-TIME SLA PASS RATE</span>
-                  <ShieldCheck className="h-4 w-4 text-blue-400" />
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground font-mono tracking-wider">FIRST-TIME SLA PASS RATE</span>
+                  <ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 
                 <div className="flex items-baseline justify-between mt-2">
-                  <p className="text-2xl font-black text-white font-mono tracking-tight">
+                  <p className="text-2xl font-black text-foreground font-mono tracking-tight">
                     {Math.round(performanceTrend.current.passRate)}%
                   </p>
                   <TrendBadge 
@@ -383,27 +383,27 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
                 </div>
               </div>
 
-              <div className="mt-3 pt-2.5 border-t border-[#2A2D35]/70 flex items-center justify-between text-[10.5px] text-gray-400">
-                <span className="text-gray-400">
+              <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-[10.5px] text-muted-foreground">
+                <span className="text-muted-foreground">
                   {performanceTrend.current.greenCount} of {performanceTrend.current.count} Green Tier
                 </span>
-                <span className="font-mono text-[10px] text-blue-400/80">
+                <span className="font-mono text-[10px] text-blue-600 dark:text-blue-400/80">
                   Score ≥ 90%
                 </span>
               </div>
             </div>
 
             {/* Card 3: Audit Volume & Velocity */}
-            <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl shadow-md hover:border-[#3E4350] transition-all flex flex-col justify-between">
+            <div className="bg-card border border-border p-4 rounded-xl shadow-card hover:border-border-strong transition-all flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 font-mono tracking-wider">AUDIT THROUGHPUT VOLUME</span>
-                  <Activity className="h-4 w-4 text-purple-400" />
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground font-mono tracking-wider">AUDIT THROUGHPUT VOLUME</span>
+                  <Activity className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 </div>
                 
                 <div className="flex items-baseline justify-between mt-2">
-                  <p className="text-2xl font-black text-white font-mono tracking-tight">
-                    {peakStats.totalAudits} <span className="text-xs font-normal text-gray-400">Incidents</span>
+                  <p className="text-2xl font-black text-foreground font-mono tracking-tight">
+                    {peakStats.totalAudits} <span className="text-xs font-normal text-muted-foreground">Incidents</span>
                   </p>
                   <TrendBadge 
                     delta={performanceTrend.deltas.volumePct} 
@@ -412,26 +412,26 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
                 </div>
               </div>
 
-              <div className="mt-3 pt-2.5 border-t border-[#2A2D35]/70 flex items-center justify-between text-[10.5px] text-gray-400">
-                <span className="text-gray-400">
+              <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-[10.5px] text-muted-foreground">
+                <span className="text-muted-foreground">
                   Current slice: {performanceTrend.current.count} tickets
                 </span>
-                <span className="font-mono text-[10px] text-purple-400/80">
+                <span className="font-mono text-[10px] text-purple-600 dark:text-purple-400/80">
                   Peak: {peakStats.volPeakCount} on {peakStats.volPeakDay}
                 </span>
               </div>
             </div>
 
             {/* Card 4: Quality Anomaly & Defect Rate (Inverted Polarity: Lower is better) */}
-            <div className="bg-[#15171C] border border-[#2A2D35] p-4 rounded-xl shadow-md hover:border-[#3E4350] transition-all flex flex-col justify-between">
+            <div className="bg-card border border-border p-4 rounded-xl shadow-card hover:border-border-strong transition-all flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 font-mono tracking-wider">QUALITY ANOMALY DEFECTS</span>
-                  <AlertCircle className="h-4 w-4 text-rose-400" />
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground font-mono tracking-wider">QUALITY ANOMALY DEFECTS</span>
+                  <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                 </div>
                 
                 <div className="flex items-baseline justify-between mt-2">
-                  <p className="text-2xl font-black text-white font-mono tracking-tight">
+                  <p className="text-2xl font-black text-foreground font-mono tracking-tight">
                     {performanceTrend.current.defectRate.toFixed(1)}%
                   </p>
                   <TrendBadge 
@@ -442,11 +442,11 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
                 </div>
               </div>
 
-              <div className="mt-3 pt-2.5 border-t border-[#2A2D35]/70 flex items-center justify-between text-[10.5px] text-gray-400">
-                <span className={`${performanceTrend.current.redCount === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-[10.5px] text-muted-foreground">
+                <span className={`${performanceTrend.current.redCount === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                   {performanceTrend.current.redCount} critical outlier{performanceTrend.current.redCount === 1 ? '' : 's'}
                 </span>
-                <span className="font-mono text-[10px] text-gray-500">
+                <span className="font-mono text-[10px] text-muted-foreground/80">
                   Score &lt; 70% threshold
                 </span>
               </div>
@@ -455,23 +455,23 @@ export default function TrendsPage({ reports, historyRuns }: TrendsPageProps) {
           </div>
 
           {/* Telemetry Highlight Summary Bar */}
-          <div className="bg-[#15171C]/70 border border-[#2A2D35] rounded-lg p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-4 text-gray-400">
-              <span className="flex items-center gap-1.5 font-medium text-gray-300">
-                <Sparkles className="h-3.5 w-3.5 text-blue-400" />
+          <div className="bg-muted/40 border border-border rounded-lg p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-4 text-muted-foreground">
+              <span className="flex items-center gap-1.5 font-medium text-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                 <span>Executive Trajectory Diagnostic:</span>
               </span>
               <span>
-                Peak Quality: <strong className="text-emerald-400 font-mono">{peakStats.peakDay} ({peakStats.peakScore}%)</strong>
+                Peak Quality: <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{peakStats.peakDay} ({peakStats.peakScore}%)</strong>
               </span>
-              <span className="hidden sm:inline text-gray-600">•</span>
+              <span className="hidden sm:inline text-border-strong">•</span>
               <span className="hidden sm:inline">
-                Peak Load: <strong className="text-purple-400 font-mono">{peakStats.volPeakDay} ({peakStats.volPeakCount} incidents)</strong>
+                Peak Load: <strong className="text-purple-600 dark:text-purple-400 font-mono">{peakStats.volPeakDay} ({peakStats.volPeakCount} incidents)</strong>
               </span>
             </div>
 
-            <div className="text-[11px] font-mono text-gray-500">
-              Active Comparison Horizon: <span className="text-gray-300 font-semibold">{performanceTrend.label}</span>
+            <div className="text-[11px] font-mono text-muted-foreground">
+              Active Comparison Horizon: <span className="text-foreground font-semibold">{performanceTrend.label}</span>
             </div>
           </div>
 

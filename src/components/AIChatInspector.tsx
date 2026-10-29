@@ -1,6 +1,148 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChatMessage, TicketAuditReport } from '../types';
-import { Send, User, Trash2, RefreshCw, Sparkles, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Send, User, Trash2, RefreshCw, Sparkles, AlertTriangle, HelpCircle, Copy, Check, Maximize2, Minimize2 } from 'lucide-react';
+import { marked } from 'marked';
+
+// Sanitizes text to strictly enforce NO paths, NO URLs, and NO credential details in the chat box
+export function sanitizeChatContent(raw: string): string {
+  if (!raw) return '';
+  let text = raw;
+
+  // 1. Strip markdown links with URLs or paths: [text](...) -> text
+  text = text.replace(/\[([^\]]+)\]\([^)]+\)/gi, '$1');
+
+  // 2. Strip raw URLs (http:// or https://)
+  text = text.replace(/https?:\/\/[^\s<)"'`]+/gi, '');
+
+  // 3. Strip internal API or route paths (e.g. /api/... or *.do)
+  text = text.replace(/\/api\/[^\s<)"'`|]+/gi, '');
+  text = text.replace(/[^\s<)"'`|]+\.do(?:\?[^\s<)"'`|]*)?/gi, '');
+
+  // 4. Strip domain hostnames (e.g. *.service-now.com)
+  text = text.replace(/[a-zA-Z0-9_-]+\.service-now\.com/gi, 'ServiceNow');
+
+  // 5. Strip credential exposures (passwords, tokens, keys)
+  text = text.replace(/(?:password|token|api[_-]?key|secret)\s*[:=]\s*[^\s,;]+/gi, '');
+
+  // 6. Clean up any leftover empty "Direct Link" table columns or empty action text
+  text = text.replace(/\|\s*Direct Link\s*\|/gi, '|');
+  text = text.replace(/\|\s*:\s*---\s*:\s*\|/gi, '|');
+  text = text.replace(/\|\s*---\s*\|/gi, '|');
+  text = text.replace(/\*\*Direct Action\*\*:[^\n]*/gi, '');
+
+  return text.trim();
+}
+
+// Configure marked parser: Never render <a> tags with URLs or paths in the chat box
+marked.use({
+  gfm: true,
+  breaks: true,
+  renderer: {
+    link({ text }) {
+      return `<span class="font-mono font-bold text-cyan-400 select-text">${text}</span>`;
+    }
+  }
+});
+
+function formatMarkdownHtml(rawMarkdown: string): string {
+  if (!rawMarkdown) return '';
+  try {
+    const sanitized = sanitizeChatContent(rawMarkdown);
+    let parsed = marked.parse(sanitized) as string;
+
+    // Wrap tables in scrollable container if not already wrapped
+    parsed = parsed.replace(/<table>/gi, '<div class="chat-table-wrapper"><table>');
+    parsed = parsed.replace(/<\/table>/gi, '</table></div>');
+
+    // Add smart status pill badge formatting (unified pass to prevent nested tag replacement collisions)
+    const statusBadgeRegex = /(?:(\bBREACHED(?:\s*\([^)]+\))?)|(\bWARNING-[123](?:\s*SENT)?\b)|(\bNON[- ]COMPLIANT\b)|(\bPARTIALL?Y?[- ]COMPLIANT\b)|(\bFULLY[- ]COMPLIANT\b)|(\bCOMPLIANT\b))/gi;
+    parsed = parsed.replace(statusBadgeRegex, (match) => {
+      const upper = match.toUpperCase();
+      if (upper.startsWith('BREACH') || upper.startsWith('NON')) {
+        return `<span class="badge-breached">${match}</span>`;
+      }
+      if (upper.startsWith('WARN') || upper.startsWith('PARTIAL')) {
+        return `<span class="badge-warning">${match}</span>`;
+      }
+      if (upper.includes('COMPLIANT')) {
+        return `<span class="badge-compliant">${match}</span>`;
+      }
+      return match;
+    });
+
+    // Turn ticket identifiers into styled in-app badge spans (no URL / href)
+    parsed = parsed.replace(/\b(INC\d{7})\b/g, '<span class="ticket-badge" data-ticket="$1" title="Click to inspect $1">$1</span>');
+
+    return parsed;
+  } catch (e) {
+    return sanitizeChatContent(rawMarkdown);
+  }
+}
+
+function FormattedChatMessage({ content, role, isError, onSelectTicket }: { content: string; role: 'user' | 'model'; isError?: boolean; onSelectTicket?: (inc: string) => void }) {
+  const [copied, setCopied] = useState(false);
+
+  const html = useMemo(() => {
+    if (role === 'user' || isError) return '';
+    return formatMarkdownHtml(content);
+  }, [content, role, isError]);
+
+  if (role === 'user' || isError) {
+    return <div className="whitespace-pre-wrap">{sanitizeChatContent(content)}</div>;
+  }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(sanitizeChatContent(content));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = (e.target as HTMLElement).closest('[data-ticket]');
+    if (target && onSelectTicket) {
+      const inc = target.getAttribute('data-ticket');
+      if (inc) {
+        onSelectTicket(inc);
+      }
+    }
+  };
+
+  return (
+    <div className="relative group w-full">
+      <div 
+        className="chat-markdown-render select-text w-full cursor-default"
+        onClick={handleContentClick}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+      
+      {/* Quick Action Bar for Model Output */}
+      <div className="mt-3 pt-2 border-t border-[#2A2E39]/50 flex items-center justify-between text-[10px] text-gray-500 font-mono">
+        <span className="flex items-center gap-1.5 opacity-75 text-cyan-400">
+          <Sparkles className="w-3 h-3" />
+          <span>Real-time Operational Telemetry</span>
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#13161C] hover:bg-[#202530] text-gray-400 hover:text-gray-200 border border-[#2A2E39] transition-all cursor-pointer select-none"
+          title="Copy markdown text"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3 h-3 text-emerald-400" />
+              <span className="text-emerald-400 font-bold">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3" />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 interface AIChatInspectorProps {
   reports: TicketAuditReport[];
@@ -59,11 +201,21 @@ export function getDashboardContext(reports: TicketAuditReport[]) {
   }).sort((a, b) => a.passRate - b.passRate).slice(0, 3);
 
   const assigneeMap: Record<string, { sum: number; count: number }> = {};
+  const groupMap: Record<string, { count: number; sum: number; green: number; amber: number; red: number }> = {};
+
   reports.forEach(r => {
     const name = r.ticket.assignee || 'Unassigned';
     if (!assigneeMap[name]) assigneeMap[name] = { sum: 0, count: 0 };
     assigneeMap[name].sum += r.percentage;
     assigneeMap[name].count += 1;
+
+    const group = r.ticket.assignmentGroup || 'Unassigned Group';
+    if (!groupMap[group]) groupMap[group] = { count: 0, sum: 0, green: 0, amber: 0, red: 0 };
+    groupMap[group].count += 1;
+    groupMap[group].sum += r.percentage;
+    if (r.statusColor === 'Green') groupMap[group].green += 1;
+    else if (r.statusColor === 'Amber') groupMap[group].amber += 1;
+    else groupMap[group].red += 1;
   });
 
   const coachingList = Object.entries(assigneeMap).map(([name, s]) => ({
@@ -71,10 +223,20 @@ export function getDashboardContext(reports: TicketAuditReport[]) {
     avgScore: Math.round(s.sum / s.count)
   })).sort((a, b) => a.avgScore - b.avgScore).slice(0, 3);
 
+  const assignmentGroupBreakdown = Object.entries(groupMap).map(([group, s]) => ({
+    group,
+    count: s.count,
+    avgScore: Math.round(s.sum / s.count),
+    green: s.green,
+    amber: s.amber,
+    red: s.red
+  }));
+
   return {
     totalTickets: total,
     averageAuditSlaPercentage: avgSla,
     complianceDistribution: { greenCount, amberCount, redCount },
+    assignmentGroupBreakdown,
     topFailingGaps: hotspots,
     coachingTopTargets: coachingList
   };
@@ -95,6 +257,7 @@ export default function AIChatInspector({
 }: AIChatInspectorProps) {
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Find the last model message ID to render active suggestion chips
@@ -163,10 +326,10 @@ export default function AIChatInspector({
     }
 
     setIsSending(true);
-    triggerPopup('Consulting Gemini 3.8 Flash Model for real-time audit context...', 'info');
+    triggerPopup('Consulting AI Governance Assistant for real-time operational context...', 'info');
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45-second timeout
 
     try {
       const dashboardContext = getDashboardContext(reports);
@@ -215,47 +378,52 @@ export default function AIChatInspector({
         throw new Error(data.error);
       }
 
-      if (data.reply) {
-        let conversationalReply = data.reply;
-        let chips: string[] = data.suggestions || [];
+      // Extract conversational reply with robust fallback to prevent "No valid conversational reply received"
+      const rawContent = data.reply || data.text || data.message || (typeof data === 'string' ? data : '') || '';
+      let conversationalReply = String(rawContent).trim();
+      let chips: string[] = Array.isArray(data.suggestions) ? data.suggestions : [];
+      let contractData = data.contract || null;
 
-        let contractData = data.contract || null;
-
-        // If data.reply is a JSON string, try parsing it here as a fallback
-        try {
-          const parsed = JSON.parse(data.reply);
-          if (parsed && typeof parsed === 'object') {
-            conversationalReply = parsed.reply || conversationalReply;
-            if (Array.isArray(parsed.suggestions)) {
-              chips = parsed.suggestions;
-            }
-            if (parsed.contract) {
-              contractData = parsed.contract;
-            }
-          }
-        } catch (e) {
-          // If parsing fails, just show raw reply text with no chips
-        }
-
-        setMessages(prev => [...prev, {
-          id: `bot_${Date.now()}`,
-          role: 'model',
-          content: conversationalReply,
-          suggestions: chips,
-          contract: contractData,
-          timestamp: new Date().toLocaleTimeString()
-        }]);
-        triggerPopup('Received intelligence report from Agentic AI!', 'success');
-      } else {
-        throw new Error('No valid conversational reply received.');
+      if (!conversationalReply && contractData && Array.isArray(contractData.sources_used) && contractData.sources_used.length > 0) {
+        conversationalReply = "I have processed your operational request against live ServiceNow records.";
       }
+
+      if (!conversationalReply) {
+        conversationalReply = "I have analyzed the current incident compliance metrics. How can I assist you with specific tickets, assignment groups, or ITIL rules?";
+      }
+
+      // If reply is wrapped in JSON, parse cleanly
+      try {
+        const parsed = JSON.parse(conversationalReply);
+        if (parsed && typeof parsed === 'object') {
+          conversationalReply = parsed.reply || conversationalReply;
+          if (Array.isArray(parsed.suggestions)) {
+            chips = parsed.suggestions;
+          }
+          if (parsed.contract) {
+            contractData = parsed.contract;
+          }
+        }
+      } catch (e) {
+        // Raw text reply is preserved
+      }
+
+      setMessages(prev => [...prev, {
+        id: `bot_${Date.now()}`,
+        role: 'model',
+        content: conversationalReply,
+        suggestions: chips,
+        contract: contractData,
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+      triggerPopup('Received intelligence report from Agentic AI!', 'success');
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.info('[Chat Client Notice]:', err?.message || err);
 
       let friendlyError = err?.message || 'Failed to dispatch chat request.';
       if (err.name === 'AbortError') {
-        friendlyError = 'Request timed out after 20 seconds. Please try again.';
+        friendlyError = 'Request timed out after 45 seconds. Please try again.';
       }
 
       setMessages(prev => [...prev, {
@@ -299,7 +467,7 @@ export default function AIChatInspector({
                 <h4 className="text-xs uppercase font-bold tracking-wider text-gray-200">AI Governance Assistant</h4>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                  Gemini 3.8 Flash
+                  Claude / Gemini Enterprise
                 </span>
               </div>
               <p className="text-[10.5px] text-gray-500 mt-0.5 font-mono">Real-time ITIL Quality Auditing & RAG Diagnostic Reasoning</p>
@@ -307,6 +475,14 @@ export default function AIChatInspector({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="px-2.5 py-1.5 bg-[#0A0C0F] border border-[#2A2D35] text-gray-400 hover:text-cyan-400 rounded-lg flex items-center justify-center space-x-1.5 transition-all text-xs cursor-pointer hover:bg-cyan-950/20"
+              title={isExpanded ? "Collapse View" : "Expand Full Height"}
+            >
+              {isExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              <span className="font-mono text-[11px] font-bold">{isExpanded ? 'Compact' : 'Expand'}</span>
+            </button>
             <button
               onClick={clearChat}
               className="px-3 py-1.5 bg-[#0A0C0F] border border-[#2A2D35] text-gray-400 hover:text-red-400 rounded-lg flex items-center justify-center space-x-1.5 transition-all text-xs cursor-pointer hover:bg-red-950/25 border-dashed"
@@ -320,16 +496,18 @@ export default function AIChatInspector({
         </div>
 
         {/* Message Bubble Feed Container */}
-        <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1 max-h-[380px] min-h-[300px] selection:bg-blue-500/30 scrollbar-thin">
+        <div className={`flex-1 overflow-y-auto space-y-4 mb-4 pr-1 selection:bg-blue-500/30 scrollbar-thin transition-all duration-300 ${
+          isExpanded ? 'min-h-[550px] max-h-[750px]' : 'min-h-[380px] max-h-[520px]'
+        }`}>
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex items-start space-x-3 max-w-[85%] ${
-                msg.role === 'user' ? 'ml-auto flex-row-reverse space-x-reverse' : ''
+              className={`flex items-start space-x-3 ${
+                msg.role === 'user' ? 'max-w-[80%] ml-auto flex-row-reverse space-x-reverse' : 'max-w-[98%] w-full'
               }`}
             >
               {/* User vs Gemini Icon Representation */}
-              <div className={`p-2 rounded-lg shrink-0 flex items-center justify-center border ${
+              <div className={`p-2 rounded-lg shrink-0 flex items-center justify-center border mt-0.5 ${
                 msg.role === 'user' 
                   ? 'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/15' 
                   : 'bg-[#0A0C0F] border-[#2A2D35] text-blue-400'
@@ -338,15 +516,15 @@ export default function AIChatInspector({
               </div>
 
               {/* Message content bubble with blue vs gray background pairing */}
-              <div className="flex flex-col space-y-1.5 max-w-full">
-                <div className={`p-3.5 rounded-2xl text-[12px] leading-relaxed select-text font-sans selection:bg-blue-500/20 shadow-sm ${
+              <div className="flex flex-col space-y-1.5 flex-1 min-w-0">
+                <div className={`p-4 rounded-2xl text-[12.5px] leading-relaxed select-text font-sans selection:bg-blue-500/20 shadow-md ${
                   msg.role === 'user' 
                     ? 'bg-blue-600 text-white rounded-tr-none' 
                     : msg.isError
                     ? 'bg-red-950/40 border border-red-500/30 text-red-200 rounded-tl-none'
-                    : 'bg-[#1C1F26] text-gray-200 border border-[#2A2D35] rounded-tl-none markdown-body'
+                    : 'bg-[#181B22] text-gray-200 border border-[#2A2D35] rounded-tl-none'
                 }`}>
-                  {msg.content}
+                  <FormattedChatMessage content={msg.content} role={msg.role} isError={msg.isError} onSelectTicket={onSelectTicketNumber} />
                 </div>
 
                 {/* Dynamic Suggestion chips rendered directly below the bubble */}

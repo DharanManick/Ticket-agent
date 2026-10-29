@@ -84,3 +84,53 @@ test('Incident Classification (CI-01): isResolvedTicket strictly identifies Reso
   assert.strictEqual(isResolvedTicket({}), false);
 });
 
+test('Incident Classification (CI-02): normalizeIncidentState maps ServiceNow codes and labels', async () => {
+  const { normalizeIncidentState } = await import('../lib/classification');
+
+  assert.strictEqual(normalizeIncidentState('6'), 'Resolved');
+  assert.strictEqual(normalizeIncidentState('Resolved'), 'Resolved');
+  assert.strictEqual(normalizeIncidentState('resolved'), 'Resolved');
+  assert.strictEqual(normalizeIncidentState('Solve Proposed'), 'Resolved');
+  assert.strictEqual(normalizeIncidentState('7'), 'Closed');
+  assert.strictEqual(normalizeIncidentState('Closed'), 'Closed');
+  assert.strictEqual(normalizeIncidentState('2'), 'In Progress');
+  assert.strictEqual(normalizeIncidentState('In Progress'), 'In Progress');
+  assert.strictEqual(normalizeIncidentState('1'), 'New');
+  assert.strictEqual(normalizeIncidentState('3'), 'On Hold');
+  assert.strictEqual(normalizeIncidentState('8'), 'Canceled');
+  assert.strictEqual(normalizeIncidentState(undefined, 'Incident state Resolved was: Solve Proposed'), 'Resolved');
+  assert.strictEqual(normalizeIncidentState(undefined, 'Incident state Closed was: Resolved'), 'Closed');
+  assert.strictEqual(normalizeIncidentState(undefined), 'In Progress');
+});
+
+test('Incident Classification (CI-03): isEmpathyEligibleTicket strictly identifies OPEN tickets only', async () => {
+  const { isEmpathyEligibleTicket } = await import('../lib/classification');
+
+  // Open tickets (Eligible for Empathy Dashboard)
+  assert.strictEqual(isEmpathyEligibleTicket({ state: '2' }), true);
+  assert.strictEqual(isEmpathyEligibleTicket({ state: 'In Progress' }), true);
+  assert.strictEqual(isEmpathyEligibleTicket({ state: '1' }), true);
+  assert.strictEqual(isEmpathyEligibleTicket({ state: 'New' }), true);
+  assert.strictEqual(isEmpathyEligibleTicket({ state: '3' }), true);
+  assert.strictEqual(isEmpathyEligibleTicket({ state: 'On Hold' }), true);
+
+  // Resolved / Closed / Canceled tickets (MUST NOT be eligible for Empathy Dashboard)
+  assert.strictEqual(isEmpathyEligibleTicket({ state: '6' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ state: 'Resolved' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ incidentState: 'Resolved' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ state: '7' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ state: 'Closed' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ incidentState: 'Closed' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ state: '8' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ state: 'Canceled' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ activityLogs: 'Incident state Resolved was: Solve Proposed' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ activityLogs: '2026-10-16 10:00 - In Progress -> Resolved' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ activityLogs: 'Technician logged: solve proposal accepted' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ rawActivityLogs: 'State changed: In Progress -> Closed' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ status: 'Resolved', incNumber: 'INC0000012' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ status: 'Closed', incNumber: 'INC0000010' }), false);
+  assert.strictEqual(isEmpathyEligibleTicket({ status: 'In Progress', incNumber: 'INC0000059' }), true);
+  assert.strictEqual(isEmpathyEligibleTicket(null), false);
+  assert.strictEqual(isEmpathyEligibleTicket({}), true); // Default untyped object without closed/resolved indicators
+});
+

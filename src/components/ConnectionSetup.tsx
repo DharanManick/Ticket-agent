@@ -23,7 +23,8 @@ import {
   Play,
   ShieldCheck,
   Trash2,
-  RotateCcw
+  RotateCcw,
+  ArrowRight
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Ticket } from '../types';
@@ -91,12 +92,8 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
     return Number(saved || '5');
   });
 
-  // Tracked assignment groups
-  const [assignmentGroupFilter, setAssignmentGroupFilter] = useState<string>(
-    () => localStorage.getItem('gov_snow_assignment_group_filter') || 'ALL'
-  );
+  // Enabled assignment groups (synced for Mandatory Metrics subtab)
   const [trackedGroups, setTrackedGroups] = useState<string[]>([]);
-  const [newGroupInput, setNewGroupInput] = useState('');
 
   // Status & Logs
   const [isSyncing, setIsSyncing] = useState(false);
@@ -119,7 +116,6 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
           if (c.password) setPassword(c.password);
           if (c.limit !== undefined) setSyncLimit(c.limit);
           if (c.syncType) setSyncType(c.syncType);
-          if (c.assignmentGroupFilter) setAssignmentGroupFilter(c.assignmentGroupFilter);
           if (c.autoSyncEnabled !== undefined) setAutoSyncEnabled(c.autoSyncEnabled);
           if (c.autoFetchInterval !== undefined) setAutoFetchInterval(c.autoFetchInterval);
           if (c.manualLoadEnabled !== undefined) setManualLoadEnabled(c.manualLoadEnabled);
@@ -133,6 +129,34 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
         }
       })
       .catch(() => {});
+
+    // Sync enabled assignment groups from server
+    const fetchEnabledGroups = () => {
+      fetch('/api/servicenow/assignment-groups')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && Array.isArray(data.enabledGroups)) {
+            setTrackedGroups(data.enabledGroups);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchEnabledGroups();
+
+    const handleGroupsUpdated = (e: any) => {
+      if (e?.detail?.enabledGroups && Array.isArray(e.detail.enabledGroups)) {
+        setTrackedGroups(e.detail.enabledGroups);
+      } else {
+        fetchEnabledGroups();
+      }
+    };
+    window.addEventListener('governance_tracked_groups_updated', handleGroupsUpdated);
+    window.addEventListener('servicenow_realtime_sync', handleGroupsUpdated);
+
+    return () => {
+      window.removeEventListener('governance_tracked_groups_updated', handleGroupsUpdated);
+      window.removeEventListener('servicenow_realtime_sync', handleGroupsUpdated);
+    };
   }, []);
 
   const saveCredentialsToServer = async (customOverrides: Record<string, any> = {}) => {
@@ -146,11 +170,9 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
       autoSyncEnabled,
       autoFetchEnabled: autoSyncEnabled,
       autoFetchInterval,
-      assignmentGroupFilter,
       onlyResolved,
       onlySolvePropose: onlyResolved,
       manualLoadEnabled,
-      trackedGroups,
       ...customOverrides
     };
 
@@ -160,7 +182,6 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
     localStorage.setItem('gov_snow_limit', payload.limit === 0 ? 'off' : String(payload.limit));
     localStorage.setItem('gov_snow_sync_type', payload.syncType);
     localStorage.setItem('gov_snow_auto_sync', String(payload.autoSyncEnabled));
-    localStorage.setItem('gov_snow_assignment_group_filter', payload.assignmentGroupFilter);
     localStorage.setItem('gov_only_resolved', String(payload.onlyResolved));
     localStorage.setItem('gov_only_solve_propose', String(payload.onlyResolved));
     localStorage.setItem('gov_snow_manual_load_enabled', String(payload.manualLoadEnabled));
@@ -238,11 +259,9 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
           syncType,
           limit: syncLimit,
           useSimulator: false,
-          assignmentGroupFilter,
           manualLoadEnabled,
           onlyResolved: activeResolved,
-          onlySolvePropose: activeResolved,
-          trackedGroups
+          onlySolvePropose: activeResolved
         })
       });
 
@@ -311,47 +330,6 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
         : "Auto-Sync PAUSED: Background sweeps suspended.",
       nextVal ? 'success' : 'info'
     );
-  };
-
-  const addTrackedGroup = () => {
-    const trimmed = newGroupInput.trim();
-    if (!trimmed || trackedGroups.includes(trimmed)) return;
-    const next = [...trackedGroups, trimmed];
-    setTrackedGroups(next);
-    setNewGroupInput('');
-    saveCredentialsToServer({ trackedGroups: next });
-    triggerPopup(`Added '${trimmed}' to tracked assignment groups.`, 'success');
-  };
-
-  const removeTrackedGroup = (group: string) => {
-    const next = trackedGroups.filter(g => g !== group);
-    setTrackedGroups(next);
-    saveCredentialsToServer({ trackedGroups: next });
-  };
-
-  const clearAllTrackedGroups = () => {
-    setTrackedGroups([]);
-    saveCredentialsToServer({ trackedGroups: [] });
-    triggerPopup('All tracked assignment groups removed. All incidents will be processed without queue filters.', 'info');
-  };
-
-  const resetDefaultTrackedGroups = async () => {
-    try {
-      const res = await fetch('/api/servicenow/assignment-groups');
-      if (res.ok) {
-        const data = await res.json();
-        const liveGroups = (data.groups || []).filter((g: string) => Boolean(g && g.trim()));
-        if (liveGroups.length > 0) {
-          setTrackedGroups(liveGroups);
-          saveCredentialsToServer({ trackedGroups: liveGroups });
-          triggerPopup(`Synchronized ${liveGroups.length} live ServiceNow assignment groups.`, 'success');
-          return;
-        }
-      }
-    } catch (e) {}
-    setTrackedGroups([]);
-    saveCredentialsToServer({ trackedGroups: [] });
-    triggerPopup('Tracked groups cleared — all incoming ServiceNow assignment groups will be processed.', 'info');
   };
 
   return (
@@ -605,7 +583,7 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
             </div>
 
             {/* Additional Sync Parameters */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               {/* Sync Scope */}
               <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1">
                 <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Sync Table Scope</span>
@@ -622,18 +600,6 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
                 </select>
               </div>
 
-              {/* Assignment Group Filter */}
-              <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1">
-                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Group Filter</span>
-                <input
-                  type="text"
-                  value={assignmentGroupFilter}
-                  onChange={(e) => setAssignmentGroupFilter(e.target.value)}
-                  placeholder="ALL or specific group name"
-                  className="w-full bg-[#0A0C0F] border border-[#2A2D35] rounded px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
               {/* Auto Fetch Polling Interval */}
               <div className="bg-[#141720] border border-[#2A2D35] p-3 rounded-lg space-y-1">
                 <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Auto-Fetch Frequency (Sec)</span>
@@ -648,109 +614,17 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
               </div>
             </div>
 
-            {/* Tracked Assignment Groups */}
-            <div className="bg-[#141720] border border-[#2A2D35] p-3.5 rounded-lg space-y-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
-                    <Users className="h-3.5 w-3.5 text-indigo-400" />
-                    <span>Tracked Assignment Groups ({trackedGroups.length})</span>
-                  </span>
-                  {trackedGroups.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={clearAllTrackedGroups}
-                      className="inline-flex items-center gap-1 text-[10px] font-mono text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 px-2 py-0.5 rounded transition-colors cursor-pointer"
-                      title="Remove all tracked assignment groups"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                      <span>Clear All</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={resetDefaultTrackedGroups}
-                    className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-400 hover:text-slate-200 bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-0.5 rounded transition-colors cursor-pointer"
-                    title="Reset to default enterprise groups"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                    <span>Reset Defaults</span>
-                  </button>
-                </div>
-                <span className="text-[9.5px] text-gray-500 font-mono">
-                  {trackedGroups.length === 0
-                    ? 'All incoming assignment groups will be processed'
-                    : 'Only tickets matching these groups are audited'}
-                </span>
-              </div>
-
-              {trackedGroups.length === 0 ? (
-                <div className="p-3 bg-[#0A0C0F] border border-dashed border-[#2A2D35] rounded-lg text-xs font-mono text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span>No group filters active — all ServiceNow assignment groups will be ingested.</span>
-                  <button
-                    type="button"
-                    onClick={resetDefaultTrackedGroups}
-                    className="text-indigo-400 hover:underline cursor-pointer text-left sm:text-right"
-                  >
-                    Restore Standard Groups
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {trackedGroups.map((group) => (
-                    <span
-                      key={group}
-                      className="inline-flex items-center gap-1.5 bg-[#0A0C0F] border border-[#2A2D35] hover:border-indigo-500/40 px-2.5 py-1 rounded text-[11px] font-mono text-slate-200"
-                    >
-                      <span>{group}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedMetricGroup(group);
-                          setActiveSubTab('metrics');
-                        }}
-                        className="text-indigo-400 hover:text-indigo-300 ml-0.5 cursor-pointer"
-                        title={`Configure mandatory metrics checks for "${group}"`}
-                      >
-                        <Sliders className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeTrackedGroup(group)}
-                        className="text-gray-500 hover:text-rose-400 ml-0.5 cursor-pointer"
-                        title={`Remove "${group}"`}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="text"
-                  value={newGroupInput}
-                  onChange={(e) => setNewGroupInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addTrackedGroup()}
-                  placeholder="Enter assignment group name to track..."
-                  className="flex-1 bg-[#0A0C0F] border border-[#2A2D35] rounded px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
-                />
-                <button
-                  type="button"
-                  onClick={addTrackedGroup}
-                  className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs font-mono font-bold cursor-pointer"
-                >
-                  Add Group
-                </button>
-              </div>
-            </div>
-
             {/* Primary Action Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-              <div className="text-xs text-gray-400 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>Active tickets currently loaded in workspace: <strong>{totalRecordsCount}</strong> records ({auditedCount} audited)</span>
+              <div className="flex flex-col gap-1 text-xs text-gray-400">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span>Active tickets currently loaded in workspace: <strong>{totalRecordsCount}</strong> records ({auditedCount} audited)</span>
+                </div>
+                <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
+                  <span className="text-slate-500">Last Successful Sync:</span>
+                  <span className="text-cyan-400 font-bold">{localStorage.getItem('gov_last_sync_time') || 'Continuous Background Sync Active'}</span>
+                </div>
               </div>
 
               <button

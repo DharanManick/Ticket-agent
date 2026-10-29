@@ -299,39 +299,39 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
 
         <div className="pt-1">
           {/* Live Database Metrics Status */}
-          <div className="space-y-2.5 bg-[#0A0C0F] border border-[#2A2D35] rounded-xl p-4">
-            <div className="flex justify-between items-center pb-2 border-b border-[#2A2D35]/50">
-              <span className="text-[10.5px] font-bold font-mono text-gray-300 flex items-center gap-1.5">
-                <Database className="h-3.5 w-3.5 text-teal-400" />
+          <div className="space-y-2.5 bg-muted/40 border border-border rounded-xl p-4">
+            <div className="flex justify-between items-center pb-2 border-b border-border">
+              <span className="text-[10.5px] font-bold font-mono text-foreground flex items-center gap-1.5">
+                <Database className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
                 Live Resource Counts (Code & Database Rules)
               </span>
-              <span className="text-[8.5px] font-mono text-gray-500">
-                Sync: <span className="text-emerald-400">{syncTimestamp || 'Loading...'}</span>
+              <span className="text-[8.5px] font-mono text-muted-foreground">
+                Sync: <span className="text-emerald-600 dark:text-emerald-400">{syncTimestamp || 'Loading...'}</span>
               </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-              <div className="bg-[#15171C] border border-[#2A2D35] p-2 rounded flex justify-between items-center">
-                <span className="text-gray-400 text-[10px]">Checkpoint Rules</span>
-                <span className="font-bold text-indigo-400">
+              <div className="bg-card border border-border p-2 rounded flex justify-between items-center shadow-2xs">
+                <span className="text-muted-foreground text-[10px]">Checkpoint Rules</span>
+                <span className="font-bold text-indigo-600 dark:text-indigo-400">
                   {syncSummary ? syncSummary.overallRulesCount : '---'}
                 </span>
               </div>
-              <div className="bg-[#15171C] border border-[#2A2D35] p-2 rounded flex justify-between items-center">
-                <span className="text-gray-400 text-[10px]">Keywords Mapped</span>
-                <span className="font-bold text-sky-400">
+              <div className="bg-card border border-border p-2 rounded flex justify-between items-center shadow-2xs">
+                <span className="text-muted-foreground text-[10px]">Keywords Mapped</span>
+                <span className="font-bold text-sky-600 dark:text-sky-400">
                   {syncSummary ? syncSummary.rulesCount : '---'}
                 </span>
               </div>
-              <div className="bg-[#15171C] border border-[#2A2D35] p-2 rounded flex justify-between items-center">
-                <span className="text-gray-400 text-[10px]">CMDB CI Map Pairs</span>
-                <span className="font-bold text-violet-400">
+              <div className="bg-card border border-border p-2 rounded flex justify-between items-center shadow-2xs">
+                <span className="text-muted-foreground text-[10px]">CMDB CI Map Pairs</span>
+                <span className="font-bold text-violet-600 dark:text-violet-400">
                   {syncSummary ? syncSummary.ciCombinationsCount : '---'}
                 </span>
               </div>
-              <div className="bg-[#15171C] border border-[#2A2D35] p-2 rounded flex justify-between items-center">
-                <span className="text-gray-400 text-[10px]">Audit Checkpoints</span>
-                <span className="font-bold text-amber-500">
+              <div className="bg-card border border-border p-2 rounded flex justify-between items-center shadow-2xs">
+                <span className="text-muted-foreground text-[10px]">Audit Checkpoints</span>
+                <span className="font-bold text-amber-600 dark:text-amber-500">
                   {syncSummary ? syncSummary.resolutionQuestionsCount : '---'}
                 </span>
               </div>
@@ -357,10 +357,10 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
             <button
               type="button"
               onClick={toggleCharter}
-              className={`px-2.5 py-1.5 text-[10px] font-mono font-bold rounded border transition-all cursor-pointer ${
+              className={`px-2.5 py-1.5 text-[10px] font-mono font-bold rounded border transition-all cursor-pointer shadow-2xs ${
                 charterEnabled
-                  ? 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                  : 'border-blue-550/30 bg-blue-550/10 text-blue-400 hover:bg-blue-550/20'
+                  ? 'border-border bg-card hover:bg-muted text-foreground'
+                  : 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20'
               }`}
             >
               {charterEnabled ? '👁️ Hide' : '👁️ Show'}
@@ -654,35 +654,35 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
           </div>
         </div>
         ) : (
-          <div className="text-center text-xs font-mono text-[#8B949E] py-4 bg-[#0D1117]/35 rounded-xl border border-dashed border-[#30363D]" id="charter-collapsible-hidden">
-            🏆 The alignment slide content is currently hidden. Click <span className="text-blue-400 font-bold">👁️ Show</span> in the section header above to expand.
+          <div className="text-center text-xs font-mono text-muted-foreground py-4 bg-muted/40 rounded-xl border border-dashed border-border" id="charter-collapsible-hidden">
+            🏆 The alignment slide content is currently hidden. Click <span className="text-indigo-600 dark:text-blue-400 font-bold">👁️ Show</span> in the section header above to expand.
           </div>
         )}
       </div>
 
       {/* 📊 INTERACTIVE PROJECT ARCHITECTURE BLUEPRINT */}
-      <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-5 shadow-lg space-y-4 animate-fadeIn" id="project-architecture-blueprint">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2A2D35] pb-3">
+      <div className="bg-card border border-border rounded-xl p-5 shadow-card space-y-4 animate-fadeIn" id="project-architecture-blueprint">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
           <div>
-            <h3 className="text-xs font-bold font-mono text-white uppercase tracking-wider flex items-center gap-1.5">
-              <Server className="h-4 w-4 text-indigo-400" />
+            <h3 className="text-xs font-bold font-mono text-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Server className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               🛠️ ServiceNow Ticket quality Audit Architecture Diagram
             </h3>
-            <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+            <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
               Interactive high-fidelity overview of frontend components, Express backend proxy endpoints, and third-party APIs.
             </p>
           </div>
 
           {/* Tab buttons & Visual Diagram Toggle option */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0 select-none">
-            <div className="flex bg-black/40 border border-[#2A2D35] p-1 rounded-lg">
+            <div className="flex bg-muted/40 border border-border p-1 rounded-lg">
               <button
                 type="button"
                 onClick={() => setArchTab('topology')}
                 className={`px-3 py-1.5 text-[10px] font-mono font-bold rounded-md transition-all cursor-pointer ${
                   archTab === 'topology' 
-                    ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-indigo-600 text-white shadow-xs' 
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Topology Diagram
@@ -692,8 +692,8 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
                 onClick={() => setArchTab('pipeline')}
                 className={`px-3 py-1.5 text-[10px] font-mono font-bold rounded-md transition-all cursor-pointer ${
                   archTab === 'pipeline' 
-                    ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-indigo-600 text-white shadow-xs' 
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Data Process Flows
@@ -703,8 +703,8 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
                 onClick={() => setArchTab('stack')}
                 className={`px-3 py-1.5 text-[10px] font-mono font-bold rounded-md transition-all cursor-pointer ${
                   archTab === 'stack' 
-                    ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-indigo-600 text-white shadow-xs' 
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Tech Stack Details
@@ -717,7 +717,7 @@ export default function AboutPortal({ currentReportsCount }: AboutPortalProps) {
         {archTab === 'topology' && (
           <div className="space-y-4 animate-fadeIn">
             {/* Legend info block */}
-            <div className="flex flex-wrap items-center gap-4 text-[10px] font-mono text-gray-400 bg-black/20 p-2 rounded-lg border border-[#2A2D35]/40 justify-center sm:justify-start">
+            <div className="flex flex-wrap items-center gap-4 text-[10px] font-mono text-muted-foreground bg-muted/30 p-2 rounded-lg border border-border justify-center sm:justify-start">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 bg-blue-500 rounded-sm inline-block"></span>
                 Browser Sandbox

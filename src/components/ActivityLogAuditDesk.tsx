@@ -33,27 +33,24 @@ import {
   Calendar,
   ExternalLink
 } from 'lucide-react';
-import { ActivityIncident, ActivityLogReference } from '../types';
+import { ActivityIncident, ActivityLogReference, isEmpathyEligibleTicket } from '../types';
 
-// Generate direct auto-login link to incident in ServiceNow (bypasses login screen)
+// Generate direct link to incident in ServiceNow using native session navigation
 function getServiceNowIncidentUrl(incNumber: string, sysId?: string): string {
-  const rawInstance = (typeof window !== 'undefined' ? localStorage.getItem('gov_snow_instance') : '') || 'dev423209';
-  const cleanInstance = rawInstance.replace(/^https?:\/\//, '').replace(/\.service-now\.com.*$/, '').trim() || 'dev423209';
-  const user = (typeof window !== 'undefined' ? localStorage.getItem('gov_snow_user') : '') || 'admin';
-  const pass = (typeof window !== 'undefined' ? localStorage.getItem('gov_snow_pass') : '') || 'BrwYffM0%X*1';
-
-  const targetUri = (sysId && sysId.length === 32 && !sysId.includes('_') && !sysId.includes('.'))
-    ? `incident.do?sys_id=${sysId}`
-    : `incident.do?sysparm_query=number=${encodeURIComponent(incNumber)}`;
-
-  return `https://${cleanInstance}.service-now.com/login.do?user_name=${encodeURIComponent(user)}&sys_action=sysverb_login&user_password=${encodeURIComponent(pass)}&sysparm_goto_url=${encodeURIComponent(targetUri)}`;
+  const queryParams = new URLSearchParams();
+  if (incNumber) queryParams.set('incNumber', incNumber);
+  if (sysId && sysId.length === 32 && !sysId.includes('_') && !sysId.includes('.')) {
+    queryParams.set('sysId', sysId);
+  }
+  return `/api/servicenow/nav-to-ticket?${queryParams.toString()}`;
 }
 
 interface ActivityLogAuditDeskProps {
   triggerPopup: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
+  tickets?: any[];
 }
 
-export const ActivityLogAuditDesk: React.FC<ActivityLogAuditDeskProps> = ({ triggerPopup }) => {
+export const ActivityLogAuditDesk: React.FC<ActivityLogAuditDeskProps> = ({ triggerPopup, tickets = [] }) => {
   const [incidents, setIncidents] = useState<ActivityIncident[]>([]);
   const [references, setReferences] = useState<ActivityLogReference[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +70,33 @@ export const ActivityLogAuditDesk: React.FC<ActivityLogAuditDeskProps> = ({ trig
     newIncidentsCount: number;
     errorMessage?: string;
   } | null>(null);
+
+  const toggleAutoSync = async () => {
+    const nextVal = !isAutoSyncActive;
+    setIsAutoSyncActive(nextVal);
+    try {
+      const credsRes = await fetch('/api/servicenow/credentials');
+      const existingCreds = credsRes.ok ? await credsRes.json() : {};
+      await fetch('/api/servicenow/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...existingCreds,
+          autoSyncEnabled: nextVal,
+          autoFetchEnabled: nextVal
+        })
+      });
+      triggerPopup(
+        nextVal
+          ? "Auto-Sync ENABLED: Real-time background sync active for open incidents."
+          : "Auto-Sync PAUSED: Background auto-sync suspended.",
+        nextVal ? "success" : "info"
+      );
+      window.dispatchEvent(new CustomEvent('governance_autosync_toggled', { detail: { enabled: nextVal } }));
+    } catch (err) {
+      console.error('Failed to toggle auto-sync:', err);
+    }
+  };
 
   const fetchBgLogs = async () => {
     try {
@@ -335,6 +359,95 @@ export const ActivityLogAuditDesk: React.FC<ActivityLogAuditDeskProps> = ({ trig
     return "Flagged as non-compliant based on corporate IT quality rules.";
   };
 
+  const [isSyncingEmpathy, setIsSyncingEmpathy] = useState(false);
+
+  const formatEmpathyComments = (incident: ActivityIncident): string => {
+    const incNum = incident.incNumber || 'INC0000000';
+    const assignee = incident.assignee || 'Unassigned';
+    const group = incident.assignmentGroup || 'Unassigned Group';
+    const hoursIdle = incident.hoursIdle ?? 0;
+    const notifStatus = incident.notificationStatus || (hoursIdle >= 24 ? "BREACHED (>24H)" : (hoursIdle >= 20 ? "WARNING-3 SENT" : (hoursIdle >= 16 ? "WARNING-2 SENT" : "NO WARNING")));
+    const isCompliant = incident.complianceStatus === 'COMPLIANT';
+    const quality = incident.qualityCheck || (isCompliant ? 'Average' : 'Poorly');
+    const isUpdatedToday = incident.isUpdatedToday !== false;
+
+    const ruleFeeds: string[] = [];
+    if (hoursIdle >= 24) {
+      ruleFeeds.push(`• [Rule Feed - SLA Breach]: Inactivity duration (${hoursIdle}h) exceeds the maximum 24-hour SLA threshold without qualifying progress.`);
+    } else if (hoursIdle >= 20) {
+      ruleFeeds.push(`• [Rule Feed - SLA Escalation]: Inactivity duration (${hoursIdle}h) has reached 20 hours. Mandatory escalation warning active to avert SLA breach.`);
+    } else if (hoursIdle >= 16) {
+      ruleFeeds.push(`• [Rule Feed - SLA Warning]: Inactivity duration (${hoursIdle}h) has reached 16 hours. Progress update required within 4 hours.`);
+    } else {
+      ruleFeeds.push(`• [Rule Feed - SLA Healthy]: Inactivity duration (${hoursIdle}h) is within normal operational thresholds.`);
+    }
+
+    if (!isUpdatedToday) {
+      ruleFeeds.push(`• [Rule Feed - Date Compliance]: STALE UPDATE — Last recorded activity date (${incident.updatedDate || 'N/A'}) is not from today's operational window.`);
+    } else {
+      ruleFeeds.push(`• [Rule Feed - Date Compliance]: COMPLIANT — Work note updated within today's operational window (${incident.updatedDate || 'Today'}).`);
+    }
+
+    if (quality === 'Poorly' || !incident.isValid) {
+      ruleFeeds.push(`• [Rule Feed - Update Quality]: POORLY — Content lacks sufficient technical diagnosis, investigation steps, or user communication.`);
+    } else if (quality === 'Excellent') {
+      ruleFeeds.push(`• [Rule Feed - Update Quality]: EXCELLENT — Comprehensive technical diagnosis, action steps, and verification notes documented.`);
+    } else {
+      ruleFeeds.push(`• [Rule Feed - Update Quality]: AVERAGE — Basic update logged; additional diagnostic checkpoints recommended.`);
+    }
+
+    const llmDirectives: string[] = [];
+    const rawLlmComments = incident.llmComments || incident.comments || '';
+    if (rawLlmComments && rawLlmComments.length > 10) {
+      llmDirectives.push(`• [1] AI Assessment: ${rawLlmComments.trim()}`);
+    }
+
+    if (hoursIdle >= 24 || !isCompliant || quality === 'Poorly') {
+      llmDirectives.push(`• [2] Work Note Action: Document current diagnostic measures, commands executed, and error output directly in internal work notes.`);
+      llmDirectives.push(`• [3] Customer Communication: Post a concise progress note to the caller or impacted users confirming active troubleshooting.`);
+      llmDirectives.push(`• [4] Operational Milestone: Define the next technical milestone or escalate to tier-3/vendor if an external blocker exists.`);
+    } else {
+      llmDirectives.push(`• [2] Routine Progress: Maintain standard active investigation and log subsequent verification steps before resolving.`);
+    }
+
+    return [
+      `Empathy Verdict: ${isCompliant ? 'COMPLIANT' : 'ACTION REQUIRED'} (Status: ${notifStatus} | Idle: ${hoursIdle}h)`,
+      `Open Incident: ${incNum} (Assignee: ${assignee} | Assignment Group: ${group})`,
+      '',
+      'Operational Rule Feeds:',
+      ...ruleFeeds,
+      '',
+      'LLM Directives & Governance Actions:',
+      ...llmDirectives,
+      '',
+      'Governance Policy: Active incidents require daily qualifying updates until final resolution.'
+    ].join('\n');
+  };
+
+  const handleManualSyncEmpathy = async (incident: ActivityIncident) => {
+    if (!incident || !incident.incNumber) return;
+    setIsSyncingEmpathy(true);
+    triggerPopup(`⏳ Syncing empathy verdict & rule feeds to ServiceNow work notes for ${incident.incNumber}...`, 'info');
+    try {
+      const res = await fetch('/api/activity-incidents/append-activity-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ incidentNumber: incident.incNumber })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerPopup(`✅ Auto-synced empathy directives & rule feeds to ServiceNow for ${incident.incNumber}!`, 'success');
+        loadData();
+      } else {
+        triggerPopup(`Notice: ${data.error || 'Saved locally.'}`, 'warning');
+      }
+    } catch (e: any) {
+      triggerPopup(`Failed to sync: ${e.message}`, 'warning');
+    } finally {
+      setIsSyncingEmpathy(false);
+    }
+  };
+
   const handleCopyExplanation = (incident: ActivityIncident) => {
     const analysis = getNonComplianceAnalysis(incident);
     const clipboardText = `--- SERVICENOW ACTIVITY LOG NON-COMPLIANCE AUDIT ---
@@ -365,19 +478,22 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
     triggerPopup(`📋 Non-compliance audit explanation for ${incident.incNumber} copied to clipboard!`, 'success');
   };
 
+  // Strictly filter incidents to OPEN only for Empathy Dashboard (excludes Resolved, Closed, Canceled)
+  const openIncidents = incidents.filter(isEmpathyEligibleTicket);
+
   // Stats Counters
-  const totalOpenIncidents = incidents.length;
-  const nonCompliantCount = incidents.filter(i => i.complianceStatus === 'NON-COMPLIANT').length;
-  const poorlyUpdatedCount = incidents.filter(i => i.qualityCheck === 'Poorly').length;
-  const averageUpdatedCount = incidents.filter(i => i.qualityCheck === 'Average').length;
-  const excellentUpdatedCount = incidents.filter(i => i.qualityCheck === 'Excellent').length;
-  const updatedTodayCount = incidents.filter(i => i.isUpdatedToday === true).length;
-  const staleDateCount = incidents.filter(i => i.isUpdatedToday === false).length;
+  const totalOpenIncidents = openIncidents.length;
+  const nonCompliantCount = openIncidents.filter(i => i.complianceStatus === 'NON-COMPLIANT').length;
+  const poorlyUpdatedCount = openIncidents.filter(i => i.qualityCheck === 'Poorly').length;
+  const averageUpdatedCount = openIncidents.filter(i => i.qualityCheck === 'Average').length;
+  const excellentUpdatedCount = openIncidents.filter(i => i.qualityCheck === 'Excellent').length;
+  const updatedTodayCount = openIncidents.filter(i => i.isUpdatedToday === true).length;
+  const staleDateCount = openIncidents.filter(i => i.isUpdatedToday === false).length;
 
   // New RAG Verification Cycle Metrics
-  const compliantCount = incidents.filter(i => i.complianceStatus === 'COMPLIANT').length;
+  const compliantCount = openIncidents.filter(i => i.complianceStatus === 'COMPLIANT').length;
   const avgComplianceScore = totalOpenIncidents > 0 ? Math.round((compliantCount / totalOpenIncidents) * 100) : 100;
-  const similarityScores = incidents.map(i => i.similarityScore).filter(s => s !== undefined) as number[];
+  const similarityScores = openIncidents.map(i => i.similarityScore).filter(s => s !== undefined) as number[];
   const avgSimilarity = similarityScores.length > 0 ? (similarityScores.reduce((a, b) => a + b, 0) / similarityScores.length) : 0.82;
   const avgConfidenceRating = Math.round(avgSimilarity * 100);
 
@@ -388,7 +504,8 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
       const res = await fetch('/api/activity-incidents');
       if (!res.ok) throw new Error('API request failed');
       const data = await res.json();
-      setIncidents(data.incidents || []);
+      const openOnly = (data.incidents || []).filter(isEmpathyEligibleTicket);
+      setIncidents(openOnly);
       setReferences(data.references || []);
     } catch (err: any) {
       console.error('Failed to load incident activity logs:', err);
@@ -406,7 +523,8 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
     const handleEmpathyDataFetched = (e: any) => {
       const data = e.detail;
       if (data) {
-        setIncidents(data.incidents || []);
+        const openOnly = (data.incidents || []).filter(isEmpathyEligibleTicket);
+        setIncidents(openOnly);
         if (data.references) {
           setReferences(data.references);
         }
@@ -440,7 +558,8 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
       const res = await fetch('/api/activity-incidents/audit-all', { method: 'POST' });
       if (!res.ok) throw new Error('Server error auditing tickets');
       const data = await res.json();
-      setIncidents(data.incidents || []);
+      const openOnly = (data.incidents || []).filter(isEmpathyEligibleTicket);
+      setIncidents(openOnly);
       triggerPopup('SLA warning and update quality audit completed via RAG Vector search!', 'success');
     } catch (err: any) {
       console.error('Failed to audit all:', err);
@@ -610,23 +729,55 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
     }
   };
 
-  // Unique list of assignment groups for dropdown
+  // Unique list of assignment groups for dropdown (open incidents only)
   const uniqueAssignmentGroups = Array.from(
-    new Set(incidents.map(item => item.assignmentGroup).filter(Boolean))
+    new Set(openIncidents.map(item => item.assignmentGroup).filter(Boolean))
   ) as string[];
 
-  // Unique list of ticket statuses for dropdown
+  // Helper to resolve canonical status for an activity incident
+  const resolveItemStatus = (item: ActivityIncident): string => {
+    const matched = (tickets || []).find((t: any) => t.incNumber === item.incNumber || t.id === item.id);
+    const raw = item.status || item.incidentState || matched?.incidentState || matched?.state;
+    if (raw) {
+      const s = String(raw).trim().toLowerCase();
+      if (s === '6' || s === 'resolved' || s.includes('resolved') || s.includes('solve propose') || s.includes('solve_propose') || s.includes('solution provided')) return 'Resolved';
+      if (s === '7' || s === 'closed' || s.includes('closed') || s.includes('confirm')) return 'Closed';
+      if (s === '1' || s === 'new') return 'New';
+      if (s === '2' || s === 'in progress' || s.includes('in progress') || s.includes('in-progress') || s.includes('active')) return 'In Progress';
+      if (s === '3' || s === 'on hold' || s.includes('hold') || s.includes('pending')) return 'On Hold';
+      if (s === '8' || s === 'canceled' || s.includes('cancel')) return 'Canceled';
+      return String(raw).trim().replace(/\b\w/g, c => c.toUpperCase());
+    }
+    const logs = (item.rawActivityLogs || item.latestActivityEntry || '').toLowerCase();
+    if (
+      logs.includes('incident state: resolved') || 
+      logs.includes('incident state resolved') || 
+      logs.includes('state: resolved') || 
+      logs.includes('-> resolved') || 
+      logs.includes('state changed to resolved') || 
+      logs.includes('marked resolved') || 
+      logs.includes('solve proposed')
+    ) {
+      return 'Resolved';
+    }
+    if (logs.includes('incident state: closed') || logs.includes('state: closed') || logs.includes('-> closed') || logs.includes('state changed to closed')) {
+      return 'Closed';
+    }
+    return 'In Progress';
+  };
+
+  // Unique list of ticket statuses for dropdown (strictly OPEN statuses: New, In Progress, On Hold)
   const uniqueStatuses = Array.from(
-    new Set(incidents.map(item => item.status || item.incidentState).filter(Boolean))
-  ) as string[];
+    new Set(openIncidents.map(resolveItemStatus).filter(Boolean))
+  ).filter(st => st !== 'Resolved' && st !== 'Closed' && st !== 'Canceled') as string[];
 
-  // Filtering incidents list
-  const filteredIncidents = incidents.filter(item => {
+  // Filtering incidents list (strictly OPEN incidents only)
+  const filteredIncidents = openIncidents.filter(item => {
     if (complianceFilter !== 'ALL' && item.complianceStatus !== complianceFilter) return false;
     if (qualityFilter !== 'ALL' && item.qualityCheck !== qualityFilter) return false;
     if (assignmentGroupFilter !== 'ALL' && item.assignmentGroup !== assignmentGroupFilter) return false;
     if (statusFilter !== 'ALL') {
-      const itemStatus = item.status || item.incidentState || '';
+      const itemStatus = resolveItemStatus(item);
       if (itemStatus !== statusFilter) return false;
     }
     if (dateFilter === 'TODAY_ONLY' && item.isUpdatedToday !== true) return false;
@@ -636,7 +787,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
       const incNum = (item.incNumber || '').toLowerCase();
       const assignee = (item.assignee || '').toLowerCase();
       const group = (item.assignmentGroup || '').toLowerCase();
-      const st = (item.status || item.incidentState || '').toLowerCase();
+      const st = resolveItemStatus(item).toLowerCase();
       const prevSt = (item.previousState || '').toLowerCase();
       if (!incNum.includes(q) && !assignee.includes(q) && !group.includes(q) && !st.includes(q) && !prevSt.includes(q)) {
         return false;
@@ -659,7 +810,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
 
   if (showQualityBreakdownPage) {
     return (
-      <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-[#0B0D11] text-[#E2E8F0]">
+      <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-background text-foreground">
         {/* Quality Breakdown Report full page */}
         <div className="bg-[#121620] border border-[#222836] rounded-xl p-6 relative overflow-hidden shadow-xl animate-fade-in">
           <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -700,7 +851,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
         {(() => {
           const groups: { [key: string]: { poor: number; average: number; excellent: number; total: number } } = {};
           
-          incidents.forEach(inc => {
+          openIncidents.forEach(inc => {
             const group = inc.assignmentGroup || 'General Operations';
             if (!groups[group]) {
               groups[group] = { poor: 0, average: 0, excellent: 0, total: 0 };
@@ -901,7 +1052,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-[#0B0D11] text-[#E2E8F0]">
+    <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-background text-foreground">
       
       {/* 1. Header Banner matching ServiceNow style */}
       <div className="bg-[#121620] border border-[#222836] rounded-xl p-6 relative overflow-hidden shadow-xl">
@@ -954,60 +1105,65 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
       </div>
 
       {/* 1.1 Live Background Flow Telemetry logs & Sync Status Indicator */}
-      <div className="bg-[#121620] border border-[#222836] rounded-xl overflow-hidden shadow-xl mb-6">
-        <div className="p-5 bg-gradient-to-r from-[#171C2B] to-[#121620] border-b border-[#222836]">
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs mb-6">
+        <div className="p-5 bg-slate-50/70 dark:bg-gradient-to-r dark:from-[#171C2B] dark:to-[#121620] border-b border-border">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
             {/* Title / Action branding */}
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 bg-indigo-950/60 border border-indigo-500/30 rounded-lg flex items-center justify-center">
-                <Wifi className="h-5 w-5 text-indigo-400" />
+              <div className="h-9 w-9 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/30 rounded-lg flex items-center justify-center">
+                <Wifi className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white tracking-wide">ServiceNow Sync Status Monitoring</h3>
-                <p className="text-[11px] text-gray-400">Automated background poller tracking and SLA compliance stream ingestion.</p>
+                <h3 className="text-sm font-bold text-foreground tracking-wide">ServiceNow Sync Status Monitoring</h3>
+                <p className="text-[11px] text-muted-foreground">Automated background poller tracking and SLA compliance stream ingestion.</p>
               </div>
             </div>
 
             {/* Quick configuration metadata */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] bg-slate-800/80 text-gray-300 font-mono px-2 py-1 rounded border border-slate-700">Poller Cycle: 30s</span>
-              <span className={`text-[10px] font-mono px-2 py-1 rounded border flex items-center gap-1.5 ${
-                isAutoSyncActive 
-                  ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/20' 
-                  : 'bg-amber-950/40 text-amber-400 border-amber-500/20'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isAutoSyncActive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              <span className="text-[10px] bg-muted text-muted-foreground font-mono px-2 py-1 rounded border border-border">Poller Cycle: 30s</span>
+              <button
+                type="button"
+                onClick={toggleAutoSync}
+                className={`text-[10px] font-mono px-2.5 py-1 rounded border flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                  isAutoSyncActive 
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40' 
+                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+                }`}
+                title="Click to toggle real-time background Auto-Sync"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${isAutoSyncActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
                 {isAutoSyncActive ? 'AUTO-SYNC ACTIVE' : 'MANUAL FEEDS ONLY'}
-              </span>
+              </button>
             </div>
 
           </div>
 
           {/* Sub-grid: Displaying state parameters: Timestamp of Last Fetch, Status (Success/Error), and Incidence Ingest counters */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-[#222836]/60">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-border">
             
             {/* Last Fetch Timestamp */}
-            <div className="bg-[#0A0D14] border border-[#1E2433] rounded-lg p-3 flex items-center gap-3">
-              <div className="p-2 bg-blue-950/50 text-blue-400 rounded">
+            <div className="bg-card border border-border rounded-lg p-3 flex items-center gap-3">
+              <div className="p-2 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded">
                 <Clock className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <span className="block text-[10px] font-mono uppercase tracking-wider text-gray-500">Last Synced Fetch</span>
-                <span className="block text-xs font-semibold text-gray-200 truncate mt-0.5">
+                <span className="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Last Synced Fetch</span>
+                <span className="block text-xs font-semibold text-foreground truncate mt-0.5">
                   {lastSyncInfo && lastSyncInfo.timestamp ? lastSyncInfo.timestamp : "No poll completed yet"}
                 </span>
               </div>
             </div>
 
             {/* Status (Success/Error) */}
-            <div className="bg-[#0A0D14] border border-[#1E2433] rounded-lg p-3 flex items-center gap-3">
+            <div className="bg-card border border-border rounded-lg p-3 flex items-center gap-3">
               <div className={`p-2 rounded ${
                 lastSyncInfo?.status === "Success" 
-                  ? "bg-emerald-950/50 text-emerald-400" 
+                  ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400" 
                   : lastSyncInfo?.status === "Error" 
-                  ? "bg-red-950/50 text-red-400"
-                  : "bg-slate-900/50 text-gray-400"
+                  ? "bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400" 
+                  : "bg-muted text-muted-foreground"
               }`}>
                 {lastSyncInfo?.status === "Success" ? (
                   <CheckCircle className="h-4 w-4" />
@@ -1018,17 +1174,17 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
                 )}
               </div>
               <div className="min-w-0">
-                <span className="block text-[10px] font-mono uppercase tracking-wider text-gray-500">Operation Status</span>
+                <span className="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Operation Status</span>
                 <span className={`block text-xs font-bold mt-0.5 ${
                   lastSyncInfo?.status === "Success" 
-                    ? "text-emerald-400" 
+                    ? "text-emerald-600 dark:text-emerald-400" 
                     : lastSyncInfo?.status === "Error" 
-                    ? "text-red-400"
-                    : "text-gray-400"
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-muted-foreground"
                 }`}>
                   {lastSyncInfo ? lastSyncInfo.status.toUpperCase() : "STANDBY (IDLE)"}
                   {lastSyncInfo?.errorMessage && (
-                    <span className="text-[10px] text-red-500 block font-normal truncate max-w-full">
+                    <span className="text-[10px] text-red-600 dark:text-red-400 block font-normal truncate max-w-full">
                       {lastSyncInfo.errorMessage}
                     </span>
                   )}
@@ -1037,13 +1193,13 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
             </div>
 
             {/* Total Successfully Retrieved */}
-            <div className="bg-[#0A0D14] border border-[#1E2433] rounded-lg p-3 flex items-center gap-3">
-              <div className="p-2 bg-purple-950/50 text-purple-400 rounded">
+            <div className="bg-card border border-border rounded-lg p-3 flex items-center gap-3">
+              <div className="p-2 bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded">
                 <Database className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <span className="block text-[10px] font-mono uppercase tracking-wider text-gray-500">Retrieved Yield</span>
-                <span className="block text-xs font-semibold text-gray-200 mt-0.5">
+                <span className="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Retrieved Yield</span>
+                <span className="block text-xs font-semibold text-foreground mt-0.5">
                   {lastSyncInfo && lastSyncInfo.status === "Success" 
                     ? `${lastSyncInfo.newIncidentsCount} tickets cached` 
                     : lastSyncInfo?.status === "Error"
@@ -1103,60 +1259,60 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
         {/* Left Side: Standard Counters Grid */}
         <div className="xl:col-span-2 grid grid-cols-2 lg:grid-cols-5 xl:grid-cols-3 gap-4">
           
-          <div className="bg-[#121620] border border-[#222836] p-4 rounded-xl flex flex-col justify-between shadow-lg">
-            <div className="text-xs font-mono font-bold tracking-wider text-gray-400 uppercase">TOTAL OPEN INCIDENTS</div>
+          <div className="bg-card border border-border p-4 rounded-xl flex flex-col justify-between shadow-card">
+            <div className="text-xs font-mono font-bold tracking-wider text-muted-foreground uppercase">TOTAL OPEN INCIDENTS</div>
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-3xl font-extrabold text-white">{totalOpenIncidents}</span>
-              <span className="text-[10px] text-gray-500">Active SLA logs</span>
+              <span className="text-3xl font-extrabold text-foreground">{totalOpenIncidents}</span>
+              <span className="text-[10px] text-muted-foreground">Active SLA logs</span>
             </div>
-            <div className="w-full bg-[#1A1F2D] rounded-full h-1 mt-3">
+            <div className="w-full bg-muted rounded-full h-1 mt-3">
               <div className="bg-blue-500 h-1 rounded-full" style={{ width: '100%' }}></div>
             </div>
           </div>
 
-          <div className="bg-[#121620] border border-[#222836] p-4 rounded-xl flex flex-col justify-between shadow-lg">
-            <div className="text-xs font-mono font-bold tracking-wider text-red-400 uppercase flex items-center gap-1.5">
+          <div className="bg-card border border-border p-4 rounded-xl flex flex-col justify-between shadow-card">
+            <div className="text-xs font-mono font-bold tracking-wider text-red-600 dark:text-red-400 uppercase flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
               NON-COMPLIANT
             </div>
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-3xl font-extrabold text-red-500">{nonCompliantCount}</span>
-              <span className="text-[10px] text-gray-500">{(totalOpenIncidents > 0 ? (nonCompliantCount / totalOpenIncidents)*100 : 0).toFixed(0)}% fail rate</span>
+              <span className="text-3xl font-extrabold text-red-600 dark:text-red-500">{nonCompliantCount}</span>
+              <span className="text-[10px] text-muted-foreground">{(totalOpenIncidents > 0 ? (nonCompliantCount / totalOpenIncidents)*100 : 0).toFixed(0)}% fail rate</span>
             </div>
-            <div className="w-full bg-[#1A1F2D] rounded-full h-1 mt-3">
+            <div className="w-full bg-muted rounded-full h-1 mt-3">
               <div className="bg-red-500 h-1 rounded-full" style={{ width: `${totalOpenIncidents > 0 ? (nonCompliantCount/totalOpenIncidents)*100 : 0}%` }}></div>
             </div>
           </div>
 
-          <div className="bg-[#121620] border border-[#222836] p-4 rounded-xl flex flex-col justify-between shadow-lg">
-            <div className="text-xs font-mono font-bold tracking-wider text-orange-400 uppercase">POORLY UPDATED</div>
+          <div className="bg-card border border-border p-4 rounded-xl flex flex-col justify-between shadow-card">
+            <div className="text-xs font-mono font-bold tracking-wider text-amber-600 dark:text-orange-400 uppercase">POORLY UPDATED</div>
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-3xl font-extrabold text-orange-400">{poorlyUpdatedCount}</span>
-              <span className="text-[10px] text-gray-500">Requires review</span>
+              <span className="text-3xl font-extrabold text-amber-600 dark:text-orange-400">{poorlyUpdatedCount}</span>
+              <span className="text-[10px] text-muted-foreground">Requires review</span>
             </div>
-            <div className="w-full bg-[#1A1F2D] rounded-full h-1 mt-3">
-              <div className="bg-orange-500 h-1 rounded-full" style={{ width: `${totalOpenIncidents > 0 ? (poorlyUpdatedCount/totalOpenIncidents)*100 : 0}%` }}></div>
+            <div className="w-full bg-muted rounded-full h-1 mt-3">
+              <div className="bg-amber-500 dark:bg-orange-500 h-1 rounded-full" style={{ width: `${totalOpenIncidents > 0 ? (poorlyUpdatedCount/totalOpenIncidents)*100 : 0}%` }}></div>
             </div>
           </div>
 
-          <div className="bg-[#121620] border border-[#222836] p-4 rounded-xl flex flex-col justify-between shadow-lg">
-            <div className="text-xs font-mono font-bold tracking-wider text-yellow-500 uppercase">AVERAGE UPDATED</div>
+          <div className="bg-card border border-border p-4 rounded-xl flex flex-col justify-between shadow-card">
+            <div className="text-xs font-mono font-bold tracking-wider text-amber-500 dark:text-yellow-500 uppercase">AVERAGE UPDATED</div>
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-3xl font-extrabold text-yellow-500">{averageUpdatedCount}</span>
-              <span className="text-[10px] text-gray-500">Satisfactory logs</span>
+              <span className="text-3xl font-extrabold text-amber-500 dark:text-yellow-500">{averageUpdatedCount}</span>
+              <span className="text-[10px] text-muted-foreground">Satisfactory logs</span>
             </div>
-            <div className="w-full bg-[#1A1F2D] rounded-full h-1 mt-3">
-              <div className="bg-yellow-500 h-1 rounded-full" style={{ width: `${totalOpenIncidents > 0 ? (averageUpdatedCount/totalOpenIncidents)*100 : 0}%` }}></div>
+            <div className="w-full bg-muted rounded-full h-1 mt-3">
+              <div className="bg-amber-500 dark:bg-yellow-500 h-1 rounded-full" style={{ width: `${totalOpenIncidents > 0 ? (averageUpdatedCount/totalOpenIncidents)*100 : 0}%` }}></div>
             </div>
           </div>
 
-          <div className="bg-[#121620] border border-[#222836] p-4 rounded-xl flex flex-col justify-between shadow-lg">
-            <div className="text-xs font-mono font-bold tracking-wider text-emerald-400 uppercase">EXCELLENT UPDATED</div>
+          <div className="bg-card border border-border p-4 rounded-xl flex flex-col justify-between shadow-card">
+            <div className="text-xs font-mono font-bold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase">EXCELLENT UPDATED</div>
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-3xl font-extrabold text-emerald-400">{excellentUpdatedCount}</span>
-              <span className="text-[10px] text-gray-500">Corporate benchmark</span>
+              <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">{excellentUpdatedCount}</span>
+              <span className="text-[10px] text-muted-foreground">Corporate benchmark</span>
             </div>
-            <div className="w-full bg-[#1A1F2D] rounded-full h-1 mt-3">
+            <div className="w-full bg-muted rounded-full h-1 mt-3">
               <div className="bg-emerald-500 h-1 rounded-full" style={{ width: `${totalOpenIncidents > 0 ? (excellentUpdatedCount/totalOpenIncidents)*100 : 0}%` }}></div>
             </div>
           </div>
@@ -1164,44 +1320,44 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
         </div>
 
         {/* Right Side: RAG Cycle Summary Card */}
-        <div className="bg-gradient-to-br from-[#13192B] to-[#121620] border border-[#2E374A] p-5 rounded-xl shadow-xl flex flex-col justify-between relative overflow-hidden">
+        <div className="bg-card dark:bg-gradient-to-br dark:from-[#13192B] dark:to-[#121620] border border-border dark:border-[#2E374A] p-5 rounded-xl shadow-card flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
             <Database className="h-28 w-28 text-indigo-400" />
           </div>
           <div className="relative z-10 space-y-4 flex flex-col h-full justify-between">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-indigo-400 font-bold flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5 text-indigo-400" /> RAG-Indexed Verify-run
+                <span className="text-[10px] font-mono uppercase tracking-widest text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> RAG-Indexed Verify-run
                 </span>
-                <span className="text-[9px] bg-indigo-500/10 text-indigo-300 font-mono px-2 py-0.5 rounded border border-indigo-500/20">
+                <span className="text-[9px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-mono px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20">
                   Active Cycle
                 </span>
               </div>
-              <h2 className="text-sm font-semibold text-white tracking-tight mb-3">
+              <h2 className="text-sm font-semibold text-foreground tracking-tight mb-3">
                 SLA & Activity Quality Analysis
               </h2>
               
               {/* Double Score Display */}
-              <div className="grid grid-cols-2 gap-3 bg-[#090C12]/80 p-3 rounded-lg border border-[#1E2433] mb-4">
+              <div className="grid grid-cols-2 gap-3 bg-muted/40 dark:bg-[#090C12]/80 p-3 rounded-lg border border-border dark:border-[#1E2433] mb-4">
                 <div>
-                  <div className="text-[9px] font-mono text-gray-400 uppercase tracking-wider mb-1">Avg Compliance</div>
+                  <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider mb-1">Avg Compliance</div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-extrabold text-[#10B981]">{avgComplianceScore}%</span>
-                    <span className="text-[9px] text-gray-500 font-mono">SLA</span>
+                    <span className="text-2xl font-extrabold text-emerald-600 dark:text-[#10B981]">{avgComplianceScore}%</span>
+                    <span className="text-[9px] text-muted-foreground font-mono">SLA</span>
                   </div>
-                  <div className="text-[9px] text-emerald-400/95 mt-1 font-sans">
+                  <div className="text-[9px] text-emerald-600 dark:text-emerald-400/95 mt-1 font-sans font-medium">
                     {avgComplianceScore >= 80 ? '✓ COMPLIANCE HIGH' : '⚠ ATTENTION NEEDED'}
                   </div>
                 </div>
                 
-                <div className="border-l border-gray-800 pl-3">
-                  <div className="text-[9px] font-mono text-gray-400 uppercase tracking-wider mb-1">Confidence Rating</div>
+                <div className="border-l border-border dark:border-gray-800 pl-3">
+                  <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider mb-1">Confidence Rating</div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-extrabold text-blue-405 text-blue-400">{avgConfidenceRating}%</span>
-                    <span className="text-[9px] text-gray-500 font-mono">Cosine</span>
+                    <span className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{avgConfidenceRating}%</span>
+                    <span className="text-[9px] text-muted-foreground font-mono">Cosine</span>
                   </div>
-                  <div className="text-[9px] text-blue-400 mt-1 font-sans font-medium uppercase">
+                  <div className="text-[9px] text-blue-600 dark:text-blue-400 mt-1 font-sans font-medium uppercase">
                     {avgConfidenceRating >= 80 ? '★ Semantic Match' : '⏳ Low Overlap'}
                   </div>
                 </div>
@@ -1209,28 +1365,28 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
 
               {/* Dynamic Findings List */}
               <div className="space-y-2 text-[10px]">
-                <div className="text-[9px] font-mono text-gray-500 uppercase tracking-wider">Dynamic Overlap Findings:</div>
-                <ul className="space-y-1.5 text-gray-300 leading-normal font-sans">
+                <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">Dynamic Overlap Findings:</div>
+                <ul className="space-y-1.5 text-foreground/80 dark:text-gray-300 leading-normal font-sans">
                   {nonCompliantCount > 0 ? (
-                    <li className="flex items-start gap-1.5 text-red-300">
-                      <span className="text-[#EF4444] text-[11px] leading-none shrink-0">⚠</span>
+                    <li className="flex items-start gap-1.5 text-rose-600 dark:text-red-300">
+                      <span className="text-rose-500 text-[11px] leading-none shrink-0">⚠</span>
                       <span>{nonCompliantCount} non-compliant log instances bypass standard checklist.</span>
                     </li>
                   ) : (
-                    <li className="flex items-start gap-1.5 text-emerald-400">
-                      <span className="text-[#10B981] text-[11px] leading-none shrink-0">✓</span>
+                    <li className="flex items-start gap-1.5 text-emerald-600 dark:text-emerald-400">
+                      <span className="text-emerald-500 text-[11px] leading-none shrink-0">✓</span>
                       <span>All verified tickets meet critical compliance SLA hours.</span>
                     </li>
                   )}
                   
                   {poorlyUpdatedCount > 0 ? (
-                    <li className="flex items-start gap-1.5 text-amber-300">
-                      <span className="text-[#F59E0B] text-[11px] leading-none shrink-0">❗</span>
+                    <li className="flex items-start gap-1.5 text-amber-600 dark:text-amber-300">
+                      <span className="text-amber-500 text-[11px] leading-none shrink-0">❗</span>
                       <span>{poorlyUpdatedCount} update narrative gaps detected (classified: Poorly).</span>
                     </li>
                   ) : (
-                    <li className="flex items-start gap-1.5 text-gray-400">
-                      <span className="text-[#10B981] text-[11px] leading-none shrink-0">✓</span>
+                    <li className="flex items-start gap-1.5 text-muted-foreground dark:text-gray-400">
+                      <span className="text-emerald-500 text-[11px] leading-none shrink-0">✓</span>
                       <span>No critical text narratives evaluated as poorly detailed.</span>
                     </li>
                   )}
@@ -1484,7 +1640,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
                     filteredIncidents.map((item, itemIdx) => {
                       // Compliance styles
                       const isCompliant = item.complianceStatus === 'COMPLIANT';
-                      const currentStatus = item.status || item.incidentState || 'In Progress';
+                      const currentStatus = resolveItemStatus(item);
                       const lowerStatus = currentStatus.toLowerCase();
                       
                       // Status style determination
@@ -1545,11 +1701,16 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
                             <span className={`px-2.5 py-1 rounded text-[10px] font-mono tracking-wide inline-flex items-center gap-1 ${statusBadgeStyle}`}>
                               {currentStatus}
                             </span>
-                            {item.previousState && (
-                              <div className="text-[9px] text-gray-500 font-mono mt-0.5" title={`Previous: ${item.previousState}`}>
-                                prev: {item.previousState}
-                              </div>
-                            )}
+                            {(() => {
+                              const matched = (tickets || []).find((t: any) => t.incNumber === item.incNumber || t.id === item.id);
+                              const prev = item.previousState || matched?.previousState;
+                              if (!prev) return null;
+                              return (
+                                <div className="text-[9px] text-gray-500 font-mono mt-0.5" title={`Previous: ${prev}`}>
+                                  prev: {prev}
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="p-4 align-top whitespace-nowrap text-center">
                             <span className="font-mono font-bold bg-[#090C12] px-2.5 py-1 rounded text-gray-300 border border-[#222836]">
@@ -1770,7 +1931,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
               </table>
             </div>
             <div className="bg-[#171C28] border-t border-[#222836] p-3 text-right text-[10px] text-gray-500 font-mono">
-              Displaying {filteredIncidents.length} of {incidents.length} ServiceNow compliance tracking traces
+              Displaying {filteredIncidents.length} of {openIncidents.length} ServiceNow compliance tracking traces
             </div>
           </div>
         </div>
@@ -1967,7 +2128,7 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
               {(() => {
                 const groups: { [key: string]: { poor: number; average: number; excellent: number; total: number } } = {};
                 
-                incidents.forEach(inc => {
+                openIncidents.forEach(inc => {
                   const group = inc.assignmentGroup || 'General Operations';
                   if (!groups[group]) {
                     groups[group] = { poor: 0, average: 0, excellent: 0, total: 0 };
@@ -2488,6 +2649,44 @@ ${analysis.remediationAdvice.map((a, i) => `${i + 1}. ${a}`).join('\n')}
                     <li key={i}>{step}</li>
                   ))}
                 </ul>
+              </div>
+
+              {/* Empathy Point-Wise Directives & Rule Feeds */}
+              <div className="bg-[#0D111A] border border-blue-500/30 rounded-xl p-4 space-y-3 shadow-inner">
+                <div className="flex items-center justify-between pb-2 border-b border-[#1E2638]">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                    Auditor Empathy Verdict &amp; Point-Wise Directives
+                  </span>
+                  <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full uppercase ${
+                    explainingIncident.complianceStatus === 'COMPLIANT'
+                      ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                  }`}>
+                    {explainingIncident.complianceStatus === 'COMPLIANT' ? 'Compliant Work Note' : 'Action Required'}
+                  </span>
+                </div>
+
+                <div className="text-gray-200 font-sans text-xs leading-relaxed select-text whitespace-pre-wrap font-medium py-1">
+                  {formatEmpathyComments(explainingIncident)}
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-[#1E2638] text-[10.5px] font-mono text-gray-400">
+                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span>Auto-synchronized to incident activity logs &amp; ServiceNow work notes</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleManualSyncEmpathy(explainingIncident)}
+                    disabled={isSyncingEmpathy}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#182030] hover:bg-[#202B40] text-gray-200 border border-[#2D3A54] transition-all cursor-pointer text-[10.5px] disabled:opacity-50"
+                    title="Force sync empathy verdict &amp; rule feeds to ServiceNow work notes"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${isSyncingEmpathy ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingEmpathy ? 'Syncing...' : 'Sync to Activity Logs'}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Modal Footer Actions */}

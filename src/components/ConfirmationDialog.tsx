@@ -69,28 +69,28 @@ export default function ConfirmationDialog({
 
   const variantStyles = {
     danger: {
-      border: 'border-red-500/30',
-      glow: 'shadow-red-950/20',
-      iconBg: 'bg-red-500/10 border-red-500/25 text-red-400',
-      confirmBtn: 'bg-red-600 hover:bg-red-700 text-white shadow-red-950/40 hover:ring-2 hover:ring-red-500/30',
-      badgeBorder: 'border-red-500/20 bg-red-950/25 text-red-300',
-      badgeText: 'text-red-400'
+      border: 'border-rose-500/30 dark:border-red-500/30',
+      glow: 'shadow-rose-950/10 dark:shadow-red-950/20',
+      iconBg: 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-red-500/10 dark:border-red-500/25 dark:text-red-400',
+      confirmBtn: 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm dark:bg-red-600 dark:hover:bg-red-700 hover:ring-2 hover:ring-rose-500/30',
+      badgeBorder: 'border-rose-200 bg-rose-50/70 text-rose-800 dark:border-red-500/20 dark:bg-red-950/25 dark:text-red-300',
+      badgeText: 'text-rose-700 dark:text-red-400'
     },
     warning: {
       border: 'border-amber-500/30',
-      glow: 'shadow-amber-950/20',
-      iconBg: 'bg-amber-500/10 border-amber-500/25 text-amber-400',
-      confirmBtn: 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-950/40 hover:ring-2 hover:ring-amber-500/30',
-      badgeBorder: 'border-amber-500/20 bg-amber-950/25 text-amber-300',
-      badgeText: 'text-amber-400'
+      glow: 'shadow-amber-950/10 dark:shadow-amber-950/20',
+      iconBg: 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/25 dark:text-amber-400',
+      confirmBtn: 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm dark:bg-amber-600 dark:hover:bg-amber-700 hover:ring-2 hover:ring-amber-500/30',
+      badgeBorder: 'border-amber-200 bg-amber-50/70 text-amber-800 dark:border-amber-500/20 dark:bg-amber-950/25 dark:text-amber-300',
+      badgeText: 'text-amber-700 dark:text-amber-400'
     },
     info: {
       border: 'border-blue-500/30',
-      glow: 'shadow-blue-950/20',
-      iconBg: 'bg-blue-500/10 border-blue-500/25 text-blue-400',
-      confirmBtn: 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-950/40 hover:ring-2 hover:ring-blue-500/30',
-      badgeBorder: 'border-blue-500/20 bg-blue-950/25 text-blue-300',
-      badgeText: 'text-blue-400'
+      glow: 'shadow-blue-950/10 dark:shadow-blue-950/20',
+      iconBg: 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/25 dark:text-blue-400',
+      confirmBtn: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm dark:bg-blue-600 dark:hover:bg-blue-700 hover:ring-2 hover:ring-blue-500/30',
+      badgeBorder: 'border-blue-200 bg-blue-50/70 text-blue-800 dark:border-blue-500/20 dark:bg-blue-950/25 dark:text-blue-300',
+      badgeText: 'text-blue-700 dark:text-blue-400'
     }
   }[variant];
 
@@ -112,7 +112,7 @@ export default function ConfirmationDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/85 backdrop-blur-sm cursor-pointer" 
+            className="fixed inset-0 bg-slate-900/50 dark:bg-black/85 backdrop-blur-sm cursor-pointer" 
             onClick={() => {
               if (!isLoading) onCancel();
             }}
@@ -124,7 +124,7 @@ export default function ConfirmationDialog({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.94, opacity: 0, y: 8 }}
             transition={{ type: 'spring', damping: 26, stiffness: 360 }}
-            className={`relative transform overflow-hidden rounded-2xl bg-gradient-to-b from-[#181B24] via-[#14161F] to-[#0F1117] border ${variantStyles.border} text-left shadow-2xl ${variantStyles.glow} w-full max-w-lg p-6 z-10`}
+            className={`relative transform overflow-hidden rounded-2xl bg-card border border-border text-left shadow-2xl w-full max-w-lg p-6 z-10`}
           >
             {/* Top header section */}
             <div className="flex items-start space-x-4">
@@ -136,7 +136,7 @@ export default function ConfirmationDialog({
                 <div className="flex items-start justify-between gap-2">
                   <h3 
                     id="confirmation-dialog-title"
-                    className="text-base font-bold text-white tracking-tight leading-snug"
+                    className="text-base font-bold text-foreground tracking-tight leading-snug"
                   >
                     {title}
                   </h3>
@@ -145,7 +145,7 @@ export default function ConfirmationDialog({
                     data-action="cancel"
                     disabled={isLoading}
                     onClick={onCancel}
-                    className="text-gray-400 hover:text-white rounded-lg p-1 hover:bg-[#2A2D35] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                    className="text-muted-foreground hover:text-foreground rounded-lg p-1 hover:bg-muted transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
                     aria-label="Close dialog"
                   >
                     <X className="h-4.5 w-4.5" />
@@ -154,7 +154,7 @@ export default function ConfirmationDialog({
 
                 <p 
                   id="confirmation-dialog-desc"
-                  className="mt-2 text-xs text-gray-300 leading-relaxed font-sans"
+                  className="mt-2 text-xs text-muted-foreground leading-relaxed font-sans"
                 >
                   {message}
                 </p>
@@ -165,14 +165,14 @@ export default function ConfirmationDialog({
             {affectedRecords && (
               <div className={`mt-4.5 p-3.5 rounded-xl border ${variantStyles.badgeBorder} flex items-center justify-between gap-3`}>
                 <div className="flex items-center space-x-3 min-w-0">
-                  <div className="h-8 w-8 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center shrink-0">
-                    <Database className="h-4 w-4 text-gray-300" />
+                  <div className="h-8 w-8 rounded-lg bg-card border border-border flex items-center justify-center shrink-0">
+                    <Database className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-gray-400 block font-semibold">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block font-semibold">
                       Records Impacted
                     </span>
-                    <span className="text-xs text-gray-200 font-medium truncate block">
+                    <span className="text-xs text-foreground font-medium truncate block">
                       {affectedRecords.sublabel || affectedRecords.label}
                     </span>
                   </div>
@@ -182,7 +182,7 @@ export default function ConfirmationDialog({
                   <span className={`text-xl font-black font-mono tracking-tight block ${variantStyles.badgeText}`}>
                     {affectedRecords.count}
                   </span>
-                  <span className="text-[9px] uppercase font-mono text-gray-400 block font-medium">
+                  <span className="text-[9px] uppercase font-mono text-muted-foreground block font-medium">
                     {affectedRecords.label}
                   </span>
                 </div>
@@ -191,19 +191,19 @@ export default function ConfirmationDialog({
 
             {/* Warning Note Callout */}
             {warningNote && (
-              <div className="mt-3 flex items-start space-x-2.5 p-2.5 rounded-lg bg-red-950/20 border border-red-900/30 text-red-300 text-[11px] leading-relaxed">
-                <ShieldAlert className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+              <div className="mt-3 flex items-start space-x-2.5 p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 dark:bg-red-950/20 dark:border-red-900/30 dark:text-red-300 text-[11px] leading-relaxed">
+                <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-red-400 shrink-0 mt-0.5" />
                 <span>{warningNote}</span>
               </div>
             )}
 
             {/* Modal Actions Footer */}
-            <div className="mt-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-4 border-t border-[#2A2D35]/70">
+            <div className="mt-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-4 border-t border-border">
               <button
                 type="button"
                 data-action="cancel"
                 disabled={isLoading}
-                className="w-full sm:w-auto rounded-xl px-4 py-2 text-xs font-mono font-bold text-gray-300 hover:bg-[#252833] hover:text-white border border-[#2A2D35] cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto rounded-xl px-4 py-2 text-xs font-mono font-bold text-muted-foreground hover:bg-muted hover:text-foreground border border-border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 onClick={onCancel}
               >
                 {cancelText}

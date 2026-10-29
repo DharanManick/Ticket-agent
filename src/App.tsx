@@ -43,6 +43,7 @@ import {
   Clock,
   Layers,
   ChevronRight,
+  ChevronDown,
   Info,
   Users,
   History,
@@ -65,14 +66,25 @@ import {
 } from 'lucide-react';
 import { ActivityLogAuditDesk } from './components/ActivityLogAuditDesk';
 import ConnectionSetup from './components/ConnectionSetup';
+import AssignmentGroupManagement from './components/AssignmentGroupManagement';
 import UsageTracking from './components/UsageTracking';
 import { EvaluationHarnessModal } from './components/EvaluationHarnessModal';
 import { useTheme } from './components/ThemeProvider';
 import { ThemeToggle } from './components/ThemeToggle';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'trends' | 'workspace' | 'assignees' | 'history' | 'rules' | 'ciMatrix' | 'chatbot' | 'resolutionConfig' | 'overallRules' | 'about' | 'alertsConfig' | 'uploadHub' | 'activityLog' | 'servicenowTest' | 'connectionSetup' | 'usage'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'trends' | 'workspace' | 'assignees' | 'history' | 'rules' | 'ciMatrix' | 'chatbot' | 'resolutionConfig' | 'overallRules' | 'about' | 'alertsConfig' | 'uploadHub' | 'activityLog' | 'servicenowTest' | 'connectionSetup' | 'usage' | 'assignmentGroups'>(() => {
+    if (typeof window !== 'undefined') {
+      const paramTab = new URLSearchParams(window.location.search).get('tab');
+      if (paramTab) return paramTab as any;
+    }
+    return 'dashboard';
+  });
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [isControlPanelsOpen, setIsControlPanelsOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem('gov_control_panels_open');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [showHarnessModal, setShowHarnessModal] = useState(false);
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
   const [lastSyncInfo, setLastSyncInfo] = useState<{
@@ -80,7 +92,19 @@ export default function App() {
     status: string;
     newIncidentsCount: number;
     errorMessage?: string;
-  } | null>(null);
+  } | null>(() => {
+    const savedTime = localStorage.getItem('gov_last_sync_time');
+    return savedTime ? {
+      timestamp: savedTime,
+      status: "Success",
+      newIncidentsCount: 0
+    } : null;
+  });
+  const [isSyncingServiceNow, setIsSyncingServiceNow] = useState(false);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('gov_snow_auto_sync');
+    return saved !== null ? saved === 'true' : true;
+  });
   
   const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
   const [isTransitioningTheme, setIsTransitioningTheme] = useState(false);
@@ -96,7 +120,8 @@ export default function App() {
         if (res.ok) {
           const data = await res.json();
           if (data && data.profile) {
-            if (data.profile.theme && (data.profile.theme === 'dark' || data.profile.theme === 'light' || data.profile.theme === 'system')) {
+            const paramTheme = new URLSearchParams(window.location.search).get('theme');
+            if (!paramTheme && data.profile.theme && (data.profile.theme === 'dark' || data.profile.theme === 'light' || data.profile.theme === 'system')) {
               setTheme(data.profile.theme);
             }
             if (data.profile.name) {
@@ -128,6 +153,39 @@ export default function App() {
     }
     syncUserProfileFromBackend();
   }, [setTheme]);
+
+  // Sync auto-sync enabled setting from backend & keep tabs in sync
+  useEffect(() => {
+    async function fetchInitialAutoSync() {
+      try {
+        const res = await fetch('/api/servicenow/credentials');
+        if (res.ok) {
+          const creds = await res.json();
+          if (creds.autoSyncEnabled !== undefined) {
+            setAutoSyncEnabled(creds.autoSyncEnabled === true);
+          }
+        }
+      } catch (e) {}
+    }
+    fetchInitialAutoSync();
+
+    const handleAutoSyncEvent = (e: any) => {
+      if (e?.detail?.enabled !== undefined) {
+        setAutoSyncEnabled(e.detail.enabled);
+      } else {
+        const saved = localStorage.getItem('gov_snow_auto_sync');
+        if (saved !== null) setAutoSyncEnabled(saved === 'true');
+      }
+    };
+    window.addEventListener('governance_autosync_toggled', handleAutoSyncEvent);
+    window.addEventListener('governance_autosync_disabled', () => setAutoSyncEnabled(false));
+    window.addEventListener('storage', handleAutoSyncEvent);
+    return () => {
+      window.removeEventListener('governance_autosync_toggled', handleAutoSyncEvent);
+      window.removeEventListener('governance_autosync_disabled', () => setAutoSyncEnabled(false));
+      window.removeEventListener('storage', handleAutoSyncEvent);
+    };
+  }, []);
 
   useEffect(() => {
     setIsTransitioningTheme(true);
@@ -197,7 +255,12 @@ export default function App() {
   const [onlyResolved, setOnlyResolved] = useState<boolean>(false);
   const onlySolvePropose = onlyResolved;
   const setOnlySolvePropose = setOnlyResolved;
-  const [selectedTicketNumber, setSelectedTicketNumber] = useState<string | null>(null);
+  const [selectedTicketNumber, setSelectedTicketNumber] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('ticket') || null;
+    }
+    return null;
+  });
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   // Deduplication safeguards to prevent duplicate keys across components
@@ -847,7 +910,7 @@ export default function App() {
   }).length;
 
   // Auto save audited batches for future monitoring and statistics review
-  const saveToHistoryLog = (reportsList: TicketAuditReport[]) => {
+  const saveToHistoryLog = (reportsList: TicketAuditReport[], showCelebration = false) => {
     if (reportsList.length === 0) return;
     const avgScore = Math.round(reportsList.reduce((acc, r) => acc + r.percentage, 0) / reportsList.length);
     const currentMonth = new Date().toISOString().slice(0, 7); // e.g. "2026-05"
@@ -864,9 +927,11 @@ export default function App() {
 
     setAndPersistHistoryRuns([newRun, ...historyRuns]);
 
-    // Toggle beautiful, high-quality audience-catching popup celebrations!
-    setCelebrationData({ total: reportsList.length, avgPercent: avgScore });
-    setShowCelebrationModal(true);
+    // Show celebration modal ONLY when explicitly requested (e.g. manual user sweep action)
+    if (showCelebration) {
+      setCelebrationData({ total: reportsList.length, avgPercent: avgScore });
+      setShowCelebrationModal(true);
+    }
   };
 
   // helper to auto-trigger alert notifications if configured
@@ -1167,7 +1232,77 @@ export default function App() {
   };
   const handleToggleGlobalSolvePropose = handleToggleGlobalResolved;
 
-  const triggerAuditRun = async (ticketsList: Ticket[]) => {
+  const handleManualServiceNowSync = async () => {
+    setIsSyncingServiceNow(true);
+    triggerPopup('Synchronizing latest live incident records from ServiceNow Table API...', 'info');
+    try {
+      const gType = localStorage.getItem('gov_snow_sync_type') || 'all';
+      const res = await fetch('/api/servicenow/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          syncType: gType,
+          limit: 0,
+          onlyResolved: onlyResolved
+        })
+      });
+      const data = await res.json();
+      const istTime = new Date().toLocaleTimeString('en-US', { hour12: true });
+      const fullDate = new Date().toLocaleDateString('en-US');
+      const timeStr = `${fullDate} ${istTime}`;
+      localStorage.setItem('gov_last_sync_time', timeStr);
+
+      const updatedSyncInfo = data.lastSyncInfo || {
+        timestamp: timeStr,
+        status: 'Success',
+        newIncidentsCount: data.tickets?.length || 0
+      };
+      setLastSyncInfo(updatedSyncInfo);
+
+      if (data.tickets && data.tickets.length > 0) {
+        setTickets(dedupeTickets(data.tickets));
+        triggerPopup(`Successfully synced ${data.tickets.length} live incident records from ServiceNow!`, 'success');
+        window.dispatchEvent(new CustomEvent('governance_force_sync_trigger'));
+      } else {
+        triggerPopup(`ServiceNow checked: all records up to date as of ${timeStr}.`, 'success');
+      }
+    } catch (err: any) {
+      console.error('ServiceNow Manual Sync Error:', err);
+      triggerPopup(`Sync check completed: ${err?.message || 'Checked.'}`, 'info');
+    } finally {
+      setIsSyncingServiceNow(false);
+    }
+  };
+
+  const handleToggleAutoSync = async () => {
+    const nextVal = !autoSyncEnabled;
+    setAutoSyncEnabled(nextVal);
+    localStorage.setItem('gov_snow_auto_sync', String(nextVal));
+    try {
+      const credsRes = await fetch('/api/servicenow/credentials');
+      const existingCreds = credsRes.ok ? await credsRes.json() : {};
+      await fetch('/api/servicenow/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...existingCreds,
+          autoSyncEnabled: nextVal,
+          autoFetchEnabled: nextVal
+        })
+      });
+      triggerPopup(
+        nextVal
+          ? "Auto-Sync ENABLED: Automated background polling and incident updates active."
+          : "Auto-Sync PAUSED: Background auto-sync suspended.",
+        nextVal ? "success" : "info"
+      );
+      window.dispatchEvent(new CustomEvent('governance_autosync_toggled', { detail: { enabled: nextVal } }));
+    } catch (err) {
+      console.error('Error toggling auto-sync:', err);
+    }
+  };
+
+  const triggerAuditRun = async (ticketsList: Ticket[], showCelebration = false) => {
     if (ticketsList.length === 0) {
       triggerPopup('Incident pool is empty. Please load spreadsheets first.', 'warning');
       return;
@@ -1195,7 +1330,7 @@ export default function App() {
         setReports(dedupeReports(data.reports));
         setAuditLog(`Audit completed. Scanned ${data.reports.length} records.`);
         triggerPopup(`Successfully calculated scores for ${data.reports.length} incident tickets!`, 'success');
-        saveToHistoryLog(data.reports);
+        saveToHistoryLog(data.reports, showCelebration);
         runAutoTriggerAlerts(data.reports);
       } else {
         throw new Error(data.error || 'Server calculation failed.');
@@ -1273,7 +1408,7 @@ export default function App() {
       });
       setReports(dedupeReports(localFallbackReports));
       triggerPopup(`Calculated offline baseline scores. Check connection.`, 'warning');
-      saveToHistoryLog(localFallbackReports);
+      saveToHistoryLog(localFallbackReports, showCelebration);
       runAutoTriggerAlerts(localFallbackReports);
     } finally {
       setIsAuditing(false);
@@ -1457,18 +1592,18 @@ export default function App() {
           {/* Category 1: Workspace Core */}
           <div>
             {isSidebarExpanded ? (
-              <div className="text-[9px] text-gray-500 uppercase px-2 mb-1.5 font-bold font-mono tracking-widest truncate">Workspace Core</div>
+              <div className="text-[9px] text-muted-foreground uppercase px-2 mb-1.5 font-bold font-mono tracking-widest truncate">Workspace Core</div>
             ) : (
-              <div className="h-px bg-gray-800 my-2 mx-1" />
+              <div className="h-px bg-border my-2 mx-1" />
             )}
             <div className="space-y-1">
               <button
                 onClick={() => setActiveTab('dashboard')}
                 title="Dashboard Insights"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
+                className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all ${
                   activeTab === 'dashboard'
-                    ? 'bg-blue-600/10 text-blue-400 border border-blue-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-600/15 dark:text-blue-400 dark:border-blue-600/30 font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
                 } ${isSidebarExpanded ? '' : 'justify-center'}`}
               >
                 <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
@@ -1485,10 +1620,10 @@ export default function App() {
                 }}
                 disabled={reports.length === 0}
                 title="Workspace Checklist"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                   activeTab === 'workspace'
-                    ? 'bg-blue-600/10 text-blue-400 border border-blue-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-600/15 dark:text-blue-400 dark:border-blue-600/30 font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
                 } ${isSidebarExpanded ? '' : 'justify-center'}`}
               >
                 <CheckSquare className="h-3.5 w-3.5 shrink-0" />
@@ -1498,154 +1633,14 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('activityLog')}
                 title="Incident Empathy Dashboard"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
+                className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all ${
                   activeTab === 'activityLog'
-                    ? 'bg-purple-600/10 text-purple-400 border border-purple-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
+                    ? 'bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-600/15 dark:text-purple-400 dark:border-purple-600/30 font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
                 } ${isSidebarExpanded ? '' : 'justify-center'}`}
               >
-                <Activity className="h-3.5 w-3.5 shrink-0 text-purple-400" />
+                <Activity className="h-3.5 w-3.5 shrink-0 text-purple-600 dark:text-purple-400" />
                 {isSidebarExpanded && <span className="ml-2 truncate">Incident Empathy Dashboard</span>}
-              </button>
-            </div>
-          </div>
-
-          {/* Category 2: Trends & Performance */}
-          <div>
-            {isSidebarExpanded ? (
-              <div className="text-[9px] text-gray-500 uppercase px-2 mb-1.5 font-bold font-mono tracking-widest truncate">Trends & Performance</div>
-            ) : (
-              <div className="h-px bg-gray-800 my-2 mx-1" />
-            )}
-            <div className="space-y-1">
-              <button
-                onClick={() => {
-                  if (reports.length === 0) {
-                    triggerPopup('No audit records loaded. Ingest spreadsheets first.', 'warning');
-                  } else {
-                    setActiveTab('trends');
-                  }
-                }}
-                disabled={reports.length === 0}
-                title="Trends Analytical View"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                  activeTab === 'trends'
-                    ? 'bg-blue-600/10 text-blue-400 border border-blue-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
-                } ${isSidebarExpanded ? '' : 'justify-center'}`}
-              >
-                <TrendingUp className="h-3.5 w-3.5 shrink-0" />
-                {isSidebarExpanded && <span className="ml-2 truncate">Trends Analytical View</span>}
-              </button>
-
-              <button
-                onClick={() => setActiveTab('assignees')}
-                title="Performance Assignees"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
-                  activeTab === 'assignees'
-                    ? 'bg-blue-600/10 text-blue-400 border border-blue-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
-                } ${isSidebarExpanded ? '' : 'justify-center'}`}
-              >
-                <Users className="h-3.5 w-3.5 shrink-0" />
-                {isSidebarExpanded && <span className="ml-2 truncate">Performance Assignees</span>}
-              </button>
-
-              <button
-                onClick={() => setActiveTab('history')}
-                title="Saved History Logs"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
-                  activeTab === 'history'
-                    ? 'bg-blue-600/10 text-blue-400 border border-blue-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
-                } ${isSidebarExpanded ? '' : 'justify-center'}`}
-              >
-                <History className="h-3.5 w-3.5 shrink-0" />
-                {isSidebarExpanded && <span className="ml-2 truncate">Saved History Logs</span>}
-              </button>
-            </div>
-          </div>
-
-          {/* Category 3: Control Panels */}
-          <div>
-            {isSidebarExpanded ? (
-              <div className="text-[9px] text-gray-500 uppercase px-2 mb-1.5 font-bold font-mono tracking-widest truncate">Control Panels</div>
-            ) : (
-              <div className="h-px bg-gray-800 my-2 mx-1" />
-            )}
-            <div className="space-y-1">
-              <button
-                onClick={() => setActiveTab('connectionSetup')}
-                title="Connection Setup"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
-                  activeTab === 'connectionSetup'
-                    ? 'bg-blue-600/15 text-blue-400 border border-blue-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
-                } ${isSidebarExpanded ? '' : 'justify-center'}`}
-              >
-                <Radio className="h-3.5 w-3.5 shrink-0 text-cyan-400" />
-                {isSidebarExpanded && <span className="ml-2 truncate">Connection Setup</span>}
-              </button>
-
-              <button
-                onClick={() => setActiveTab('usage')}
-                title="API Usage"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
-                  activeTab === 'usage'
-                    ? 'bg-emerald-600/15 text-emerald-400 border border-emerald-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
-                } ${isSidebarExpanded ? '' : 'justify-center'}`}
-              >
-                <BarChart3 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-                {isSidebarExpanded && <span className="ml-2 truncate">API Usage</span>}
-              </button>
-
-              <button
-                onClick={() => setShowHarnessModal(true)}
-                title="Evaluation Test Harness"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
-                  showHarnessModal
-                    ? 'bg-amber-600/15 text-amber-400 border border-amber-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
-                } ${isSidebarExpanded ? '' : 'justify-center'}`}
-              >
-                <Gauge className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-                {isSidebarExpanded && <span className="ml-2 truncate">Evaluation Harness</span>}
-              </button>
-
-              <button
-                onClick={() => setActiveTab('overallRules')}
-                title="Settings"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
-                  activeTab === 'overallRules'
-                    ? 'bg-blue-600/10 text-blue-400 border border-blue-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
-                } ${isSidebarExpanded ? '' : 'justify-center'}`}
-              >
-                <Sliders className="h-3.5 w-3.5 shrink-0 text-blue-400" />
-                {isSidebarExpanded && <span className="ml-2 truncate">Settings</span>}
-              </button>
-
-              <button
-                onClick={() => setActiveTab('alertsConfig')}
-                title="Alert Trigger"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all ${
-                  activeTab === 'alertsConfig'
-                    ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
-                } ${isSidebarExpanded ? '' : 'justify-center'}`}
-              >
-                <Bell className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
-                {isSidebarExpanded && <span className="ml-2 flex-1 truncate text-left">Alert Trigger</span>}
-                {isSidebarExpanded && reports.length > 0 && (
-                  <span className="bg-red-500/20 text-red-300 border border-red-500/35 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold animate-pulse">
-                    {reports.filter(r => {
-                      if (r.percentage === 100 && r.statusColor === 'Green') return false;
-                      if (bypassTriggerFilters) return true;
-                      return enabledColors.includes(r.statusColor || 'Red');
-                    }).length}
-                  </span>
-                )}
               </button>
 
               <button
@@ -1658,10 +1653,10 @@ export default function App() {
                 }}
                 disabled={reports.length === 0}
                 title="AI Assistant"
-                className={`w-full p-2 rounded text-xs font-semibold flex items-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                   activeTab === 'chatbot'
-                    ? 'bg-blue-600/10 text-blue-400 border border-blue-600/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1C1F26] border border-transparent'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-600/15 dark:text-blue-400 dark:border-blue-600/30 font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
                 } ${isSidebarExpanded ? '' : 'justify-center'}`}
               >
                 <MessageSquare className="h-3.5 w-3.5 shrink-0" />
@@ -1670,28 +1665,200 @@ export default function App() {
             </div>
           </div>
 
+          {/* Category 2: Trends & Performance */}
+          <div>
+            {isSidebarExpanded ? (
+              <div className="text-[9px] text-muted-foreground uppercase px-2 mb-1.5 font-bold font-mono tracking-widest truncate">Trends & Performance</div>
+            ) : (
+              <div className="h-px bg-border my-2 mx-1" />
+            )}
+            <div className="space-y-1">
+              <button
+                onClick={() => {
+                  if (reports.length === 0) {
+                    triggerPopup('No audit records loaded. Ingest spreadsheets first.', 'warning');
+                  } else {
+                    setActiveTab('trends');
+                  }
+                }}
+                disabled={reports.length === 0}
+                title="Trends Analytical View"
+                className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                  activeTab === 'trends'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-600/15 dark:text-blue-400 dark:border-blue-600/30 font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                } ${isSidebarExpanded ? '' : 'justify-center'}`}
+              >
+                <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+                {isSidebarExpanded && <span className="ml-2 truncate">Trends Analytical View</span>}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('assignees')}
+                title="Performance Assignees"
+                className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all ${
+                  activeTab === 'assignees'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-600/15 dark:text-blue-400 dark:border-blue-600/30 font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                } ${isSidebarExpanded ? '' : 'justify-center'}`}
+              >
+                <Users className="h-3.5 w-3.5 shrink-0" />
+                {isSidebarExpanded && <span className="ml-2 truncate">Performance Assignees</span>}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('history')}
+                title="Saved History Logs"
+                className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all ${
+                  activeTab === 'history'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-600/15 dark:text-blue-400 dark:border-blue-600/30 font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                } ${isSidebarExpanded ? '' : 'justify-center'}`}
+              >
+                <History className="h-3.5 w-3.5 shrink-0" />
+                {isSidebarExpanded && <span className="ml-2 truncate">Saved History Logs</span>}
+              </button>
+            </div>
+          </div>
+
+          {/* Category 3: Control Panels */}
+          <div>
+            {isSidebarExpanded ? (
+              <div className="flex items-center justify-between px-2 mb-1.5 group/cp">
+                <span className="text-[9px] text-muted-foreground uppercase font-bold font-mono tracking-widest truncate">Control Panels</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsControlPanelsOpen(prev => {
+                      const next = !prev;
+                      localStorage.setItem('gov_control_panels_open', String(next));
+                      return next;
+                    });
+                  }}
+                  className="inline-flex items-center gap-1 text-[9px] font-mono text-muted-foreground hover:text-foreground px-1 py-0.5 rounded transition-colors cursor-pointer"
+                  title={isControlPanelsOpen ? "Hide Control Panels list" : "Unhide Control Panels list"}
+                >
+                  <span className="uppercase font-bold tracking-tight">{isControlPanelsOpen ? 'Hide' : 'Unhide'}</span>
+                  {isControlPanelsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                </button>
+              </div>
+            ) : (
+              <div className="h-px bg-border my-2 mx-1" />
+            )}
+            {(!isSidebarExpanded || isControlPanelsOpen) && (
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveTab('connectionSetup')}
+                  title="Connection Setup"
+                  className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all ${
+                    activeTab === 'connectionSetup'
+                      ? 'bg-cyan-50 text-cyan-800 border border-cyan-200 dark:bg-blue-600/15 dark:text-blue-400 dark:border-blue-600/30 font-bold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                  } ${isSidebarExpanded ? '' : 'justify-center'}`}
+                >
+                  <Radio className="h-3.5 w-3.5 shrink-0 text-cyan-600 dark:text-cyan-400" />
+                  {isSidebarExpanded && <span className="ml-2 truncate">Connection Setup</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('assignmentGroups')}
+                  title="Assignment Groups"
+                  className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all ${
+                    activeTab === 'assignmentGroups'
+                      ? 'bg-purple-50 text-purple-800 border border-purple-200 dark:bg-purple-600/15 dark:text-purple-400 dark:border-purple-600/30 font-bold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                  } ${isSidebarExpanded ? '' : 'justify-center'}`}
+                >
+                  <Users className="h-3.5 w-3.5 shrink-0 text-purple-600 dark:text-purple-400" />
+                  {isSidebarExpanded && <span className="ml-2 truncate">Assignment Groups</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('usage')}
+                  title="API Usage"
+                  className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all ${
+                    activeTab === 'usage'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-600/15 dark:text-emerald-400 dark:border-emerald-600/30 font-bold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                  } ${isSidebarExpanded ? '' : 'justify-center'}`}
+                >
+                  <BarChart3 className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  {isSidebarExpanded && <span className="ml-2 truncate">API Usage</span>}
+                </button>
+
+                <button
+                  onClick={() => setShowHarnessModal(true)}
+                  title="Evaluation Test Harness"
+                  className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all ${
+                    showHarnessModal
+                      ? 'bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-600/15 dark:text-amber-400 dark:border-amber-600/30 font-bold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                  } ${isSidebarExpanded ? '' : 'justify-center'}`}
+                >
+                  <Gauge className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                  {isSidebarExpanded && <span className="ml-2 truncate">Evaluation Harness</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('overallRules')}
+                  title="Settings"
+                  className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all ${
+                    activeTab === 'overallRules'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-600/10 dark:text-blue-400 dark:border-blue-600/30 font-bold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                  } ${isSidebarExpanded ? '' : 'justify-center'}`}
+                >
+                  <Sliders className="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                  {isSidebarExpanded && <span className="ml-2 truncate">Settings</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('alertsConfig')}
+                  title="Alert Trigger"
+                  className={`w-full p-2 rounded-lg text-xs font-semibold flex items-center transition-all ${
+                    activeTab === 'alertsConfig'
+                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-600/10 dark:text-indigo-400 dark:border-indigo-600/30 font-bold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                  } ${isSidebarExpanded ? '' : 'justify-center'}`}
+                >
+                  <Bell className="h-3.5 w-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                  {isSidebarExpanded && <span className="ml-2 flex-1 truncate text-left">Alert Trigger</span>}
+                  {isSidebarExpanded && reports.length > 0 && (
+                    <span className="bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/35 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold animate-pulse">
+                      {reports.filter(r => {
+                        if (r.percentage === 100 && r.statusColor === 'Green') return false;
+                        if (bypassTriggerFilters) return true;
+                        return enabledColors.includes(r.statusColor || 'Red');
+                      }).length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+
         </nav>
 
         {/* Lead Auditor Officer Block */}
-        <div className="p-3 border-t border-[#2A2D35] bg-[#0A0C0F] group/auditor">
+        <div className="p-3 border-t border-border bg-card group/auditor">
           <div className="flex items-start gap-2.5">
             <div className="relative shrink-0" title={`${auditorName} - ${auditorRole}`}>
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-xs text-white uppercase">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-xs text-white uppercase shadow-xs">
                 {auditorName.trim().slice(0, 2).toUpperCase() || 'JD'}
               </div>
-              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-green-500 border border-[#0A0C0F]"></span>
+              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border border-card"></span>
             </div>
 
             {isSidebarExpanded && (
               isEditingAuditor ? (
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  <span className="text-[9px] text-gray-400 uppercase font-mono tracking-wider block font-semibold">Editing Profile</span>
+                  <span className="text-[9px] text-muted-foreground uppercase font-mono tracking-wider block font-semibold">Editing Profile</span>
                   <input
                     type="text"
                     value={auditorName}
                     onChange={(e) => saveAuditorInfo(e.target.value, auditorRole)}
                     placeholder="Auditor Name"
-                    className="w-full bg-[#15171C] border border-[#2A2D35] focus:border-blue-500 rounded px-2 py-1 text-[11px] text-white font-semibold outline-none"
+                    className="w-full bg-muted border border-border focus:border-primary rounded px-2 py-1 text-[11px] text-foreground font-semibold outline-none"
                     autoFocus
                   />
                   <input
@@ -1699,7 +1866,7 @@ export default function App() {
                     value={auditorRole}
                     onChange={(e) => saveAuditorInfo(auditorName, e.target.value)}
                     placeholder="Role"
-                    className="w-full bg-[#15171C] border border-[#2A2D35] focus:border-blue-500 rounded px-2 py-0.5 text-[10px] text-gray-400 outline-none"
+                    className="w-full bg-muted border border-border focus:border-primary rounded px-2 py-0.5 text-[10px] text-muted-foreground outline-none"
                   />
                   <div className="flex items-center justify-between pt-1 gap-2">
                     <button
@@ -1720,12 +1887,12 @@ export default function App() {
                 </div>
               ) : (
                 <div className="flex-1 min-w-0">
-                  <span className="text-[9px] text-gray-500 uppercase font-mono tracking-wider block font-bold">Active Auditor</span>
+                  <span className="text-[9px] text-muted-foreground uppercase font-mono tracking-wider block font-bold">Active Auditor</span>
                   <div className="mt-0.5">
-                    <span className="text-[11px] font-bold text-white block truncate">
+                    <span className="text-[11px] font-bold text-foreground block truncate">
                       {auditorName}
                     </span>
-                    <span className="text-[9px] text-gray-400 font-mono tracking-tight block truncate">
+                    <span className="text-[9px] text-muted-foreground font-mono tracking-tight block truncate">
                       {auditorRole}
                     </span>
                   </div>
@@ -1733,13 +1900,13 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setIsEditingAuditor(true)}
-                      className="text-[9px] text-blue-400 hover:text-blue-300 font-bold font-mono tracking-wide flex items-center gap-1 transition-all opacity-0 group-hover/auditor:opacity-100 duration-200 cursor-pointer"
+                      className="text-[9px] text-primary hover:text-primary/80 font-bold font-mono tracking-wide flex items-center gap-1 transition-all opacity-0 group-hover/auditor:opacity-100 duration-200 cursor-pointer"
                     >
                       <Edit2 className="h-2.5 w-2.5" />
                       <span>Edit Profile</span>
                     </button>
                     {showProfileSavedBadge && (
-                      <span className="shrink-0 bg-green-500/10 text-green-400 border border-green-500/30 text-[8px] font-bold font-mono px-1.5 py-0.5 rounded">
+                      <span className="shrink-0 bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 text-[8px] font-bold font-mono px-1.5 py-0.5 rounded">
                         ✓ Saved
                       </span>
                     )}
@@ -1850,61 +2017,90 @@ export default function App() {
               </>
             )}
 
-            {lastSyncInfo && (
-              <div 
-                id="servicenow-sync-status-indicator"
-                className="flex items-center space-x-2 bg-slate-100 dark:bg-[#12141A] border border-slate-200 dark:border-[#2E313A] px-3 py-1.5 rounded-lg text-[11px] font-mono shadow-inner cursor-default"
-                title={lastSyncInfo.errorMessage ? `Error: ${lastSyncInfo.errorMessage}` : "ServiceNow background polling sync is active every 15 seconds."}
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${lastSyncInfo.errorMessage ? 'bg-rose-400' : 'bg-emerald-400'}`}></span>
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${lastSyncInfo.errorMessage ? 'bg-rose-500' : 'bg-emerald-500'}`}></span>
-                </span>
-                <span className="text-slate-500 dark:text-gray-400 select-none font-medium">ServiceNow:</span>
-                <span className="text-slate-900 dark:text-slate-200 font-bold tracking-tight">
-                  {lastSyncInfo.timestamp ? lastSyncInfo.timestamp : 'Active'}
-                </span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold font-sans tracking-wide uppercase ${
-                  lastSyncInfo.errorMessage 
-                    ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/10' 
-                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/10'
-                }`}>
-                  {lastSyncInfo.errorMessage ? 'Failed' : 'Synced'}
-                </span>
-              </div>
-            )}
+            {/* Direct ServiceNow Manual Sync Button */}
+            <button
+              type="button"
+              id="manual-snow-sync-btn"
+              onClick={handleManualServiceNowSync}
+              disabled={isSyncingServiceNow}
+              className="bg-card hover:bg-muted border border-border text-foreground font-semibold text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-xs shrink-0 hover:border-cyan-500/40"
+              title="Synchronize latest live incident records from ServiceNow REST API"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isSyncingServiceNow ? 'animate-spin text-cyan-400' : 'text-blue-500'}`} />
+              <span className="font-medium">{isSyncingServiceNow ? 'Syncing...' : 'Sync ServiceNow'}</span>
+            </button>
+
+            {/* Quick Auto-Sync Real-Time Toggle Button */}
+            <button
+              type="button"
+              id="header-snow-autosync-btn"
+              onClick={handleToggleAutoSync}
+              className={`border font-semibold text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-xs shrink-0 ${
+                autoSyncEnabled
+                  ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/25'
+                  : 'bg-card hover:bg-muted border-border text-muted-foreground hover:text-foreground'
+              }`}
+              title={autoSyncEnabled ? "Auto-Sync is ACTIVE: Real-time background sync and comment updates running" : "Auto-Sync is PAUSED: Click to enable real-time background sync"}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${autoSyncEnabled ? 'text-indigo-500 animate-spin' : 'text-muted-foreground'}`} />
+              <span>Auto-Sync:</span>
+              <span className="font-mono font-bold">{autoSyncEnabled ? 'ON' : 'OFF'}</span>
+            </button>
+
+            {/* Last Sync Time Status Indicator */}
+            <div 
+              id="servicenow-sync-status-indicator"
+              className="flex items-center space-x-2 bg-slate-100 dark:bg-[#12141A] border border-slate-200 dark:border-[#2E313A] px-3 py-1.5 rounded-lg text-[11px] font-mono shadow-inner cursor-default shrink-0"
+              title={lastSyncInfo?.errorMessage ? `Error: ${lastSyncInfo.errorMessage}` : `ServiceNow real-time status. Last synchronized at: ${lastSyncInfo?.timestamp || 'Active'}`}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${lastSyncInfo?.errorMessage ? 'bg-rose-400' : 'bg-emerald-400'}`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${lastSyncInfo?.errorMessage ? 'bg-rose-500' : 'bg-emerald-500'}`}></span>
+              </span>
+              <span className="text-slate-500 dark:text-gray-400 select-none font-medium">Last Sync:</span>
+              <span className="text-slate-900 dark:text-slate-200 font-bold tracking-tight">
+                {lastSyncInfo?.timestamp ? lastSyncInfo.timestamp : 'Active'}
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold font-sans tracking-wide uppercase ${
+                lastSyncInfo?.errorMessage 
+                  ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/10' 
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/10'
+              }`}>
+                {isSyncingServiceNow ? 'Syncing' : lastSyncInfo?.errorMessage ? 'Failed' : 'Live'}
+              </span>
+            </div>
 
             {/* Top Bar Quick Resolved Filter Status / Toggle */}
             <button
               type="button"
               onClick={handleToggleGlobalResolved}
-              className={`border font-semibold text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-xs ${
+              className={`border font-semibold text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-xs shrink-0 ${
                 onlyResolved
-                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25'
                   : 'bg-card hover:bg-muted border-border text-muted-foreground hover:text-foreground'
               }`}
               title={onlyResolved ? "Workspace filtered to Resolved incidents. Click to view all." : "Click to filter Workspace to Resolved incidents only."}
             >
-              <span className={`w-2 h-2 rounded-full ${onlyResolved ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
-              <span className="hidden sm:inline">Workspace:</span>
-              <span className="font-mono font-bold text-[11px]">{onlyResolved ? 'Resolved' : 'All Incidents'}</span>
+              <span className={`w-2 h-2 rounded-full ${onlyResolved ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400 dark:bg-gray-500'}`} />
+              <span className="hidden md:inline">Workspace:</span>
+              <span className="font-mono font-bold text-[11px]">{onlyResolved ? 'Resolved' : 'All'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowHarnessModal(true)}
-              className="bg-card hover:bg-muted border border-border text-foreground font-semibold text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-xs"
+              className="bg-card hover:bg-muted border border-border text-foreground font-semibold text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-xs shrink-0"
               title="Launch ITIL Golden Evaluation Test Harness"
             >
               <Gauge className="h-3.5 w-3.5 text-amber-500" />
-              <span className="hidden sm:inline">Eval Harness</span>
+              <span className="hidden lg:inline">Eval Harness</span>
             </button>
 
             <button
               type="button"
-              onClick={() => triggerAuditRun(tickets)}
+              onClick={() => triggerAuditRun(tickets, true)}
               disabled={isAuditing || tickets.length === 0}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-800 text-white font-bold text-xs px-4 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-md shadow-blue-900/10 disabled:opacity-50"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 text-white font-bold text-xs px-3.5 py-2 rounded-lg flex items-center space-x-1.5 transition-all cursor-pointer shadow-md shadow-blue-900/10 shrink-0"
             >
               {isAuditing ? (
                 <>
@@ -1914,7 +2110,8 @@ export default function App() {
               ) : (
                 <>
                   <Cpu className="h-3.5 w-3.5" />
-                  <span>Trigger Dynamic Compliance Verification Sweep</span>
+                  <span className="hidden xl:inline">Trigger Dynamic Compliance Verification Sweep</span>
+                  <span className="xl:hidden">Run Audit Sweep</span>
                 </>
               )}
             </button>
@@ -1924,7 +2121,7 @@ export default function App() {
               id="clear-server-cache-btn"
               onClick={() => setShowClearCacheDialog(true)}
               disabled={tickets.length === 0 && reports.length === 0}
-              className="bg-[#1C1F26] hover:bg-red-950/20 border border-[#2A2D35] text-gray-400 hover:text-red-400 text-xs p-2 rounded-lg transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="bg-card hover:bg-rose-50 dark:hover:bg-red-950/20 border border-border hover:border-rose-300 dark:hover:border-red-900 text-muted-foreground hover:text-rose-600 dark:hover:text-red-400 text-xs p-2 rounded-lg transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
               title="Clear server cache and active audit records"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -1937,16 +2134,16 @@ export default function App() {
           
           {/* Audit Process Progress Alert */}
           {auditLog && (
-            <div className="bg-[#15171C] border border-[#2A2D35] rounded-xl p-4 text-xs text-gray-300 shadow-xl flex flex-col gap-3">
+            <div className="bg-card border border-border rounded-xl p-4 text-xs text-muted-foreground shadow-xs flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="flex items-center space-x-2 text-gray-200">
+                <span className="flex items-center space-x-2 text-foreground">
                   <span className={`h-2 w-2 rounded-full ${isAuditing ? 'bg-blue-500 animate-pulse' : 'bg-emerald-500'}`} />
-                  <span className="font-mono text-sm font-semibold text-white">
+                  <span className="font-mono text-sm font-semibold text-foreground">
                     {isAuditing ? 'Active Audit Compliance Sweep In-Progress' : 'Audit Sweep Execution Terminal'}
                   </span>
                 </span>
                 {errorString && (
-                  <span className="text-yellow-500 font-medium font-mono text-[11px] flex items-center space-x-1">
+                  <span className="text-amber-600 dark:text-yellow-500 font-medium font-mono text-[11px] flex items-center space-x-1">
                     <Info className="h-3.5 w-3.5 shrink-0" />
                     <span>{errorString}</span>
                   </span>
@@ -1955,26 +2152,26 @@ export default function App() {
 
               {/* Progress Bar & Granular Stats */}
               {sweepProgress && sweepProgress.total > 0 && (
-                <div className="space-y-2 bg-[#101216] border border-[#23262D] rounded-lg p-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] uppercase font-mono font-bold tracking-wider text-gray-400">
+                <div className="space-y-2 bg-muted/40 border border-border rounded-lg p-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] uppercase font-mono font-bold tracking-wider text-muted-foreground">
                     <div className="flex items-center space-x-2">
-                      <span className="text-blue-400 font-bold whitespace-nowrap">Scanned Tickets:</span>
-                      <span className="text-white bg-[#1A1D24] px-1.5 py-0.5 rounded border border-[#2A2D35]">
+                      <span className="text-blue-600 dark:text-blue-400 font-bold whitespace-nowrap">Scanned Tickets:</span>
+                      <span className="text-foreground bg-card px-1.5 py-0.5 rounded border border-border">
                         {sweepProgress.completed} / {sweepProgress.total}
                       </span>
-                      <span className="text-gray-500 shrink-0">•</span>
-                      <span className="text-red-400 font-bold whitespace-nowrap">Remaining Queue:</span>
-                      <span className="text-white bg-[#1A1D24] px-1.5 py-0.5 rounded border border-[#2A2D35]">
+                      <span className="text-muted-foreground/60 shrink-0">•</span>
+                      <span className="text-rose-600 dark:text-red-400 font-bold whitespace-nowrap">Remaining Queue:</span>
+                      <span className="text-foreground bg-card px-1.5 py-0.5 rounded border border-border">
                         {Math.max(0, sweepProgress.total - sweepProgress.completed)}
                       </span>
                     </div>
-                    <div className="text-blue-400 self-end sm:self-auto font-bold font-mono">
+                    <div className="text-blue-600 dark:text-blue-400 self-end sm:self-auto font-bold font-mono">
                       {Math.round((sweepProgress.completed / sweepProgress.total) * 100)}% Complete
                     </div>
                   </div>
 
                   {/* Visual Track */}
-                  <div className="h-2 w-full bg-[#1C1F26] rounded-full overflow-hidden border border-[#2D3139]">
+                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden border border-border">
                     <div 
                       className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-out shadow-[0_0_8px_rgba(59,130,246,0.4)]"
                       style={{ width: `${Math.min(100, (sweepProgress.completed / sweepProgress.total) * 100)}%` }}
@@ -1983,10 +2180,10 @@ export default function App() {
 
                   {/* Active context label */}
                   {sweepProgress.currentTicketId && (
-                    <div className="text-[11px] text-gray-400 font-mono flex items-center space-x-1.5 overflow-hidden">
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-400/50 shrink-0" />
-                      <span className="text-gray-500 shrink-0">Operation log:</span>
-                      <span className="text-blue-300 truncate">{sweepProgress.currentTicketId}</span>
+                    <div className="text-[11px] text-muted-foreground font-mono flex items-center space-x-1.5 overflow-hidden">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500/70 shrink-0" />
+                      <span className="text-muted-foreground/70 shrink-0">Operation log:</span>
+                      <span className="text-blue-600 dark:text-blue-300 truncate">{sweepProgress.currentTicketId}</span>
                     </div>
                   )}
                 </div>
@@ -1994,8 +2191,8 @@ export default function App() {
 
               {/* General trace log when progress object isn't fully ready yet */}
               {(!sweepProgress || sweepProgress.total <= 0) && (
-                <span className="font-mono text-gray-400 text-[11px] bg-[#101216] border border-[#23262D] rounded-lg p-2.5 flex items-center space-x-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-gray-500 animate-ping shrink-0" />
+                <span className="font-mono text-muted-foreground text-[11px] bg-muted/40 border border-border rounded-lg p-2.5 flex items-center space-x-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-ping shrink-0" />
                   <span>Log Trace: {auditLog}</span>
                 </span>
               )}
@@ -2015,24 +2212,24 @@ export default function App() {
                   className="space-y-6"
                 >
                   {tickets.length === 0 && (
-                    <div className="bg-[#10131B] border border-[#232736] rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                    <div className="bg-card border border-border rounded-2xl p-6 shadow-xs relative overflow-hidden">
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="space-y-1.5 text-center sm:text-left">
-                          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-mono font-bold">
+                          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-mono font-bold">
                             <Radio className="h-3.5 w-3.5 animate-pulse" />
                             <span>Awaiting Ingestion</span>
                           </div>
-                          <h3 className="text-base font-bold text-white tracking-tight">
+                          <h3 className="text-base font-bold text-foreground tracking-tight">
                             No Governance Incidents Loaded
                           </h3>
-                          <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
+                          <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
                             Connect directly to your ServiceNow instance via Table API or ingest Excel/CSV dump spreadsheets in Connection Setup to run automated quality audits.
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => setActiveTab('connectionSetup')}
-                          className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-mono font-bold shadow-lg shadow-blue-500/25 transition-all cursor-pointer shrink-0 flex items-center gap-2"
+                          className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-mono font-bold shadow-md shadow-blue-500/25 transition-all cursor-pointer shrink-0 flex items-center gap-2"
                         >
                           <Radio className="h-4 w-4" />
                           <span>Open Connection Setup</span>
@@ -2066,9 +2263,11 @@ export default function App() {
                     onSelectTicketNumber={setSelectedTicketNumber} 
                     triggerPopup={triggerPopup}
                     tickets={tickets}
-                    onUpdateTickets={(newTickets: any[]) => {
+                    onUpdateTickets={(newTickets: any[], shouldReAudit = false) => {
                       setTickets(dedupeTickets(newTickets));
-                      triggerAuditRun(newTickets);
+                      if (shouldReAudit) {
+                        triggerAuditRun(newTickets, false);
+                      }
                     }}
                     searchTerm={globalSearchTerm}
                     onSearchChange={setGlobalSearchTerm}
@@ -2178,7 +2377,7 @@ export default function App() {
                   exit={{ opacity: 0, scale: 0.96, y: -10 }}
                   transition={{ type: "spring", stiffness: 150, damping: 20 }}
                 >
-                  <ActivityLogAuditDesk triggerPopup={triggerPopup} />
+                  <ActivityLogAuditDesk triggerPopup={triggerPopup} tickets={tickets} />
                 </motion.div>
               )}
 
@@ -2193,10 +2392,27 @@ export default function App() {
                   <ConnectionSetup
                     triggerPopup={triggerPopup}
                     onTicketsLoaded={handleTicketsParsed}
-                    onTriggerAudit={triggerAuditRun}
+                    onTriggerAudit={(t) => triggerAuditRun(t, true)}
                     auditedCount={reports.length}
                     totalRecordsCount={tickets.length}
                     isLoading={isAuditing}
+                  />
+                </motion.div>
+              )}
+
+              {activeTab === 'assignmentGroups' && (
+                <motion.div
+                  key="assignmentGroups"
+                  initial={{ opacity: 0, scale: 0.96, y: 15 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96, y: -10 }}
+                  transition={{ type: "spring", stiffness: 150, damping: 20 }}
+                >
+                  <AssignmentGroupManagement
+                    triggerPopup={triggerPopup}
+                    onNavigateToMetrics={(_group) => {
+                      setActiveTab('connectionSetup');
+                    }}
                   />
                 </motion.div>
               )}

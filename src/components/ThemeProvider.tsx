@@ -22,6 +22,10 @@ export function ThemeProvider({
 }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
+      const urlTheme = new URLSearchParams(window.location.search).get('theme') as Theme | null;
+      if (urlTheme && (urlTheme === 'dark' || urlTheme === 'light' || urlTheme === 'system')) {
+        return urlTheme;
+      }
       const stored = localStorage.getItem(storageKey) as Theme | null;
       if (stored && (stored === 'dark' || stored === 'light' || stored === 'system')) {
         return stored;

@@ -27,8 +27,11 @@
     <script>
       (function() {
         try {
-          var stored = localStorage.getItem('portal_theme') || localStorage.getItem('theme');
+          var params = new URLSearchParams(window.location.search);
+          var urlTheme = params.get('theme');
+          var stored = urlTheme || localStorage.getItem('portal_theme') || localStorage.getItem('theme');
           var isDark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches) || (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (stored === 'light') isDark = false;
           if (isDark) {
             document.documentElement.classList.add('dark');
             document.documentElement.classList.remove('light');

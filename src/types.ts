@@ -362,4 +362,61 @@ export function isResolvedTicket(t: any): boolean {
 // Backward-compatible alias
 export const isSolveProposeTicket = isResolvedTicket;
 
+/**
+ * Checks if a ticket is eligible for empathy analysis (strictly OPEN tickets: New, In Progress, On Hold).
+ * Excludes Resolved (6), Closed (7), and Canceled (8).
+ */
+export function isEmpathyEligibleTicket(t: any): boolean {
+  if (!t) return false;
+  const stateVal = String(t.incidentState || t.state || (t as any).incident_state || (t as any).status || '').trim().toLowerCase();
+  
+  // Exclude Resolved states
+  const isResolved = (
+    stateVal === '6' ||
+    stateVal === 'resolved' ||
+    stateVal.includes('resolv') ||
+    stateVal.includes('solve propose') ||
+    stateVal.includes('solve_propose') ||
+    stateVal.includes('solution provided')
+  );
+
+  // Exclude Closed or Canceled states
+  const isClosedOrCanceled = (
+    stateVal === '7' ||
+    stateVal === '8' ||
+    stateVal === 'closed' ||
+    stateVal === 'canceled' ||
+    stateVal.includes('close') ||
+    stateVal.includes('cancel') ||
+    stateVal.includes('confirm')
+  );
+
+  if (isResolved || isClosedOrCanceled) {
+    return false;
+  }
+
+  // Work note state transitions to resolved / closed
+  const logs = String(t.activityLogs || t.comments_and_work_notes || (t as any).rawActivityLogs || (t as any).latestActivityEntry || '').toLowerCase();
+  if (
+    logs.includes('incident state: resolved') ||
+    logs.includes('incident state resolved') ||
+    logs.includes('incident state: solve') ||
+    logs.includes('state changed to resolved') ||
+    logs.includes('state: resolved') ||
+    logs.includes('marked resolved') ||
+    logs.includes('solve proposed') ||
+    logs.includes('solve proposal') ||
+    logs.includes('-> resolved') ||
+    logs.includes('incident state: closed') ||
+    logs.includes('incident state closed') ||
+    logs.includes('state changed to closed') ||
+    logs.includes('state: closed') ||
+    logs.includes('-> closed')
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 
