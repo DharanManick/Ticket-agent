@@ -5574,9 +5574,13 @@ try {
   if (fs.existsSync(snConfigPath)) {
     const rawLoaded = JSON.parse(fs.readFileSync(snConfigPath, 'utf8'));
     const loadedLimit = isFetchLimitOff(rawLoaded.limit) ? 0 : (Number(rawLoaded.limit) || 10);
+    const loadedPass = (rawLoaded.password && rawLoaded.password !== '********')
+      ? rawLoaded.password
+      : (process.env.SERVICENOW_PASSWORD || '');
     storedServiceNowCredentials = {
       ...storedServiceNowCredentials,
       ...rawLoaded,
+      password: loadedPass,
       limit: loadedLimit,
       autoSyncEnabled: true,
       autoFetchEnabled: true,
@@ -5615,8 +5619,11 @@ function applyServiceNowEnvCredentials() {
     changed = true;
   }
   if (envPass && envPass.trim() !== '') {
-    storedServiceNowCredentials.password = envPass.trim();
-    changed = true;
+    const cleanPass = envPass.trim();
+    if (!storedServiceNowCredentials.password || storedServiceNowCredentials.password === '********' || storedServiceNowCredentials.password !== cleanPass) {
+      storedServiceNowCredentials.password = cleanPass;
+      changed = true;
+    }
   }
   if (envInstance || envUser || envPass) {
     storedServiceNowCredentials.useSimulator = false;
@@ -6236,13 +6243,56 @@ app.get('/api/servicenow/credentials', (req, res) => {
   });
 });
 
+// Test live ServiceNow connection handshake directly
+app.post('/api/servicenow/test', async (req, res) => {
+  try {
+    const { instanceName, username, password, targetTable = 'incident' } = req.body;
+    const inst = instanceName || storedServiceNowCredentials.instanceName || process.env.SERVICENOW_INSTANCE || '';
+    const user = username || storedServiceNowCredentials.username || process.env.SERVICENOW_USERNAME || '';
+    const pass = (password && password !== '********')
+      ? password
+      : ((storedServiceNowCredentials.password && storedServiceNowCredentials.password !== '********')
+          ? storedServiceNowCredentials.password
+          : (process.env.SERVICENOW_PASSWORD || ''));
+
+    if (!inst || !user || !pass) {
+      return res.status(400).json({ success: false, error: 'Instance, username, and password are required.' });
+    }
+
+    const cleanUrl = inst.replace(/\/$/, '');
+    const instanceHost = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}.service-now.com`;
+    const headers = {
+      'Authorization': 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64'),
+      'Accept': 'application/json',
+      'User-Agent': 'aistudio-build'
+    };
+
+    const testUrl = `${instanceHost}/api/now/table/${targetTable}?sysparm_limit=1`;
+    const resp = await fetch(testUrl, { headers, signal: AbortSignal.timeout(15000) });
+    if (!resp.ok) {
+      return res.status(resp.status).json({
+        success: false,
+        error: `ServiceNow returned HTTP ${resp.status}: ${resp.statusText}`
+      });
+    }
+
+    return res.json({ success: true, message: `Connected successfully to ${instanceHost}! HTTP 200 OK.` });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Connection test failed.' });
+  }
+});
+
 // ServiceNow Overall API Overview across core IT tables
 app.post('/api/servicenow/overview', async (req, res) => {
   try {
     const { instanceName, username, password, limit = 5 } = req.body;
     const inst = instanceName || storedServiceNowCredentials.instanceName;
     const user = username || storedServiceNowCredentials.username;
-    const pass = password || storedServiceNowCredentials.password;
+    const pass = (password && password !== '********')
+      ? password
+      : ((storedServiceNowCredentials.password && storedServiceNowCredentials.password !== '********')
+          ? storedServiceNowCredentials.password
+          : (process.env.SERVICENOW_PASSWORD || ''));
 
     const cleanUrl = (inst || '').replace(/\/$/, '');
     const isLive = inst && inst !== 'dev12000' && user && pass;
@@ -6596,10 +6646,16 @@ app.post('/api/servicenow/credentials', (req, res) => {
       ? onlyResolved === true
       : (onlySolvePropose !== undefined ? onlySolvePropose === true : (storedServiceNowCredentials.onlyResolved ?? storedServiceNowCredentials.onlySolvePropose));
 
+    const resolvedPassword = (password && password !== '********')
+      ? password
+      : ((storedServiceNowCredentials.password && storedServiceNowCredentials.password !== '********')
+          ? storedServiceNowCredentials.password
+          : (process.env.SERVICENOW_PASSWORD || ''));
+
     storedServiceNowCredentials = {
       instanceName: instanceName || 'dev12000',
       username: username || 'admin',
-      password: (password && password !== '********') ? password : (storedServiceNowCredentials.password || 'admin'),
+      password: resolvedPassword,
       limit: resolvedLimit,
       syncType: syncType || 'all',
       useSimulator: resolvedUseSimulator,
@@ -6704,7 +6760,12 @@ app.post('/api/servicenow/incident/append-activity-log', async (req, res) => {
     const creds: any = storedServiceNowCredentials;
     const targetInstance = String(req.body?.instanceName || creds?.instanceName || creds?.instance || '').trim();
     const targetUser = String(req.body?.username || creds?.username || 'admin').trim();
-    const targetPass = String(req.body?.password || creds?.password || '').trim();
+    const rawTargetPass = req.body?.password;
+    const targetPass = (rawTargetPass && rawTargetPass !== '********')
+      ? String(rawTargetPass).trim()
+      : ((creds?.password && creds.password !== '********')
+          ? String(creds.password).trim()
+          : (process.env.SERVICENOW_PASSWORD || '').trim());
     const targetToken = String(req.body?.token || creds?.token || '').trim();
 
     if (targetInstance && !creds?.useSimulator && (targetPass || targetToken)) {
@@ -7141,7 +7202,11 @@ app.post('/api/servicenow/sync', async (req, res) => {
 
     const effectiveInstance = instanceName || storedServiceNowCredentials.instanceName || process.env.SERVICENOW_INSTANCE?.replace(/^https?:\/\//, '').replace(/\.service-now\.com.*$/, '') || '';
     const effectiveUser = username || storedServiceNowCredentials.username || process.env.SERVICENOW_USERNAME || '';
-    const effectivePass = password || storedServiceNowCredentials.password || process.env.SERVICENOW_PASSWORD || '';
+    const effectivePass = (password && password !== '********')
+      ? password
+      : ((storedServiceNowCredentials.password && storedServiceNowCredentials.password !== '********')
+          ? storedServiceNowCredentials.password
+          : (process.env.SERVICENOW_PASSWORD || ''));
     const resolvedUseSimulator = false; // Never use simulator mode per user directive
 
     const resolvedFilterVal = onlyResolved !== undefined
